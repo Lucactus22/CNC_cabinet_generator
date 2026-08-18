@@ -1,0 +1,134 @@
+# Cabinet CNC Generator
+
+Parametric cabinet designer that outputs **CNC-ready DXF** for import into CAM
+(VCarve/Aspire, Fusion 360, Carveco, Carbide Create), with a live 3D preview,
+sheet nesting, and manufacturability checks against your actual machine.
+
+Everything runs in the browser. Nothing is uploaded; your designs never leave
+your computer.
+
+```bash
+npm install
+npm run dev      # http://localhost:5173
+npm test
+```
+
+## What it makes
+
+One cabinet type, fully parametric: a **deeper base carcass with a shallower
+upper carcass stacked directly on it**, rear faces flush against the wall so the
+base's top panel forms a ledge at the front. Integral toe kick, vertical
+dividers, and per-bay shelves that are either dadoed in place or sit on a 32 mm
+shelf pin ladder.
+
+Doors and drawers are not built yet. The part model and the joinery interface
+are shaped to take them without a rewrite.
+
+## The joinery
+
+Two carcass joints, both fully machinable from a flat sheet on a 3-axis router.
+
+**Stopped dado + screws** (default). The groove holds back from the front edge
+so the joint does not show on the finished face, and the mating panel's front
+corner is automatically notched to clear both the stop *and* the radius the
+cutter leaves at the end of the pocket. Groove widths come from your **measured**
+sheet thickness, not the nominal size.
+
+**Through tab and slot.** Self-jigging, no fasteners needed. Every slot corner
+gets a dogbone or T-bone relief, and so does every tab root — without that, the
+cutter's radius holds the shoulder off the mating face.
+
+Plus back panels in a groove or rabbet, and 32 mm shelf pin ladders (5 mm holes,
+12 mm deep, 32 mm pitch, rows 37 mm in from each edge).
+
+Dowels and Confirmat are deliberately absent: they need boring into a panel's
+edge, which a 3-axis flat-bed router cannot do. See
+[docs/JOINERY.md](docs/JOINERY.md) for the geometry and the reasoning.
+
+### One rule worth knowing
+
+**Every part should be machinable from one face.** Flipping panels is where
+accuracy goes on a hobby machine. The default joinery achieves this for every
+part except a divider with shelves on both sides, which genuinely cannot avoid
+it — and that part is flagged in the diagnostics, with its second-face geometry
+written to `_FLIP` layers, mirrored so it lands correctly once you turn the
+sheet over left to right.
+
+## Your machine
+
+Enter your travels and which axis the stock feeds through. The tool then checks
+what you have actually asked for:
+
+- A part whose **smaller** dimension exceeds the travel on the axis that does
+  not feed is impossible, and says so.
+- A **sheet** wider than that same travel is impossible too — feeding stock
+  through cannot rescue it, because that axis never moves. On a 1 × 1 m machine
+  with 2440 × 1220 sheets, this is the first thing you will see.
+- Sheets longer than the machine are split into feed-through tiles, and you get
+  **one DXF per tile** with coordinates zeroed to that tile's origin.
+
+There is a **Set sheets to machine size** button. On a small machine, nesting
+into blanks the size of your bed usually beats tiling: more sheets, but no
+registration, no seams, and no chance of drift.
+
+### Tiling workflow
+
+Each tile cuts a band exactly one step wide, where step = travel − overlap. The
+overlap is headroom, not double-cutting; nothing is machined twice.
+
+1. Cut tile 1. It drills the `TILE_REG` holes through the waste into your
+   spoilboard.
+2. Drop pins in those holes, keep the stock against a fence.
+3. Pull the pins, slide the stock forward by one step, re-pin. The holes you
+   just drilled land on the same pins.
+4. Load the next tile file and cut. Repeat.
+
+## Output
+
+| File | What it is |
+|---|---|
+| `<name>-sheet<N>.dxf` | One nested sheet, whole |
+| `<name>-sheet<N>-tile<M>.dxf` | One tile, zeroed to its own origin |
+| `<name>-cutlist.csv` | Every part with sizes, sheet, and hole counts |
+
+DXF is **R12 (AC1009)**, the most widely readable flavour, with arcs on polyline
+bulges. Cut depth is encoded in the layer name so your CAM can assign both the
+strategy and the depth on import:
+
+| Layer | Toolpath |
+|---|---|
+| `OUTLINE` | Profile, outside, full depth, with tabs |
+| `THROUGH` | Profile, inside, full depth |
+| `POCKET_D6` | Pocket to 6 mm |
+| `DRILL_5_D12` | Drill 5 mm dia, 12 mm deep |
+| `DRILL_4.5_THRU` | Drill 4.5 mm, through |
+| `TILE_REG` | Registration pin holes |
+| `LABEL`, `SHEET` | Reference only, do not machine |
+
+Layer names are upper case because R12 cannot carry lower case. If your importer
+dislikes decimal points, tick **safe layer names** to get `POCKET_D6P35`.
+
+Full spec: [docs/DXF.md](docs/DXF.md).
+
+## Before you cut
+
+1. **Measure your sheet** with calipers and enter the real thickness. 18 mm ply
+   is usually 17.4–17.8 mm, and every groove width is derived from it.
+2. **Cut one test joint** before committing a full sheet. If it is tight, raise
+   the fit clearance; if sloppy, lower it.
+3. Check the diagnostics panel is not showing anything blocking.
+
+## Layout
+
+```
+packages/core/   zero-dependency TypeScript: model, joinery, nesting, DXF
+apps/web/        React + three.js front end
+docs/            joinery reference, DXF spec, design plan
+```
+
+`packages/core` has no runtime dependencies and no UI, so the geometry is
+testable on its own and reusable from a CLI or a different front end.
+
+## Licence
+
+MIT.
