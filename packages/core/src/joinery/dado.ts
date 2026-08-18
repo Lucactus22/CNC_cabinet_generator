@@ -36,7 +36,7 @@ export function applyDado(
   const warnings: string[] = [];
   const j = params.joinery;
   const toolR = params.tool.diameter / 2;
-  const depth = j.dadoDepthRatio * female.part.thickness;
+  const depth = clampDadoDepth(j.dadoDepth, female.part.thickness, female.part.label, warnings);
 
   const c = contactOf(female.part, male.part);
   extendMaleInto(male.part, c, depth);
@@ -183,6 +183,23 @@ function addScrewHoles(
     };
     female.part.features.push(hole);
   }
+}
+
+/** Keep a groove from eating so much of a panel that it becomes a hinge. */
+export function clampDadoDepth(
+  requested: number,
+  thickness: number,
+  label: string,
+  warnings: string[],
+): number {
+  const limit = thickness * 0.6;
+  if (requested > limit + 1e-9) {
+    warnings.push(
+      `${label}: a ${requested} mm groove is too deep for ${thickness.toFixed(1)} mm material, so it was cut back to ${limit.toFixed(1)} mm.`,
+    );
+    return limit;
+  }
+  return requested;
 }
 
 const fmt = (n: number): string => n.toFixed(1);

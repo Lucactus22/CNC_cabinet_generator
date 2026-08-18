@@ -2,6 +2,7 @@ import { rect } from '../geom/index.js';
 import type {
   AABB,
   Axis,
+  GrainAxis,
   CabinetParams,
   CarcassSpec,
   Material,
@@ -170,7 +171,7 @@ function buildCarcass(
     b: AABB,
     normalAxis: Axis,
     faceASign: Sign,
-    grainLocked: boolean,
+    grainAxis: GrainAxis,
   ): Part => {
     const part: Part = {
       id,
@@ -186,7 +187,7 @@ function buildCarcass(
       height: 0,
       outline: rect(0, 0, 0, 0),
       features: [],
-      grainLocked,
+      grainAxis,
     };
     parts.push(part);
     return part;
@@ -196,9 +197,9 @@ function buildCarcass(
   const leftId = `${prefix}-SIDE-L`;
   const rightId = `${prefix}-SIDE-R`;
   add(leftId, `${human} side, left`, 'side', carcassMat.id, t,
-    box(0, t, yFront, yBack, z0, zTop), 'x', '+', true);
+    box(0, t, yFront, yBack, z0, zTop), 'x', '+', 'v');
   add(rightId, `${human} side, right`, 'side', carcassMat.id, t,
-    box(W - t, W, yFront, yBack, z0, zTop), 'x', '-', true);
+    box(W - t, W, yFront, yBack, z0, zTop), 'x', '-', 'v');
 
   // --- Bottom and top panels ---------------------------------------------
   // Sized to the clear opening; the joinery stage grows them into their dados.
@@ -206,9 +207,9 @@ function buildCarcass(
   const topId = `${prefix}-TOP`;
   const bottomZ = z0 + toeH;
   add(bottomId, `${human} bottom`, 'bottom', carcassMat.id, t,
-    box(t, W - t, yFront, yBack, bottomZ, bottomZ + t), 'z', '+', true);
+    box(t, W - t, yFront, yBack, bottomZ, bottomZ + t), 'z', '+', 'u');
   add(topId, `${human} top`, 'top', carcassMat.id, t,
-    box(t, W - t, yFront, yBack, zTop - t, zTop), 'z', '-', true);
+    box(t, W - t, yFront, yBack, zTop - t, zTop), 'z', '-', 'u');
 
   for (const maleId of [bottomId, topId]) {
     for (const femaleId of [leftId, rightId]) {
@@ -227,7 +228,7 @@ function buildCarcass(
     const railId = `${prefix}-TOERAIL`;
     const railY = yFront + ctx.toeKick.setback;
     add(railId, `${human} toe kick rail`, 'toe-rail', carcassMat.id, t,
-      box(t, W - t, railY, railY + t, z0, z0 + toeH), 'y', '-', true);
+      box(t, W - t, railY, railY + t, z0, z0 + toeH), 'y', '-', 'u');
     for (const femaleId of [leftId, rightId]) {
       joints.push({ maleId: railId, femaleId, purpose: 'toe-rail', forceDado: true });
     }
@@ -246,7 +247,7 @@ function buildCarcass(
     const id = `${prefix}-DIV-${i + 1}`;
     dividerIds.push(id);
     add(id, `${human} divider ${i + 1}`, 'divider', carcassMat.id, t,
-      box(x, x + t, yFront, innerBackY, shelfZ0, shelfZ1), 'x', '+', true);
+      box(x, x + t, yFront, innerBackY, shelfZ0, shelfZ1), 'x', '+', 'v');
     joints.push({ maleId: id, femaleId: bottomId, stopFrontAtY: yFront, purpose: 'divider' });
     joints.push({ maleId: id, femaleId: topId, stopFrontAtY: yFront, purpose: 'divider' });
   });
@@ -268,7 +269,7 @@ function buildCarcass(
         add(id, `${human} shelf, bay ${i + 1} no ${k + 1}`, 'shelf', shelfMat.id,
           shelfMat.actualThickness,
           box(bay.x0, bay.x1, yFront, innerBackY, z, z + shelfMat.actualThickness),
-          'z', '+', true);
+          'z', '+', 'u');
         joints.push({ maleId: id, femaleId: leftPanel, stopFrontAtY: yFront, purpose: 'shelf' });
         joints.push({ maleId: id, femaleId: rightPanel, stopFrontAtY: yFront, purpose: 'shelf' });
       });
@@ -292,7 +293,7 @@ function buildCarcass(
           shelfMat.actualThickness,
           box(bay.x0 + clearance / 2, bay.x1 - clearance / 2, yFront + clearance,
             innerBackY, shelfZ0 + 200, shelfZ0 + 200 + shelfMat.actualThickness),
-          'z', '+', true);
+          'z', '+', 'u');
       } else {
         notes.push(
           `${human} carcass bay ${i + 1}: the opening is too short for a shelf pin ladder, so no holes were drilled.`,
@@ -308,7 +309,7 @@ function buildCarcass(
     // Sized to the clear opening. If it sits in grooves, the joinery stage
     // grows it into them, exactly as it does for every other captured panel.
     add(backId, `${human} back`, 'back', backMat.id, backT,
-      box(t, W - t, backY1 - backT, backY1, shelfZ0, shelfZ1), 'y', '-', true);
+      box(t, W - t, backY1 - backT, backY1, shelfZ0, shelfZ1), 'y', '-', 'free');
     if (spec.back.style === 'groove') {
       for (const femaleId of [leftId, rightId, bottomId, topId]) {
         joints.push({ maleId: backId, femaleId, purpose: 'back', forceDado: true });

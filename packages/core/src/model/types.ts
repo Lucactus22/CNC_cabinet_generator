@@ -70,8 +70,11 @@ export interface JoinerySettings {
   reliefStyle: ReliefStyle;
   /** Added to every slot and groove width so parts actually go together. */
   fitClearance: number;
-  /** Dado depth as a fraction of the receiving panel's thickness. */
-  dadoDepthRatio: number;
+  /**
+   * How deep a groove is cut, in millimetres. Clamped so it never eats more
+   * than 60% of the panel receiving it.
+   */
+  dadoDepth: number;
   /**
    * How far a stopped dado holds back from the front edge, so the joint is
    * invisible on the finished face. Zero gives a through dado.
@@ -157,6 +160,7 @@ export type PartRole =
   | 'stretcher';
 
 export type FaceSide = 'A' | 'B';
+export type GrainAxis = 'u' | 'v' | 'free';
 
 export interface PocketFeature {
   kind: 'pocket';
@@ -218,7 +222,12 @@ export interface Part {
   height: number;
   outline: Path;
   features: Feature[];
-  grainLocked: boolean;
+  /**
+   * Which local axis the sheet's face grain should run along. 'free' lets the
+   * nester rotate the part for a better yield; anything else pins its
+   * orientation, which is what veneered ply on a visible face needs.
+   */
+  grainAxis: GrainAxis;
 }
 
 export interface Assembly {

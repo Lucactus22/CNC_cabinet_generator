@@ -54,7 +54,7 @@ export function defaultParams(): CabinetParams {
       carcassJoint: 'dado',
       reliefStyle: 'dogbone',
       fitClearance: 0.15,
-      dadoDepthRatio: 1 / 3,
+      dadoDepth: 6,
       dadoStopFront: 10,
       screwHoles: true,
       screwPilotDiameter: 4.5,

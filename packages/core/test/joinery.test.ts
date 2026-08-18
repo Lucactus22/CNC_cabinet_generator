@@ -137,7 +137,7 @@ describe('dado joints', () => {
   const params = defaultParams();
   const { parts } = generate(params);
   const t = params.materials[0]!.actualThickness;
-  const dadoDepth = params.joinery.dadoDepthRatio * t;
+  const dadoDepth = params.joinery.dadoDepth;
 
   it('cuts grooves one third of the panel thickness deep', () => {
     for (const f of pockets(find(parts, 'B-SIDE-L'))) {
