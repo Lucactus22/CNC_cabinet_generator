@@ -131,4 +131,4 @@ testable on its own and reusable from a CLI or a different front end.
 
 ## Licence
 
-MIT.
+None
