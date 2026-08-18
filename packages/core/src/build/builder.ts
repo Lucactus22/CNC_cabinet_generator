@@ -135,6 +135,15 @@ export function buildParts(params: CabinetParams): BuildResult {
     buildCarcass(ctx, params, carcassMat, shelfMat, t, parts, joints, pinRows, toeNotches, notes);
   }
 
+  if (params.top.floor === 'base-top' && params.base.topStyle === 'inset') {
+    // An inset top only spans the clear opening, so the upper's sides would
+    // land half on it and half on the end grain of the base's own sides,
+    // leaving the locating dado a fraction of its intended width.
+    notes.push(
+      'The upper carcass stands on the base top, but that panel is inset between the base sides, so it does not reach under the upper sides. Cap the base top so it laps over them.',
+    );
+  }
+
   if (topSpec.depth > baseDepth) {
     notes.push(
       'The upper carcass is deeper than the base, so it overhangs at the front instead of stepping back.',
@@ -213,20 +222,41 @@ function buildCarcass(
   };
 
   // --- Sides -------------------------------------------------------------
+  // A capped top lies over the sides, so they stop at its underside.
+  const capped = spec.topStyle === 'capped';
+  const sideTop = capped ? zTop - t : zTop;
   const leftId = `${prefix}-SIDE-L`;
   const rightId = `${prefix}-SIDE-R`;
   add(leftId, `${human} side, left`, 'side', carcassMat.id, t,
-    box(0, t, yFront, yBack, z0, zTop), 'x', '+', 'v');
+    box(0, t, yFront, yBack, z0, sideTop), 'x', '+', 'v');
   add(rightId, `${human} side, right`, 'side', carcassMat.id, t,
-    box(W - t, W, yFront, yBack, z0, zTop), 'x', '-', 'v');
+    box(W - t, W, yFront, yBack, z0, sideTop), 'x', '-', 'v');
 
   // --- Bottom and top panels ---------------------------------------------
   // Sized to the clear opening; the joinery stage grows them into their dados.
   const topId = `${prefix}-TOP`;
   add(topId, `${human} top`, 'top', carcassMat.id, t,
-    box(t, W - t, yFront, yBack, zTop - t, zTop), 'z', '-', 'u');
-  for (const femaleId of [leftId, rightId]) {
-    joints.push({ maleId: topId, femaleId, stopFrontAtY: yFront, purpose: 'carcass' });
+    box(capped ? 0 : t, capped ? W : W - t, yFront, yBack, zTop - t, zTop), 'z', '-', 'u');
+
+  if (capped) {
+    // The sides run up into shallow dados in the top's underside. That is the
+    // face already being machined for the dividers and the back, so capping
+    // costs no extra setup. The dado stops short of the front, because the
+    // panel's front edge is on show.
+    for (const maleId of [leftId, rightId]) {
+      joints.push({
+        maleId,
+        femaleId: topId,
+        stopFrontAtY: yFront,
+        purpose: 'carcass',
+        forceDado: true,
+        depthOverride: params.joinery.stackDadoDepth,
+      });
+    }
+  } else {
+    for (const femaleId of [leftId, rightId]) {
+      joints.push({ maleId: topId, femaleId, stopFrontAtY: yFront, purpose: 'carcass' });
+    }
   }
 
   const bottomId = `${prefix}-BOTTOM`;

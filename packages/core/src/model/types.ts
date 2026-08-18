@@ -60,6 +60,15 @@ export type BackStyle = 'groove' | 'rabbet' | 'none';
  * holding once it is glued.
  */
 export type UpperFloor = 'own' | 'base-top';
+
+/**
+ * How the top panel meets the sides.
+ *
+ * 'capped' lays it over their top edges so the finished surface is one
+ * unbroken panel with no joint line showing from above. 'inset' sets it
+ * between them, which puts the sides' edges on show alongside it.
+ */
+export type TopStyle = 'capped' | 'inset';
 export type ShelfMode = 'none' | 'fixed' | 'adjustable';
 
 export interface ShelfPinSpec {
@@ -127,6 +136,7 @@ export interface BackSpec {
 }
 
 export interface CarcassSpec {
+  topStyle: TopStyle;
   width: number;
   height: number;
   depth: number;

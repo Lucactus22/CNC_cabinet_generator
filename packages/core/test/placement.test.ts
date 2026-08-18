@@ -229,3 +229,70 @@ describe('upper carcass with no bottom panel', () => {
     expect(project.cutList).toHaveLength(parts.length);
   });
 });
+
+describe('capped top panel', () => {
+  const capped = buildProject(defaultParams());
+  const inset = (() => {
+    const p = defaultParams();
+    p.base.topStyle = 'inset';
+    return buildProject(p);
+  })();
+
+  const partOf = (proj: typeof capped, id: string) => proj.parts.find((p) => p.id === id)!;
+  const flipIds = (proj: typeof capped): string[] =>
+    proj.diagnostics.find((d) => d.message.includes('turned over on the bed'))?.partIds ?? [];
+
+  it('laps the top over the full width of the carcass', () => {
+    const top = partOf(capped, 'B-TOP');
+    expect(top.box.min.x).toBeCloseTo(0, 6);
+    expect(top.box.max.x).toBeCloseTo(capped.params.base.width, 6);
+  });
+
+  it('stops the sides under the top so no edge shows from above', () => {
+    // The whole point: from above you see one unbroken panel.
+    const top = partOf(capped, 'B-TOP');
+    const side = partOf(capped, 'B-SIDE-L');
+    expect(side.box.max.z).toBeLessThan(top.box.max.z);
+    expect(side.box.max.z).toBeGreaterThan(top.box.min.z); // still up into the dado
+
+    // Inset, by contrast, leaves the side's top edge flush with the surface,
+    // which is exactly the seam this option removes.
+    const insetSide = partOf(inset, 'B-SIDE-L');
+    expect(insetSide.box.max.z).toBeCloseTo(partOf(inset, 'B-TOP').box.max.z, 6);
+  });
+
+  it('runs the sides up into the top rather than merely butting them', () => {
+    const depth = capped.params.joinery.stackDadoDepth;
+    const top = partOf(capped, 'B-TOP');
+    expect(partOf(capped, 'B-SIDE-L').box.max.z).toBeCloseTo(top.box.min.z + depth, 6);
+  });
+
+  it('costs no extra setup, because the underside is already the machined face', () => {
+    const top = partOf(capped, 'B-TOP');
+    const pockets = top.features.filter((f) => f.kind === 'pocket');
+    expect(pockets.length).toBeGreaterThanOrEqual(4);
+    for (const f of pockets) if (f.kind === 'pocket') expect(f.side).toBe('A');
+    expect(flipIds(capped)).not.toContain('B-TOP');
+  });
+
+  it('hides the locating dado at the visible front edge', () => {
+    // The side gains a notch at its front top corner to clear the stop.
+    expect(partOf(capped, 'B-SIDE-L').outline.pts.length).toBeGreaterThan(
+      partOf(inset, 'B-SIDE-L').outline.pts.length,
+    );
+  });
+
+  it('warns when an upper carcass would stand on an inset top', () => {
+    const p = defaultParams();
+    p.base.topStyle = 'inset';
+    p.top.floor = 'base-top';
+    expect(
+      buildProject(p).notes.some((n) => n.includes('does not reach under the upper sides')),
+    ).toBe(true);
+  });
+
+  it('still nests and lists cleanly', () => {
+    expect(capped.nest.unplaced).toEqual([]);
+    expect(capped.cutList).toHaveLength(capped.parts.length);
+  });
+});

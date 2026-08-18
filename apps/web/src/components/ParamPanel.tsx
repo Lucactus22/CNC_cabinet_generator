@@ -410,6 +410,16 @@ function CarcassGroup({
           )}
         </>
       )}
+      <SelectField
+        label="Top panel"
+        value={spec.topStyle}
+        options={[
+          { value: 'capped', label: 'Capped over the sides' },
+          { value: 'inset', label: 'Inset between the sides' },
+        ]}
+        onChange={(v) => update((p) => { (p[which] as CarcassSpec).topStyle = v; })}
+        title="Capped lays the top over the side edges, so the surface reads as one panel with no seam showing from above."
+      />
       <NumberField
         label="Dividers"
         value={spec.dividerCount}

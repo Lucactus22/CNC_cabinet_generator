@@ -21,6 +21,12 @@ base's top panel forms a ledge at the front. Integral toe kick, vertical
 dividers, and per-bay shelves that are either dadoed in place or sit on a 32 mm
 shelf pin ladder.
 
+The base's top panel is **capped** by default: it laps over the side panels
+rather than sitting between them, so the finished ledge reads as one unbroken
+surface with no joint line showing from above. The sides run up into shallow
+dados in its underside — the face already being machined for the dividers and
+the back, so capping costs no extra setup.
+
 The upper carcass can also be built **without a bottom of its own**, standing
 instead in shallow locating dados machined into the base's top panel. One less
 panel, one less joint line, and gravity holds it while the glue goes off. The

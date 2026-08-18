@@ -213,9 +213,12 @@ describe('toe kick', () => {
     const side = find(parts, 'B-SIDE-L');
     const kick = params.base.toeKick;
 
-    // The blank is still the full rectangle, but the outline is not.
+    // The blank is still a rectangle, but the outline is not.
     expect(side.width).toBeCloseTo(params.base.depth, 6);
-    expect(side.height).toBeCloseTo(params.base.height, 6);
+    // The base top caps over the sides by default, so a side stops at the
+    // top's underside and then runs back up into its locating dado.
+    const top = find(parts, 'B-TOP');
+    expect(side.height).toBeCloseTo(top.box.min.z + params.joinery.stackDadoDepth, 6);
     expect(side.outline.pts.length).toBeGreaterThan(4);
 
     const pts = tessellate(side.outline);

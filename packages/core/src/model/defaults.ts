@@ -73,6 +73,8 @@ export function defaultParams(): CabinetParams {
       },
     },
     base: {
+      // The base's top is the visible ledge, so it laps over the sides.
+      topStyle: 'capped',
       width: 900,
       height: 900,
       depth: 600,
@@ -86,6 +88,7 @@ export function defaultParams(): CabinetParams {
       toeKick: { enabled: true, height: 100, setback: 50 },
     },
     top: {
+      topStyle: 'inset',
       width: 900,
       height: 1100,
       depth: 400,

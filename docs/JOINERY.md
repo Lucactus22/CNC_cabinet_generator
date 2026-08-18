@@ -124,6 +124,24 @@ otherwise be visible and a shoulder can cover it.
 `none` is for the case where you would rather round the mating part's corners by
 hand. The joints will not close otherwise.
 
+## Capped vs inset tops
+
+A **capped** top lies over the side panels and spans the full width of the
+carcass. From above you see one unbroken surface. The sides stop at its
+underside and run up into shallow locating dados cut there.
+
+Those dados land on the top panel's **underside**, which is already the face
+being machined for the dividers and the back groove, so capping adds no setup
+and no flip. As everywhere else, the dado stops short of the front edge — that
+edge is on show — and the sides get their front top corners notched to clear it.
+
+An **inset** top sits between the sides instead, leaving their end grain flush
+with the surface and a joint line either side of the panel. It is the right
+choice where the top is hidden, and the default for the upper carcass.
+
+The base carcass defaults to capped, because in this design its top is the
+visible ledge.
+
 ## Standing the upper carcass on the base
 
 The upper carcass can be built without a bottom panel. Its sides, dividers and

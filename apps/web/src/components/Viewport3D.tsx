@@ -193,9 +193,23 @@ function createEngine(
       renderer.domElement.style.cursor = id ? 'pointer' : 'default';
     }
   };
-  const onClick = (): void => handlers.onPick(pick()?.part.id ?? null);
+  // A drag to orbit ends with a click event on the canvas, so selection has to
+  // distinguish the two: only a press that barely moved counts as a pick.
+  let pressAt: { x: number; y: number } | null = null;
+  const onPointerDown = (ev: PointerEvent): void => {
+    pressAt = { x: ev.clientX, y: ev.clientY };
+  };
+  const onClick = (ev: MouseEvent): void => {
+    const moved = pressAt
+      ? Math.hypot(ev.clientX - pressAt.x, ev.clientY - pressAt.y)
+      : 0;
+    pressAt = null;
+    if (moved > 4) return;
+    handlers.onPick(pick()?.part.id ?? null);
+  };
 
   renderer.domElement.addEventListener('pointermove', onPointerMove);
+  renderer.domElement.addEventListener('pointerdown', onPointerDown);
   renderer.domElement.addEventListener('click', onClick);
 
   function pick(): { part: Part } | null {
@@ -264,6 +278,7 @@ function createEngine(
       cancelAnimationFrame(raf);
       observer.disconnect();
       renderer.domElement.removeEventListener('pointermove', onPointerMove);
+      renderer.domElement.removeEventListener('pointerdown', onPointerDown);
       renderer.domElement.removeEventListener('click', onClick);
       controls.dispose();
       disposeGroup(root);
