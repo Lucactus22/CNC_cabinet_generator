@@ -1,6 +1,10 @@
 # CNC Cabinet Generator — Design & Implementation Plan
 
-> Status: **proposal, awaiting feedback**. Nothing implemented yet.
+> Status: **approved, in progress**.
+>
+> Decisions taken: ship **both** `DADO_SCREW` and `TAB_SLOT` joinery; v1 interior is
+> **shelves + vertical dividers**; **web app deployed to GitHub Pages**; tiling emits
+> **one DXF per tile** with coordinates zeroed to the tile origin plus registration holes.
 
 ## 1. What we're building
 
@@ -92,7 +96,7 @@ interface JointStrategy {
 
 ### Shipping in v1
 
-**A. `DADO_SCREW` (proposed default)** — shelves/bottoms/tops/dividers land in a machined
+**A. `DADO_SCREW` (default)** — shelves/bottoms/tops/dividers land in a machined
 groove in the mating panel. Sturdy, self-squaring, forgiving, and the CabinetPartsPro
 standard.
 - Groove width = **actual measured** panel thickness + `fitClearance` (default 0.15 mm).
@@ -110,8 +114,6 @@ great where you want the CNC to do the alignment work.
 - Male tab roots get matching relief so the shoulder seats flat.
 - Relief radius = `max(1.1 × toolRadius, toolRadius + 0.2)`; dogbone centre offset √(R²/2).
 - Tab count/width auto-derived from panel length, overridable.
-
-**C. `BUTT_SCREW`** — plain butt joint with through-drilled screw holes. The escape hatch.
 
 **D. `BACK_GROOVE` / `BACK_RABBET`** — back panel captured in a groove set in from the rear
 edge, or a rabbet at the rear edge (better for scribing to a wall). Both supported.
@@ -155,10 +157,11 @@ Inputs: machine X, Y, Z travel; which axis feeds through (tiling axis); tile ove
    answer on a 1 m machine, so the UI suggests it.
 3. If a sheet is longer than the machine along the tiling axis, we compute
    `tiles = ceil(sheetLength / (machineLength − overlap))` and report it per sheet.
-4. *Optional extra* (your call): emit a `TILE_GUIDE` layer with the tile split lines and a
-   `TILE_REG` layer with 6 mm registration dowel holes placed in waste area, straddling the
-   seams — the standard feed-through workflow. This is beyond your stated requirement, so
-   I've left it as a question rather than assuming.
+4. **Per-tile DXF export.** Each oversized sheet is also written as one DXF per tile, with
+   coordinates zeroed to that tile's own origin so you can load and cut it directly. Geometry
+   straddling a seam is clipped to the tile. Every tile carries `TILE_REG` registration dowel
+   holes at identical positions in waste area, so the standard feed-through workflow applies:
+   pin, cut, unpin, slide against the fence, re-pin, cut the next tile.
 
 ## 7. Nesting
 
@@ -228,15 +231,19 @@ hardware), face frames, crown/scribe moulding.
 | 1 | Skeleton | monorepo, TS config, vitest, CI, Pages deploy |
 | 2 | Geometry core | Path/arc primitives, dogbone/T-bone, bbox, tests |
 | 3 | Builder | parameters → Part[] for both carcasses, no joints yet |
-| 4 | Joinery | DADO_SCREW + BACK_GROOVE + SHELF_PINS, heavily tested |
+| 4 | Joinery | DADO_SCREW + TAB_SLOT + BACK_GROOVE + SHELF_PINS, heavily tested |
 | 5 | DXF + cut list | R12 writer, layer spec, CSV — first real cuttable output |
 | 6 | Nesting + machine checks | MaxRects, tiling maths, diagnostics engine |
 | 7 | Web UI | parameter panel, 3 preview panes, diagnostics, exports |
-| 8 | TAB_SLOT + polish | second joint strategy, project save/load, docs |
+| 8 | Docs + verification | joinery reference, layer spec, README, end-to-end output check |
 
 Each milestone is a commit on `claude/cabinet-cnc-generator-myvw1q` with tests passing.
 
-## 12. Open questions
+## 12. Resolved decisions
 
-See the questions asked alongside this plan: default joinery, v1 interior scope,
-stack/deployment, and whether to emit tiling registration geometry.
+| Question | Decision |
+|---|---|
+| Joinery in v1 | `DADO_SCREW` (default) **and** `TAB_SLOT`, user-selectable per unit |
+| Interior scope | Shelves + vertical dividers. No doors, no drawers, no butt joint, no dowels |
+| Stack | TypeScript web app, static build deployed to GitHub Pages |
+| Tiling | Warnings **plus** per-tile DXF split with zeroed origins and registration holes |
