@@ -124,6 +124,34 @@ otherwise be visible and a shoulder can cover it.
 `none` is for the case where you would rather round the mating part's corners by
 hand. The joints will not close otherwise.
 
+## Standing the upper carcass on the base
+
+The upper carcass can be built without a bottom panel. Its sides, dividers and
+back then stand in shallow locating dados cut into the **top face** of the
+base's top panel, which becomes the upper carcass's floor.
+
+It is the same housing joint as everywhere else, so the sides grow into their
+dados and get their front corners notched automatically. That notch matters
+here more than usual: the base's top panel is the visible ledge at the front, so
+the dado stops short of it and nothing shows.
+
+```
+Locating dado depth = stackDadoDepth, 4 mm by default
+Sides, dividers, back all reach down into it
+Glue them in; gravity does the rest
+```
+
+**The cost.** The base's top panel already carries grooves on its underside for
+the base's own dividers and back. Adding locating dados to its top face means it
+has to be turned over on the bed, and the diagnostics say so.
+
+The two sets of pockets also **cross**, near the back where the base's back
+groove runs under the upper's side dados. That is why the locating dado is
+shallow by default: 6 mm underneath plus 4 mm on top leaves 7.8 mm of an 17.8 mm
+panel. There is a check for exactly this — pockets on opposite faces that
+overlap are measured, and you get a warning below 4 mm of remaining material and
+an error if they meet through the panel.
+
 ## Back panels
 
 Captured in a groove on all four sides, set in from the rear edge so there is

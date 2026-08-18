@@ -380,6 +380,36 @@ function CarcassGroup({
           {Math.max(0, params.base.depth - params.top.depth).toFixed(0)} mm at the front.
         </Hint>
       )}
+      {isTop && (
+        <>
+          <SelectField
+            label="Bottom panel"
+            value={params.top.floor}
+            options={[
+              { value: 'own', label: 'Its own panel' },
+              { value: 'base-top', label: 'None, stands on the base top' },
+            ]}
+            onChange={(v) => update((p) => { p.top.floor = v; })}
+            title="Leaving it out stands the upper carcass in shallow dados in the base's top panel. One less panel, but that panel then needs machining on both faces."
+          />
+          {params.top.floor === 'base-top' && (
+            <>
+              <NumberField
+                label="Locating dado"
+                value={params.joinery.stackDadoDepth}
+                step={0.5}
+                min={0.5}
+                onChange={(v) => update((p) => { p.joinery.stackDadoDepth = v; })}
+                title="Kept shallow: the base's top panel is grooved on its underside too, and the two sets of pockets cross."
+              />
+              <Hint>
+                The upper's sides, dividers and back all stand in the base's top panel. Glue them
+                in; gravity does the rest.
+              </Hint>
+            </>
+          )}
+        </>
+      )}
       <NumberField
         label="Dividers"
         value={spec.dividerCount}

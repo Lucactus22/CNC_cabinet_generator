@@ -21,6 +21,12 @@ base's top panel forms a ledge at the front. Integral toe kick, vertical
 dividers, and per-bay shelves that are either dadoed in place or sit on a 32 mm
 shelf pin ladder.
 
+The upper carcass can also be built **without a bottom of its own**, standing
+instead in shallow locating dados machined into the base's top panel. One less
+panel, one less joint line, and gravity holds it while the glue goes off. The
+cost is that the base's top panel is then machined on both faces, which the
+diagnostics say plainly.
+
 Doors and drawers are not built yet. The part model and the joinery interface
 are shaped to take them without a rewrite.
 

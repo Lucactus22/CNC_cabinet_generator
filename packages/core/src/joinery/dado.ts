@@ -36,7 +36,12 @@ export function applyDado(
   const warnings: string[] = [];
   const j = params.joinery;
   const toolR = params.tool.diameter / 2;
-  const depth = clampDadoDepth(j.dadoDepth, female.part.thickness, female.part.label, warnings);
+  const depth = clampDadoDepth(
+    req.depthOverride ?? j.dadoDepth,
+    female.part.thickness,
+    female.part.label,
+    warnings,
+  );
 
   const c = contactOf(female.part, male.part);
   extendMaleInto(male.part, c, depth);

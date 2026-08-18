@@ -21,6 +21,8 @@ import { layoutBays, pinHeights, shelfHeights } from './layout.js';
 export interface JointRequest {
   maleId: string;
   femaleId: string;
+  /** Overrides the standard dado depth, for shallower locating grooves. */
+  depthOverride?: number;
   /** Carcass joints stop short of this assembly Y so nothing shows on the front edge. */
   stopFrontAtY?: number;
   purpose: 'carcass' | 'shelf' | 'back' | 'divider' | 'toe-rail';
@@ -70,6 +72,12 @@ interface CarcassContext {
   yFront: number;
   /** Assembly-space floor of this carcass. */
   z0: number;
+  /**
+   * Panel this carcass stands on instead of having a bottom of its own. When
+   * set, no bottom panel is built and everything that would have landed in one
+   * lands in shallow dados in this panel instead.
+   */
+  standsOnId: string | null;
 }
 
 const box = (
@@ -108,6 +116,7 @@ export function buildParts(params: CabinetParams): BuildResult {
       toeKick: params.base.toeKick.enabled ? params.base.toeKick : null,
       yFront: 0,
       z0: 0,
+      standsOnId: null,
     },
     {
       which: 'top',
@@ -116,6 +125,9 @@ export function buildParts(params: CabinetParams): BuildResult {
       yFront: topFrontY,
       // The upper carcass sits directly on the base's top panel.
       z0: params.base.height,
+      // With no bottom of its own it stands in that panel, which the base
+      // carcass has already built by the time we get here.
+      standsOnId: params.top.floor === 'base-top' ? 'B-TOP' : null,
     },
   ];
 
@@ -160,7 +172,9 @@ function buildCarcass(
   const innerBackY = spec.back.style === 'none' ? yBack : yBack - spec.back.inset - backT;
 
   const toeH = ctx.toeKick?.height ?? 0;
-  const shelfZ0 = z0 + toeH + t; // top of the bottom panel
+  // Standing on the panel below means its top face is this carcass's floor.
+  const hasOwnBottom = ctx.standsOnId === null;
+  const shelfZ0 = hasOwnBottom ? z0 + toeH + t : z0;
   const shelfZ1 = zTop - t; // underside of the top panel
 
   const add = (
@@ -208,19 +222,51 @@ function buildCarcass(
 
   // --- Bottom and top panels ---------------------------------------------
   // Sized to the clear opening; the joinery stage grows them into their dados.
-  const bottomId = `${prefix}-BOTTOM`;
   const topId = `${prefix}-TOP`;
-  const bottomZ = z0 + toeH;
-  add(bottomId, `${human} bottom`, 'bottom', carcassMat.id, t,
-    box(t, W - t, yFront, yBack, bottomZ, bottomZ + t), 'z', '+', 'u');
   add(topId, `${human} top`, 'top', carcassMat.id, t,
     box(t, W - t, yFront, yBack, zTop - t, zTop), 'z', '-', 'u');
-
-  for (const maleId of [bottomId, topId]) {
-    for (const femaleId of [leftId, rightId]) {
-      joints.push({ maleId, femaleId, stopFrontAtY: yFront, purpose: 'carcass' });
-    }
+  for (const femaleId of [leftId, rightId]) {
+    joints.push({ maleId: topId, femaleId, stopFrontAtY: yFront, purpose: 'carcass' });
   }
+
+  const bottomId = `${prefix}-BOTTOM`;
+  if (hasOwnBottom) {
+    const bottomZ = z0 + toeH;
+    add(bottomId, `${human} bottom`, 'bottom', carcassMat.id, t,
+      box(t, W - t, yFront, yBack, bottomZ, bottomZ + t), 'z', '+', 'u');
+    for (const femaleId of [leftId, rightId]) {
+      joints.push({ maleId: bottomId, femaleId, stopFrontAtY: yFront, purpose: 'carcass' });
+    }
+  } else {
+    // No bottom panel: the sides stand in shallow dados in the panel below.
+    // Reusing the housing joint means they grow into those dados and get their
+    // front corners notched to hide them, exactly as any other captured panel
+    // does. The dado has to stop short of the front, because that panel's front
+    // edge is the visible ledge.
+    for (const maleId of [leftId, rightId]) {
+      joints.push({
+        maleId,
+        femaleId: ctx.standsOnId!,
+        stopFrontAtY: yFront,
+        purpose: 'carcass',
+        forceDado: true,
+        depthOverride: params.joinery.stackDadoDepth,
+      });
+    }
+    notes.push(
+      `${human} carcass has no bottom panel: it stands in ${params.joinery.stackDadoDepth} mm locating dados in the panel below. Glue it in place, and note that panel is now machined on both faces.`,
+    );
+  }
+
+  /** Whatever forms this carcass's floor, for anything that has to land on it. */
+  const floorId = hasOwnBottom ? bottomId : ctx.standsOnId!;
+  const floorJoint = (maleId: string): JointRequest => ({
+    maleId,
+    femaleId: floorId,
+    stopFrontAtY: yFront,
+    purpose: hasOwnBottom ? 'divider' : 'carcass',
+    ...(hasOwnBottom ? {} : { forceDado: true, depthOverride: params.joinery.stackDadoDepth }),
+  });
 
   // --- Toe kick ----------------------------------------------------------
   if (ctx.toeKick) {
@@ -253,7 +299,7 @@ function buildCarcass(
     dividerIds.push(id);
     add(id, `${human} divider ${i + 1}`, 'divider', carcassMat.id, t,
       box(x, x + t, yFront, innerBackY, shelfZ0, shelfZ1), 'x', '+', 'v');
-    joints.push({ maleId: id, femaleId: bottomId, stopFrontAtY: yFront, purpose: 'divider' });
+    joints.push(floorJoint(id));
     joints.push({ maleId: id, femaleId: topId, stopFrontAtY: yFront, purpose: 'divider' });
   });
 
@@ -316,9 +362,21 @@ function buildCarcass(
     add(backId, `${human} back`, 'back', backMat.id, backT,
       box(t, W - t, backY1 - backT, backY1, shelfZ0, shelfZ1), 'y', '-', 'free');
     if (spec.back.style === 'groove') {
-      for (const femaleId of [leftId, rightId, bottomId, topId]) {
+      for (const femaleId of [leftId, rightId, topId]) {
         joints.push({ maleId: backId, femaleId, purpose: 'back', forceDado: true });
       }
+      // The back's bottom edge sits in the floor, whichever panel that is.
+      joints.push(
+        hasOwnBottom
+          ? { maleId: backId, femaleId: bottomId, purpose: 'back', forceDado: true }
+          : {
+              maleId: backId,
+              femaleId: floorId,
+              purpose: 'back',
+              forceDado: true,
+              depthOverride: params.joinery.stackDadoDepth,
+            },
+      );
     }
   }
 }

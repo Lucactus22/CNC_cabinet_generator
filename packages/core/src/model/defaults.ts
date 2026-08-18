@@ -61,6 +61,7 @@ export function defaultParams(): CabinetParams {
       screwSpacing: 150,
       tabWidth: 40,
       tabMinCount: 3,
+      stackDadoDepth: 4,
       shelfPin: {
         diameter: 5,
         depth: 12,
@@ -89,6 +90,7 @@ export function defaultParams(): CabinetParams {
       height: 1100,
       depth: 400,
       linkWidthToBase: true,
+      floor: 'own',
       dividerCount: 1,
       bayWidths: [],
       bays: [

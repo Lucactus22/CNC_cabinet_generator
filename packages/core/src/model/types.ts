@@ -50,6 +50,16 @@ export interface MachineSpec {
 
 export type CarcassJoint = 'dado' | 'tabslot';
 export type BackStyle = 'groove' | 'rabbet' | 'none';
+
+/**
+ * Where the upper carcass gets its floor.
+ *
+ * 'own' gives it a bottom panel of its own. 'base-top' leaves it out and stands
+ * the upper carcass in shallow locating dados machined into the base's top
+ * panel instead: one less panel, one less joint line, and gravity does the
+ * holding once it is glued.
+ */
+export type UpperFloor = 'own' | 'base-top';
 export type ShelfMode = 'none' | 'fixed' | 'adjustable';
 
 export interface ShelfPinSpec {
@@ -94,6 +104,12 @@ export interface JoinerySettings {
   /** Target width of a single tab in a tab-and-slot joint. */
   tabWidth: number;
   tabMinCount: number;
+  /**
+   * Depth of the locating dados the upper carcass stands in when it has no
+   * bottom of its own. Kept shallow: the base's top panel is already grooved
+   * on its underside, and the two sets of pockets cross.
+   */
+  stackDadoDepth: number;
   shelfPin: ShelfPinSpec;
 }
 
@@ -191,7 +207,7 @@ export interface CabinetParams {
   machine: MachineSpec;
   joinery: JoinerySettings;
   base: CarcassSpec & { toeKick: ToeKickSpec };
-  top: CarcassSpec & { linkWidthToBase: boolean };
+  top: CarcassSpec & { linkWidthToBase: boolean; floor: UpperFloor };
   nesting: NestingSettings;
   /** Decorative machining applied to chosen faces. */
   surfaceEffects: SurfaceEffectSpec[];

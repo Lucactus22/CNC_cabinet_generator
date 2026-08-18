@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buildProject, defaultParams, frameOf, normaliseParams, tessellate } from '../src/index.js';
+import {
+  buildProject,
+  defaultParams,
+  frameOf,
+  normaliseParams,
+  residualThickness,
+  tessellate,
+} from '../src/index.js';
 import type { Axis, Part } from '../src/model/types.js';
 
 /**
@@ -149,5 +156,76 @@ describe('opening older project files', () => {
     const fixed = normaliseParams({ base: {}, top: {} });
     expect(fixed.materials.length).toBeGreaterThan(0);
     expect(() => buildProject(fixed)).not.toThrow();
+  });
+});
+
+describe('upper carcass with no bottom panel', () => {
+  const params = defaultParams();
+  params.top.floor = 'base-top';
+  const project = buildProject(params);
+  const parts = project.parts;
+  const baseTop = parts.find((p) => p.id === 'B-TOP')!;
+  const side = parts.find((p) => p.id === 'T-SIDE-L')!;
+  const depth = params.joinery.stackDadoDepth;
+
+  it('leaves the bottom panel out', () => {
+    expect(parts.find((p) => p.id === 'T-BOTTOM')).toBeUndefined();
+    expect(parts.length).toBe(buildProject(defaultParams()).parts.length - 1);
+  });
+
+  it('stands the sides in the base top panel', () => {
+    // The side reaches down into the locating dado rather than resting on top.
+    expect(side.box.min.z).toBeCloseTo(baseTop.box.max.z - depth, 6);
+  });
+
+  it('cuts the locating dados into the top face of the base panel', () => {
+    // Face A of the base top is its underside, so the new pockets are on B.
+    const onTop = baseTop.features.filter((f) => f.kind === 'pocket' && f.side === 'B');
+    expect(onTop.length).toBeGreaterThanOrEqual(2);
+    for (const f of onTop) {
+      if (f.kind === 'pocket') expect(f.depth).toBeCloseTo(depth, 6);
+    }
+  });
+
+  it('hides the locating dado at the visible front edge', () => {
+    // That panel's front edge is the ledge, so the dado stops short of it and
+    // the side gets its front corner notched to clear the stop.
+    const onTop = baseTop.features.filter((f) => f.kind === 'pocket' && f.side === 'B');
+    expect(onTop.length).toBeGreaterThan(0);
+    expect(side.outline.pts.length).toBeGreaterThan(4);
+  });
+
+  it('lands the divider and back on the base top as well', () => {
+    const divider = parts.find((p) => p.id === 'T-DIV-1')!;
+    const back = parts.find((p) => p.id === 'T-BACK')!;
+    expect(divider.box.min.z).toBeCloseTo(baseTop.box.max.z - depth, 6);
+    expect(back.box.min.z).toBeCloseTo(baseTop.box.max.z - depth, 6);
+  });
+
+  it('says the base top now needs turning over', () => {
+    const flip = project.diagnostics.find((d) => d.message.includes('turned over'));
+    expect(flip?.message).toContain('B-TOP');
+    expect(project.notes.some((n) => n.includes('no bottom panel'))).toBe(true);
+  });
+
+  it('leaves enough material where the two faces are pocketed', () => {
+    // Underside grooves and top-face locating dados cross near the back.
+    expect(residualThickness(baseTop)).toEqual([]);
+  });
+
+  it('catches a locating dado deep enough to break through', () => {
+    const p = defaultParams();
+    p.top.floor = 'base-top';
+    p.joinery.stackDadoDepth = 9;
+    p.joinery.dadoDepth = 9;
+    const errs = buildProject(p).diagnostics.filter(
+      (d) => d.severity === 'error' && d.message.includes('opposite faces'),
+    );
+    expect(errs.length).toBeGreaterThan(0);
+  });
+
+  it('still nests and lists cleanly', () => {
+    expect(project.nest.unplaced).toEqual([]);
+    expect(project.cutList).toHaveLength(parts.length);
   });
 });

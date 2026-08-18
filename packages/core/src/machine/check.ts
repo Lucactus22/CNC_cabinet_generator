@@ -1,4 +1,5 @@
-import type { CabinetParams, Part } from '../model/types.js';
+import { bboxOf } from '../geom/index.js';
+import type { CabinetParams, Part, PocketFeature } from '../model/types.js';
 import type { NestResult } from '../nest/index.js';
 import { blankSize } from '../nest/index.js';
 import { tileCountFor } from './tiling.js';
@@ -147,6 +148,29 @@ export function checkManufacturability(
     });
   }
 
+  // --- Pockets meeting through the panel ---------------------------------
+  for (const part of parts) {
+    for (const thin of residualThickness(part)) {
+      out.push(
+        thin.residual <= 0
+          ? {
+              severity: 'error',
+              topic: 'machining',
+              message: `${part.label}: pockets on opposite faces overlap and meet through the panel, leaving a hole ${(-thin.residual).toFixed(1)} mm past breaking through.`,
+              partIds: [part.id],
+              hint: 'Reduce one of the two depths, or move the feature.',
+            }
+          : {
+              severity: 'warning',
+              topic: 'machining',
+              message: `${part.label}: pockets on opposite faces cross, leaving only ${thin.residual.toFixed(1)} mm of material where they meet.`,
+              partIds: [part.id],
+              hint: 'Reduce one of the two depths if the panel has to carry load there.',
+            },
+      );
+    }
+  }
+
   // --- Structural sanity -------------------------------------------------
   for (const part of parts) {
     if (part.role !== 'shelf') continue;
@@ -181,6 +205,39 @@ export function checkManufacturability(
     });
   }
 
+  return out;
+}
+
+/** Material left where a pocket on one face crosses a pocket on the other. */
+export function residualThickness(part: Part): Array<{ residual: number }> {
+  const a: PocketFeature[] = [];
+  const b: PocketFeature[] = [];
+  for (const f of part.features) {
+    if (f.kind !== 'pocket') continue;
+    (f.side === 'A' ? a : b).push(f);
+  }
+  if (a.length === 0 || b.length === 0) return [];
+
+  // Both faces are described in the same local frame, so the pockets can be
+  // compared directly; the mirroring at export time is a flip of the sheet, not
+  // a change of coordinates.
+  const out: Array<{ residual: number }> = [];
+  let worst = Infinity;
+  for (const pa of a) {
+    const ba = bboxOf(pa.path);
+    for (const pb of b) {
+      const bb = bboxOf(pb.path);
+      const overlaps =
+        ba.minX < bb.maxX - 1e-6 &&
+        bb.minX < ba.maxX - 1e-6 &&
+        ba.minY < bb.maxY - 1e-6 &&
+        bb.minY < ba.maxY - 1e-6;
+      if (!overlaps) continue;
+      worst = Math.min(worst, part.thickness - pa.depth - pb.depth);
+    }
+  }
+  // One report per part: a dozen crossings all say the same thing.
+  if (worst < 4) out.push({ residual: worst });
   return out;
 }
 
