@@ -115,7 +115,8 @@ export function exportSheet(
   opts: SheetExportOptions = defaultExportOptions(),
 ): SheetExport {
   const { drawing, warnings } = composeSheet(params, parts, sheet, opts);
-  const plan = planTiles(sheet.length, sheet.width, params.machine, params.nesting.sheetMargin);
+  // Tiling follows how far the parts reach, not the blank's nominal length.
+  const plan = planTiles(sheet.contentLength, sheet.width, params.machine, params.nesting.sheetMargin);
 
   const base = `${slug(params.name)}-sheet${sheet.index + 1}`;
   const full: SheetFile = { name: `${base}.dxf`, dxf: writeDxf(drawing) };
@@ -126,7 +127,7 @@ export function exportSheet(
     const band: Band = { from: tile.from, to: tile.to, axis: plan.axis };
     const cut = sliceDrawing(drawing, band, plan, warnings, tile.index);
     // Zero each tile to its own origin so it can be loaded and cut directly.
-    const shifted = shiftDrawing(cut, plan.axis === 'x' ? -tile.from : 0, plan.axis === 'y' ? -tile.from : 0);
+    const shifted = shiftDrawing(cut, -tile.from, 0);
     tiles.push({ name: `${base}-tile${tile.index + 1}.dxf`, dxf: writeDxf(shifted) });
   }
 

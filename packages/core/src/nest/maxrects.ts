@@ -10,6 +10,18 @@ export interface Placement extends Rect {
 }
 
 /**
+ * Keeps placements from straddling the seams between machine tiles.
+ *
+ * Boundaries fall wherever `(x + phase)` is a multiple of `period`. A part
+ * wider than a whole band has to cross a seam and is allowed through; anything
+ * that would fit inside one band is held to it.
+ */
+export interface BandConstraint {
+  period: number;
+  phase: number;
+}
+
+/**
  * MaxRects bin packing, Best-Area-Fit.
  *
  * Every part a cabinet generates is a rectangle, so packing bounding boxes is
@@ -30,8 +42,13 @@ export class MaxRectsBin {
   }
 
   /** Try to place a w x h part. Returns null when it will not fit. */
-  insert(w: number, h: number, allowRotate: boolean): Placement | null {
-    const spot = this.findSpot(w, h, allowRotate);
+  insert(
+    w: number,
+    h: number,
+    allowRotate: boolean,
+    bands?: BandConstraint,
+  ): Placement | null {
+    const spot = this.findSpot(w, h, allowRotate, bands);
     if (!spot) return null;
 
     const stale = this.free.filter((f) => overlaps(f, spot));
@@ -48,8 +65,14 @@ export class MaxRectsBin {
     return this.used.reduce((a, p) => a + p.w * p.h, 0);
   }
 
-  private findSpot(w: number, h: number, allowRotate: boolean): Placement | null {
+  private findSpot(
+    w: number,
+    h: number,
+    allowRotate: boolean,
+    bands?: BandConstraint,
+  ): Placement | null {
     let best: Placement | null = null;
+    let bestBand = Infinity;
     let bestArea = Infinity;
     let bestShort = Infinity;
 
@@ -59,14 +82,39 @@ export class MaxRectsBin {
 
       for (const [pw, ph, rotated] of tries) {
         if (pw > f.w + 1e-9 || ph > f.h + 1e-9) continue;
-        // Best-Area-Fit: leave the smallest offcut, breaking ties on the
-        // shorter leftover side so slivers do not accumulate.
-        const area = f.w * f.h - pw * ph;
-        const short = Math.min(f.w - pw, f.h - ph);
-        if (area < bestArea - 1e-9 || (Math.abs(area - bestArea) < 1e-9 && short < bestShort)) {
-          bestArea = area;
-          bestShort = short;
-          best = { x: f.x, y: f.y, w: pw, h: ph, rotated };
+
+        // Free rectangles only ever begin at the edge of something already
+        // placed, so without this a part could never start exactly on a band
+        // boundary and would be rejected for straddling instead of simply
+        // moving into the next band.
+        const xs = [f.x];
+        if (bands) {
+          const next = nextBoundary(f.x, bands);
+          if (next > f.x + 1e-9 && next + pw <= f.x + f.w + 1e-9) xs.push(next);
+        }
+
+        for (const x of xs) {
+          if (bands && straddles(x, pw, bands)) continue;
+
+          // Filling the earliest band first is what actually reduces the
+          // number of setups, so it outranks how tightly the part fits.
+          const band = bands ? bandIndex(x, bands) : 0;
+          // Best-Area-Fit: leave the smallest offcut, breaking ties on the
+          // shorter leftover side so slivers do not accumulate.
+          const waste = f.w * f.h - pw * ph + (x - f.x) * ph;
+          const short = Math.min(f.x + f.w - x - pw, f.h - ph);
+
+          const better =
+            band < bestBand - 1e-9 ||
+            (Math.abs(band - bestBand) < 1e-9 &&
+              (waste < bestArea - 1e-9 ||
+                (Math.abs(waste - bestArea) < 1e-9 && short < bestShort)));
+          if (better) {
+            bestBand = band;
+            bestArea = waste;
+            bestShort = short;
+            best = { x, y: f.y, w: pw, h: ph, rotated };
+          }
         }
       }
     }
@@ -94,6 +142,20 @@ export class MaxRectsBin {
     }
     this.free = keep;
   }
+}
+
+export const bandIndex = (x: number, b: BandConstraint): number =>
+  Math.floor((x + b.phase) / b.period + 1e-9);
+
+/** The first band boundary strictly past x. */
+export const nextBoundary = (x: number, b: BandConstraint): number =>
+  (bandIndex(x, b) + 1) * b.period - b.phase;
+
+/** Whether a part at x of width w would cross a seam it could have avoided. */
+export function straddles(x: number, w: number, b: BandConstraint): boolean {
+  // Anything wider than a band has no choice, so it is never rejected.
+  if (w > b.period + 1e-9) return false;
+  return bandIndex(x, b) !== bandIndex(x + w - 1e-6, b);
 }
 
 const overlaps = (a: Rect, b: Rect): boolean =>

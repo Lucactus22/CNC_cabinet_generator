@@ -155,7 +155,18 @@ export interface ToeKickSpec {
   setback: number;
 }
 
+/**
+ * What the nester optimises for.
+ *
+ * 'material' packs as tightly as it can and ignores where the machine's tile
+ * seams fall. 'tiling' keeps each part inside a single tile and fills the
+ * earliest tile first, so a sheet needs as few setups as possible and nothing
+ * is cut across a seam unless the part is itself larger than the machine.
+ */
+export type NestStrategy = 'material' | 'tiling';
+
 export interface NestingSettings {
+  strategy: NestStrategy;
   /** Unusable border around the sheet, e.g. where the clamps live. */
   sheetMargin: number;
   /** Extra clearance between parts, on top of the cutter diameter. */

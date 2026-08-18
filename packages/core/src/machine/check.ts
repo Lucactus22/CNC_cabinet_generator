@@ -103,13 +103,16 @@ export function checkManufacturability(
     });
   }
   for (const sheet of nest.sheets) {
-    const tiles = tileCountFor(params, sheet.length);
+    const tiles = tileCountFor(params, sheet.contentLength);
     if (tiles > 1) {
       out.push({
         severity: 'warning',
         topic: 'machine',
-        message: `Sheet ${sheet.index + 1} is ${sheet.length} mm long and needs ${tiles} tiles, feeding the stock through in the ${m.tilingAxis.toUpperCase()} direction.`,
-        hint: 'Set the sheet size to match your machine to avoid tiling entirely.',
+        message: `Sheet ${sheet.index + 1} has parts reaching ${sheet.contentLength.toFixed(0)} mm along its length, so it needs ${tiles} setups, feeding the stock through in the ${m.tilingAxis.toUpperCase()} direction.`,
+        hint:
+          params.nesting.strategy === 'material'
+            ? 'Switch nesting to fewest setups, or set the sheet size to match your machine.'
+            : 'Set the sheet size to match your machine to avoid tiling entirely.',
       });
     }
   }

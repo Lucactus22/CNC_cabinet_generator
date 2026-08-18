@@ -1,6 +1,7 @@
 import { bboxOf } from '../geom/index.js';
 import type { CabinetParams, Material, Part } from '../model/types.js';
-import { MaxRectsBin, type Placement } from './maxrects.js';
+import { feedStep } from '../machine/tiling.js';
+import { MaxRectsBin, type BandConstraint, type Placement } from './maxrects.js';
 
 export * from './maxrects.js';
 
@@ -18,6 +19,12 @@ export interface NestedPart {
 export interface NestedSheet {
   index: number;
   materialId: string;
+  /**
+   * How far along the sheet the parts actually reach. Tiling follows this
+   * rather than the blank's nominal length, so a half-filled sheet needs only
+   * the setups that cover it.
+   */
+  contentLength: number;
   /** Along the sheet's length, which is the X axis of the nest. */
   length: number;
   /** Across the sheet, the Y axis of the nest. */
@@ -45,6 +52,7 @@ export function nestParts(params: CabinetParams, parts: Part[]): NestResult {
   const margin = params.nesting.sheetMargin;
   const sheets: NestedSheet[] = [];
   const unplaced: string[] = [];
+  const bands = bandsFor(params);
 
   const byMaterial = new Map<string, Part[]>();
   for (const p of parts) {
@@ -68,11 +76,12 @@ export function nestParts(params: CabinetParams, parts: Part[]): NestResult {
 
     const bins: { bin: MaxRectsBin; sheet: NestedSheet }[] = [];
     for (const part of ordered) {
-      const placed = place(part, material, bins, binL, binW, spacing, params, margin);
+      const placed = place(part, material, bins, binL, binW, spacing, params, margin, bands);
       if (placed === 'new-bin') {
         const sheet: NestedSheet = {
           index: sheets.length,
           materialId,
+          contentLength: 0,
           length: material.sheetLength,
           width: material.sheetWidth,
           parts: [],
@@ -81,7 +90,7 @@ export function nestParts(params: CabinetParams, parts: Part[]): NestResult {
         const bin = new MaxRectsBin(binL, binW);
         bins.push({ bin, sheet });
         sheets.push(sheet);
-        if (place(part, material, bins, binL, binW, spacing, params, margin) !== true) {
+        if (place(part, material, bins, binL, binW, spacing, params, margin, bands) !== true) {
           unplaced.push(part.id);
         }
       } else if (placed === false) {
@@ -92,6 +101,7 @@ export function nestParts(params: CabinetParams, parts: Part[]): NestResult {
     for (const { bin, sheet } of bins) {
       const usable = binL * binW;
       sheet.yield = usable > 0 ? bin.usedArea() / usable : 0;
+      sheet.contentLength = sheet.parts.reduce((a, p) => Math.max(a, p.x + p.w), 0) + margin;
     }
   }
 
@@ -128,6 +138,7 @@ function place(
   spacing: number,
   params: CabinetParams,
   margin: number,
+  bands: BandConstraint | undefined,
 ): true | false | 'new-bin' {
   const { w, h } = blankSize(part, material);
   const rot = mayRotate(part, material, params);
@@ -139,7 +150,7 @@ function place(
   if (!fitsAtAll && !fitsTurned) return false;
 
   for (const { bin, sheet } of bins) {
-    const spot: Placement | null = bin.insert(pw, ph, rot);
+    const spot: Placement | null = bin.insert(pw, ph, rot, bands);
     if (spot) {
       // The part sits at the corner of its slot; the spacing trails behind it.
       const turned = spot.rotated;
@@ -155,6 +166,20 @@ function place(
     }
   }
   return 'new-bin';
+}
+
+/**
+ * Where the machine's tile seams fall, in bin coordinates.
+ *
+ * Seams sit at multiples of the feed step measured from the sheet's own edge,
+ * while the bin starts one margin in, hence the phase. Returns undefined when
+ * the strategy is to chase yield instead, or when nothing would tile anyway.
+ */
+export function bandsFor(params: CabinetParams): BandConstraint | undefined {
+  if (params.nesting.strategy !== 'tiling') return undefined;
+  const step = feedStep(params.machine);
+  if (step === null) return undefined;
+  return { period: step, phase: params.nesting.sheetMargin };
 }
 
 const area = (p: Part): number => {

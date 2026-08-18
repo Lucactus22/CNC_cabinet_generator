@@ -8,7 +8,11 @@ export interface Tile {
 }
 
 export interface TilePlan {
-  axis: 'x' | 'y';
+  /**
+   * Always the sheet's own long axis: the stock is loaded with its length
+   * running along whichever machine axis feeds through.
+   */
+  axis: 'x';
   tiles: Tile[];
   /** How far the stock advances between tiles. */
   step: number;
@@ -35,9 +39,11 @@ export function planTiles(
   sheetMargin: number,
 ): TilePlan | null {
   if (machine.tilingAxis === 'none') return null;
-  const travel = machine.tilingAxis === 'x' ? machine.travelX : machine.travelY;
-  const step = travel - machine.tileOverlap;
-  if (step <= 0) return null;
+  const step = feedStep(machine);
+  if (step === null) return null;
+  const travel = feedTravel(machine);
+  // `sheetLength` is how far the parts actually reach, not the blank's nominal
+  // size: a sheet only half filled needs only the setups that cover it.
   if (sheetLength <= travel + 1e-9) return null; // one setup covers it
 
   const count = Math.ceil(sheetLength / step);
@@ -53,7 +59,7 @@ export function planTiles(
   const registrationY = [inset, sheetWidth - inset];
 
   return {
-    axis: machine.tilingAxis,
+    axis: 'x',
     tiles,
     step,
     registrationX,
@@ -65,8 +71,18 @@ export function planTiles(
 export function tileCountFor(params: CabinetParams, sheetLength: number): number {
   const m = params.machine;
   if (m.tilingAxis === 'none') return 1;
-  const travel = m.tilingAxis === 'x' ? m.travelX : m.travelY;
-  const step = travel - m.tileOverlap;
-  if (step <= 0 || sheetLength <= travel) return 1;
+  const step = feedStep(m);
+  if (step === null || sheetLength <= feedTravel(m)) return 1;
   return Math.ceil(sheetLength / step);
+}
+
+/** Travel available on the axis the stock feeds along. */
+export const feedTravel = (m: MachineSpec): number =>
+  m.tilingAxis === 'y' ? m.travelY : m.travelX;
+
+/** How far the stock advances between tiles, or null if it never could. */
+export function feedStep(m: MachineSpec): number | null {
+  if (m.tilingAxis === 'none') return null;
+  const step = feedTravel(m) - m.tileOverlap;
+  return step > 0 ? step : null;
 }

@@ -163,10 +163,10 @@ describe('machine diagnostics', () => {
     expect(project.diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
   });
 
-  it('counts the tiles a long sheet needs', () => {
+  it('counts the setups a long sheet needs', () => {
     const project = buildProject(defaultParams());
     const tiling = project.diagnostics.find((d) => d.message.includes('needs'));
-    expect(tiling?.message).toContain('tiles');
+    expect(tiling?.message).toContain('setups');
   });
 
   it('calls out a part too big for the machine in any orientation', () => {

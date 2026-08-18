@@ -289,6 +289,21 @@ export function ParamPanel() {
       </Group>
 
       <Group title="Nesting">
+        <SelectField
+          label="Optimise for"
+          value={params.nesting.strategy}
+          options={[
+            { value: 'tiling', label: 'Fewest setups' },
+            { value: 'material', label: 'Least material' },
+          ]}
+          onChange={(v) => update((p) => { p.nesting.strategy = v; })}
+          title="Fewest setups keeps each part inside one machine tile and fills the earliest tile first. Least material packs as tightly as it can and lets parts fall across seams."
+        />
+        <Hint>
+          {params.nesting.strategy === 'tiling'
+            ? 'No part is cut across a tile seam unless it is larger than the machine itself.'
+            : 'Tightest packing, but parts will be cut across tile seams.'}
+        </Hint>
         <NumberField
           label="Sheet margin"
           value={params.nesting.sheetMargin}

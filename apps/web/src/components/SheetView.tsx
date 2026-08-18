@@ -16,7 +16,8 @@ export function SheetView() {
       nest.sheets.map((sheet) => ({
         sheet,
         drawing: composeSheet(params, parts, sheet, defaultExportOptions()).drawing,
-        tiles: planTiles(sheet.length, sheet.width, params.machine, params.nesting.sheetMargin),
+        // Setups follow how far the parts actually reach, matching the export.
+        tiles: planTiles(sheet.contentLength, sheet.width, params.machine, params.nesting.sheetMargin),
         material: params.materials.find((m) => m.id === sheet.materialId),
       })),
     [params, parts, nest],
@@ -48,7 +49,7 @@ export function SheetView() {
             <span className="meta">
               {material?.name ?? sheet.materialId} · {sheet.length} × {sheet.width} mm ·{' '}
               {sheet.parts.length} parts · {(sheet.yield * 100).toFixed(0)}% used
-              {tiles ? ` · ${tiles.tiles.length} tiles` : ''}
+              {tiles ? ` · ${tiles.tiles.length} setups` : ' · one setup'}
             </span>
           </h3>
           <svg

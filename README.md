@@ -104,6 +104,21 @@ There is a **Set sheets to machine size** button. On a small machine, nesting
 into blanks the size of your bed usually beats tiling: more sheets, but no
 registration, no seams, and no chance of drift.
 
+### Nesting: fewest setups, or least material
+
+**Fewest setups** (default) keeps every part inside a single machine tile and
+fills the earliest tile first. Nothing is cut across a seam unless the part is
+itself larger than the machine. **Least material** packs as tightly as it can
+and lets parts fall where they will.
+
+The number of setups follows how far the parts actually reach, not the blank's
+nominal length, so a half-filled sheet only needs the setups that cover it.
+
+On a typical cabinet the two come out at the same sheet count and the same
+yield, and fewest-setups still removes every avoidable seam crossing. Where they
+do diverge, it is a straight trade: a little more offcut for a little less time
+at the machine. Neither makes any difference when nothing needs tiling.
+
 ### Tiling workflow
 
 Each tile cuts a band exactly one step wide, where step = travel − overlap. The

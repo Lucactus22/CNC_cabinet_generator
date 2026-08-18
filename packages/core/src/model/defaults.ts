@@ -103,6 +103,9 @@ export function defaultParams(): CabinetParams {
       back: { style: 'groove', materialId: MATERIAL_BACK, inset: 12 },
     },
     nesting: {
+      // Fewer setups beats a few percent of yield on a machine that has to
+      // feed its stock through. It makes no difference when nothing tiles.
+      strategy: 'tiling',
       sheetMargin: 10,
       partGap: 2,
       allowRotation: true,

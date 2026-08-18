@@ -76,7 +76,12 @@ your feeds, and it can place them better than a file can.
 
 ## Tiles
 
-A sheet longer than the machine is split along the feed axis. Each tile covers a
+A sheet whose **parts reach** further than the machine is split along the feed
+axis. The count follows the parts, not the blank: half a sheet of parts needs
+only the setups that cover them.
+
+With the nester set to **fewest setups**, no part crosses a seam unless it is
+larger than the machine, so most tiles cut whole parts. Each tile covers a
 band exactly `travel − overlap` wide. The overlap is headroom so no cut lands at
 the extreme limit of travel — **nothing is machined twice**.
 
