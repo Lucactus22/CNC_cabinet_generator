@@ -72,6 +72,27 @@ export function defaultParams(): CabinetParams {
         endBelow: 100,
       },
     },
+    doors: {
+      fit: 'overlay',
+      materialId: MATERIAL_CARCASS,
+      reveal: 3,
+      insetGap: 2,
+    },
+    // The IKEA UTRUSTA pattern, which is Blum's.
+    hinge: {
+      cupDiameter: 35,
+      cupDepth: 13,
+      boringDistance: 5,
+      dowelDiameter: 8,
+      dowelSpacing: 45,
+      dowelOffset: 9.5,
+      dowelDepth: 12,
+      endOffset: 76.2,
+      plateHoleDiameter: 5,
+      plateHoleDepth: 12,
+      plateHoleSpacing: 32,
+      plateFrontOffset: 37,
+    },
     base: {
       // The base's top is the visible ledge, so it laps over the sides.
       topStyle: 'capped',
@@ -81,8 +102,8 @@ export function defaultParams(): CabinetParams {
       dividerCount: 1,
       bayWidths: [],
       bays: [
-        { shelves: 'none', shelfCount: 0 },
-        { shelves: 'fixed', shelfCount: 1 },
+        { shelves: 'none', shelfCount: 0, doors: 'left' },
+        { shelves: 'fixed', shelfCount: 1, doors: 'right' },
       ],
       back: { style: 'groove', materialId: MATERIAL_BACK, inset: 12 },
       toeKick: { enabled: true, height: 100, setback: 50 },
@@ -97,8 +118,8 @@ export function defaultParams(): CabinetParams {
       dividerCount: 1,
       bayWidths: [],
       bays: [
-        { shelves: 'fixed', shelfCount: 4 },
-        { shelves: 'adjustable', shelfCount: 0 },
+        { shelves: 'fixed', shelfCount: 4, doors: 'none' },
+        { shelves: 'adjustable', shelfCount: 0, doors: 'none' },
       ],
       back: { style: 'groove', materialId: MATERIAL_BACK, inset: 12 },
     },

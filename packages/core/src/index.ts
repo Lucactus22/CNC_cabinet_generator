@@ -4,6 +4,7 @@ export * from './build/builder.js';
 export * from './build/layout.js';
 export * from './joinery/index.js';
 export * from './effects/index.js';
+export * from './hardware/index.js';
 export * from './nest/index.js';
 export * from './machine/index.js';
 export * from './export/index.js';

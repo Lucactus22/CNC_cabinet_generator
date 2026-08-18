@@ -16,6 +16,7 @@ import {
   type ToeNotchRequest,
 } from '../build/builder.js';
 import { applyEffects } from '../effects/index.js';
+import { applyHinges } from '../hardware/hinges.js';
 import { applyDado } from './dado.js';
 import { applyTabSlot } from './tabslot.js';
 import {
@@ -78,6 +79,8 @@ export function applyJoinery(params: CabinetParams, built: BuildResult): string[
     const draft = drafts.get(row.panelId);
     if (draft) applyPinRow(draft, row, params, warnings);
   }
+
+  warnings.push(...applyHinges(params, built.parts, built.hinges).warnings);
 
   for (const notch of built.toeNotches) {
     const draft = drafts.get(notch.panelId);

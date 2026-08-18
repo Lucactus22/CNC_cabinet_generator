@@ -41,4 +41,5 @@ export type EffectRegistry = { [K in EffectKind]: EffectApplier<Extract<SurfaceE
 /** Human-readable name, for the UI's effect picker. */
 export const EFFECT_LABELS: Record<EffectKind, string> = {
   grooves: 'Grooves (beadboard / panelling)',
+  frame: 'Frame (shaker line)',
 };

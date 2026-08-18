@@ -5,6 +5,13 @@ panelling, fluting. Effects are separate from joinery on purpose — they only
 ever *add* features, never change an outline, so they compose with either
 carcass joint and need no special handling in the nester or the exporter.
 
+## Frame
+
+A rectangular groove run round a panel: the shaker line on the doors in the
+reference photographs. Set the inset from the panel edge, the groove width and
+the depth. It is cut as four straight runs rather than one loop, so any CAM
+clears it without having to understand the corners.
+
 ## Grooves
 
 Evenly spaced grooves across a face. Vertical grooves on a back panel give the
@@ -58,6 +65,10 @@ suggesting the other face:
 A back panel usually has no other machining, so grooves on either face are free.
 A side panel already carries its dados on the inside, so grooving the inside is
 free and grooving the outside costs a flip.
+
+**Doors are the deliberate exception.** Hinge cups belong on the back and the
+design on the front, so a door is always a two-sided part. The warning says so
+in those terms rather than suggesting you move the design.
 
 Note that an engraved part label never counts as machining a face — it is a
 reference marking, and it follows whichever face is already being worked rather

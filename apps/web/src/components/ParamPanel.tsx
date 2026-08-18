@@ -1,5 +1,5 @@
 import { useStore } from '../store';
-import type { BaySpec, CarcassSpec, ShelfMode } from '@cabgen/core';
+import type { BaySpec, CarcassSpec, DoorStyle, ShelfMode } from '@cabgen/core';
 import { CheckField, Group, Hint, NumberField, SelectField, TextField } from './Controls';
 import { EffectsPanel } from './EffectsPanel';
 
@@ -13,6 +13,7 @@ export function ParamPanel() {
   const params = useStore((s) => s.params);
   const update = useStore((s) => s.update);
   const project = useStore((s) => s.project);
+  const hasDoors = project.parts.some((p) => p.role === 'door');
 
   return (
     <aside className="sidebar">
@@ -187,6 +188,95 @@ export function ParamPanel() {
         )}
       </Group>
 
+      <Group title="Doors" open={hasDoors}>
+        <SelectField
+          label="Fit"
+          value={params.doors.fit}
+          options={[
+            { value: 'overlay', label: 'Overlay, in front of the carcass' },
+            { value: 'inset', label: 'Inset, flush in the opening' },
+          ]}
+          onChange={(v) => update((p) => { p.doors.fit = v; })}
+        />
+        <NumberField
+          label={params.doors.fit === 'overlay' ? 'Reveal' : 'Clearance'}
+          value={params.doors.fit === 'overlay' ? params.doors.reveal : params.doors.insetGap}
+          step={0.5}
+          min={0}
+          onChange={(v) =>
+            update((p) => {
+              if (p.doors.fit === 'overlay') p.doors.reveal = v;
+              else p.doors.insetGap = v;
+            })
+          }
+          title="Gap between neighbouring doors, and around the outside of the run."
+        />
+        <Hint>Turn doors on per bay, under each carcass.</Hint>
+      </Group>
+
+      <Group title="Hinges" open={false}>
+        <Hint>
+          IKEA UTRUSTA, which is Blum's pattern: a 35 mm cup with two 8 mm press-fit dowels.
+          Change these only for different hardware.
+        </Hint>
+        <NumberField
+          label="Cup diameter"
+          value={params.hinge.cupDiameter}
+          step={0.5}
+          min={10}
+          onChange={(v) => update((p) => { p.hinge.cupDiameter = v; })}
+        />
+        <NumberField
+          label="Cup depth"
+          value={params.hinge.cupDepth}
+          step={0.5}
+          min={1}
+          onChange={(v) => update((p) => { p.hinge.cupDepth = v; })}
+        />
+        <NumberField
+          label="Boring distance"
+          value={params.hinge.boringDistance}
+          step={0.5}
+          min={0}
+          onChange={(v) => update((p) => { p.hinge.boringDistance = v; })}
+          title="Door edge to the near edge of the cup. Blum publishes 3 to 6 mm; the cup centre lands 17.5 mm further in."
+        />
+        <NumberField
+          label="Dowel diameter"
+          value={params.hinge.dowelDiameter}
+          step={0.5}
+          min={1}
+          onChange={(v) => update((p) => { p.hinge.dowelDiameter = v; })}
+        />
+        <NumberField
+          label="Dowel spacing"
+          value={params.hinge.dowelSpacing}
+          min={10}
+          onChange={(v) => update((p) => { p.hinge.dowelSpacing = v; })}
+        />
+        <NumberField
+          label="Dowel offset"
+          value={params.hinge.dowelOffset}
+          step={0.5}
+          min={0}
+          onChange={(v) => update((p) => { p.hinge.dowelOffset = v; })}
+          title="How far the dowels sit behind the cup's centre line."
+        />
+        <NumberField
+          label="Cup from door end"
+          value={params.hinge.endOffset}
+          step={0.1}
+          min={20}
+          onChange={(v) => update((p) => { p.hinge.endOffset = v; })}
+        />
+        <NumberField
+          label="Plate from front"
+          value={params.hinge.plateFrontOffset}
+          min={5}
+          onChange={(v) => update((p) => { p.hinge.plateFrontOffset = v; })}
+        />
+      </Group>
+
       <EffectsPanel />
 
       <Group title="Shelf pins">
@@ -344,7 +434,9 @@ function CarcassGroup({
   const setBay = (i: number, patch: Partial<BaySpec>): void =>
     update((p) => {
       const target = p[which] as CarcassSpec;
-      while (target.bays.length <= i) target.bays.push({ shelves: 'none', shelfCount: 0 });
+      while (target.bays.length <= i) {
+        target.bays.push({ shelves: 'none', shelfCount: 0, doors: 'none' });
+      }
       target.bays[i] = { ...target.bays[i]!, ...patch };
     });
 
@@ -466,7 +558,11 @@ function CarcassGroup({
       )}
 
       {Array.from({ length: bayCount }, (_, i) => {
-        const bay = spec.bays[i] ?? { shelves: 'none' as ShelfMode, shelfCount: 0 };
+        const bay = spec.bays[i] ?? {
+          shelves: 'none' as ShelfMode,
+          shelfCount: 0,
+          doors: 'none' as DoorStyle,
+        };
         return (
           <div key={i} style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
             <SelectField
@@ -485,6 +581,17 @@ function CarcassGroup({
                 onChange={(v) => setBay(i, { shelfCount: Math.max(0, Math.round(v)) })}
               />
             )}
+            <SelectField
+              label="Door"
+              value={bay.doors ?? 'none'}
+              options={[
+                { value: 'none', label: 'Open, no door' },
+                { value: 'left', label: 'Single, hinged left' },
+                { value: 'right', label: 'Single, hinged right' },
+                { value: 'double', label: 'Pair of doors' },
+              ]}
+              onChange={(v) => setBay(i, { doors: v })}
+            />
           </div>
         );
       })}

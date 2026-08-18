@@ -7,15 +7,18 @@ import type {
   SurfaceEffectSpec,
   SurfaceTarget,
 } from '../model/types.js';
+import { applyFrame } from './frame.js';
 import { applyGrooves } from './grooves.js';
 import type { EffectContext, EffectRegistry } from './types.js';
 
 export * from './types.js';
 export * from './grooves.js';
+export * from './frame.js';
 
 /** Add a new effect by writing an applier and listing it here. */
 export const EFFECTS: EffectRegistry = {
   grooves: applyGrooves,
+  frame: applyFrame,
 };
 
 export interface EffectResult {
@@ -67,8 +70,13 @@ export function applyEffects(params: CabinetParams, parts: Part[]): EffectResult
       warnings.push(...out.warnings);
 
       if (clashes && out.features.length > 0) {
+        // A door is meant to be worked on both faces: the hinge cups go on the
+        // back and the design on the front, so the flip is the price of the
+        // job rather than something to design around.
         warnings.push(
-          `${part.label}: the ${spec.effect.kind} effect is on the ${spec.face} face, but the panel is already machined on the other one, so it now has to be turned over on the bed. Putting the effect on the other face would avoid that.`,
+          part.role === 'door'
+            ? `${part.label}: hinge boring on the back and the ${spec.effect.kind} design on the front means this door is machined on both faces. Cut the front, turn the sheet over left to right, then cut the _FLIP layers.`
+            : `${part.label}: the ${spec.effect.kind} effect is on the ${spec.face} face, but the panel is already machined on the other one, so it now has to be turned over on the bed. Putting the effect on the other face would avoid that.`,
         );
       }
     }

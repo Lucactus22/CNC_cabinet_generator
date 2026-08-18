@@ -21,6 +21,8 @@ export function normaliseParams(raw: unknown): CabinetParams {
     tool: { ...base.tool, ...(input.tool as object) },
     machine: { ...base.machine, ...(input.machine as object) },
     nesting: { ...base.nesting, ...(input.nesting as object) },
+    doors: { ...base.doors, ...(input.doors as object) },
+    hinge: { ...base.hinge, ...(input.hinge as object) },
     joinery: {
       ...base.joinery,
       ...(input.joinery as object),

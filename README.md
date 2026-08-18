@@ -33,8 +33,24 @@ panel, one less joint line, and gravity holds it while the glue goes off. The
 cost is that the base's top panel is then machined on both faces, which the
 diagnostics say plainly.
 
-Doors and drawers are not built yet. The part model and the joinery interface
-are shaped to take them without a rewrite.
+## Doors
+
+Doors are switched on per bay: single hinged left or right, or a pair. Hardware
+is **IKEA UTRUSTA** (Blum's pattern): a 35 mm cup with two 8 mm press-fit dowels
+45 mm apart, sitting 9.5 mm behind the cup's centre line, plus mounting plate
+holes on the 32 mm system in the carcass. Hinge count follows door height, and
+the cup centre is derived from the boring distance plus the cup radius — the
+number that ruins doors when it is guessed.
+
+Overlay or inset fit, with an even reveal throughout the run.
+
+Door faces take any surface effect: a **frame** groove for the shaker look in
+the reference photographs, beadboard grooves, or plain. Hinge boring on the back
+and a design on the front means a door is machined on both faces — the one part
+where that is expected rather than avoided. See [docs/DOORS.md](docs/DOORS.md).
+
+Drawers are not built yet. The part model and the joinery interface are shaped
+to take them without a rewrite.
 
 ## Surface effects
 

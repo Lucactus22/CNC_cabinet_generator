@@ -85,3 +85,25 @@ export function pinHeights(z0: number, z1: number, spec: {
 }
 
 const sum = (xs: number[]): number => xs.reduce((a, b) => a + b, 0);
+
+/**
+ * Cup centre heights for a door.
+ *
+ * Two hinges hold a door up to about 900 mm; past that the trade rule is one
+ * more per 600-odd millimetres. The end pair sit a fixed distance in from each
+ * end and any others are spread evenly between them.
+ */
+export function hingeHeights(z0: number, z1: number, endOffset: number): number[] {
+  const height = z1 - z0;
+  if (height <= 0) return [];
+  if (height < endOffset * 2 + 20) return [(z0 + z1) / 2];
+
+  const count = height <= 900 ? 2 : height <= 1600 ? 3 : height <= 2100 ? 4 : 5;
+  const first = z0 + endOffset;
+  const last = z1 - endOffset;
+  if (count === 2) return [first, last];
+
+  const out: number[] = [];
+  for (let i = 0; i < count; i++) out.push(first + ((last - first) * i) / (count - 1));
+  return out;
+}

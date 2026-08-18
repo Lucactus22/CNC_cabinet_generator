@@ -12,7 +12,7 @@ import type {
   ToeKickSpec,
 } from '../model/types.js';
 import { localFrame } from '../model/frame.js';
-import { layoutBays, pinHeights, shelfHeights } from './layout.js';
+import { hingeHeights, layoutBays, pinHeights, shelfHeights } from './layout.js';
 
 /**
  * A joint the joinery stage has to realise. The builder decides *what* meets
@@ -37,6 +37,8 @@ export interface BuildResult {
   pinRows: PinRowRequest[];
   /** Toe kick cut-outs, resolved against each panel's own frame by the joinery stage. */
   toeNotches: ToeNotchRequest[];
+  /** Doors needing hinge boring. */
+  hinges: HingeRequest[];
   notes: string[];
 }
 
@@ -51,6 +53,19 @@ export interface ToeNotchRequest {
   setback: number;
   /** Measured up from the carcass floor. */
   height: number;
+}
+
+/** A door leaf that needs hinge boring, plus the panel its plates screw to. */
+export interface HingeRequest {
+  doorId: string;
+  /** Panel carrying the mounting plates. */
+  carcassPanelId: string;
+  /** Assembly-space heights of each hinge's cup centre. */
+  heights: number[];
+  /** Which side of the door the hinges are on, in assembly X. */
+  side: 'low' | 'high';
+  /** Front face of the carcass, which the plate holes are measured from. */
+  yFront: number;
 }
 
 export interface PinRowRequest {
@@ -98,6 +113,7 @@ export function buildParts(params: CabinetParams): BuildResult {
   const joints: JointRequest[] = [];
   const pinRows: PinRowRequest[] = [];
   const toeNotches: ToeNotchRequest[] = [];
+  const hinges: HingeRequest[] = [];
   const notes: string[] = [];
 
   const baseDepth = params.base.depth;
@@ -132,7 +148,7 @@ export function buildParts(params: CabinetParams): BuildResult {
   ];
 
   for (const ctx of contexts) {
-    buildCarcass(ctx, params, carcassMat, shelfMat, t, parts, joints, pinRows, toeNotches, notes);
+    buildCarcass(ctx, params, carcassMat, shelfMat, t, parts, joints, pinRows, toeNotches, hinges, notes);
   }
 
   if (params.top.floor === 'base-top' && params.base.topStyle === 'inset') {
@@ -150,7 +166,7 @@ export function buildParts(params: CabinetParams): BuildResult {
     );
   }
 
-  return { parts, joints, pinRows, toeNotches, notes };
+  return { parts, joints, pinRows, toeNotches, hinges, notes };
 }
 
 function buildCarcass(
@@ -163,6 +179,7 @@ function buildCarcass(
   joints: JointRequest[],
   pinRows: PinRowRequest[],
   toeNotches: ToeNotchRequest[],
+  hinges: HingeRequest[],
   notes: string[],
 ): void {
   const { spec, which, yFront, z0 } = ctx;
@@ -382,6 +399,79 @@ function buildCarcass(
       }
     }
   });
+
+  // --- Doors -------------------------------------------------------------
+  const doorMat = params.materials.find((m) => m.id === params.doors.materialId);
+  const anyDoors = bays.some((_, i) => (spec.bays[i]?.doors ?? 'none') !== 'none');
+  if (anyDoors && !doorMat) {
+    notes.push('Doors are switched on but their material is missing from the list.');
+  }
+  if (anyDoors && doorMat) {
+    const d = params.doors;
+    const td = doorMat.actualThickness;
+    // Overlay doors hang in front of the carcass; inset doors sit in the opening.
+    const yDoor0 = d.fit === 'overlay' ? yFront - td : yFront;
+    // Vertically the run stops under the top panel, which on a capped carcass
+    // is the visible ledge, and above the toe kick.
+    const runTop = zTop - t;
+    const runBottom = z0 + toeH;
+
+    bays.forEach((bay, i) => {
+      const style = spec.bays[i]?.doors ?? 'none';
+      if (style === 'none') return;
+
+      let x0: number;
+      let x1: number;
+      let zBottom: number;
+      let zTopDoor: number;
+      if (d.fit === 'overlay') {
+        // Each door covers half of the panel it shares with its neighbour, and
+        // all of an outer side, so the run reads as one continuous front.
+        x0 = i === 0 ? 0 : dividerX[i - 1]! + t / 2;
+        x1 = i === bays.length - 1 ? W : dividerX[i]! + t / 2;
+        x0 += d.reveal / 2;
+        x1 -= d.reveal / 2;
+        zBottom = runBottom + d.reveal / 2;
+        zTopDoor = runTop - d.reveal / 2;
+      } else {
+        x0 = bay.x0 + d.insetGap;
+        x1 = bay.x1 - d.insetGap;
+        zBottom = shelfZ0 + d.insetGap;
+        zTopDoor = shelfZ1 - d.insetGap;
+      }
+      if (x1 - x0 <= 0 || zTopDoor - zBottom <= 0) return;
+
+      const leaves: Array<{ from: number; to: number; hingeSide: 'low' | 'high'; suffix: string }> =
+        style === 'double'
+          ? [
+              { from: x0, to: (x0 + x1) / 2 - d.reveal / 2, hingeSide: 'low', suffix: 'L' },
+              { from: (x0 + x1) / 2 + d.reveal / 2, to: x1, hingeSide: 'high', suffix: 'R' },
+            ]
+          : [{ from: x0, to: x1, hingeSide: style === 'left' ? 'low' : 'high', suffix: '' }];
+
+      leaves.forEach((leaf) => {
+        if (leaf.to - leaf.from <= 0) return;
+        const id = `${prefix}-DOOR-${i + 1}${leaf.suffix}`;
+        // Face A is the back, where the hinge cups go; any decoration goes on
+        // the front, which is what makes a door a two-sided part.
+        add(id, `${human} door, bay ${i + 1}${leaf.suffix ? ` ${leaf.suffix}` : ''}`, 'door',
+          doorMat.id, td,
+          box(leaf.from, leaf.to, yDoor0, yDoor0 + td, zBottom, zTopDoor), 'y', '+', 'v');
+
+        const heights = hingeHeights(zBottom, zTopDoor, params.hinge.endOffset);
+        // Plates screw to whichever panel the hinge side runs against.
+        const carcassPanelId =
+          leaf.hingeSide === 'low'
+            ? i === 0
+              ? leftId
+              : dividerIds[i - 1]!
+            : i === bays.length - 1
+              ? rightId
+              : dividerIds[i]!;
+        hinges.push({ doorId: id, carcassPanelId, heights, side: leaf.hingeSide, yFront });
+      });
+    });
+  }
 
   // --- Back --------------------------------------------------------------
   if (backMat && spec.back.style !== 'none') {

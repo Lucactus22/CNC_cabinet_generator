@@ -122,10 +122,55 @@ export interface JoinerySettings {
   shelfPin: ShelfPinSpec;
 }
 
+/** How a bay is fronted. */
+export type DoorStyle = 'none' | 'left' | 'right' | 'double';
+
 export interface BaySpec {
   shelves: ShelfMode;
   /** Number of fixed shelves; ignored for adjustable and none. */
   shelfCount: number;
+  /** 'left' and 'right' name the side the hinges go on. */
+  doors: DoorStyle;
+}
+
+/** How doors sit relative to the carcass. */
+export type DoorFit = 'overlay' | 'inset';
+
+export interface DoorSpec {
+  fit: DoorFit;
+  materialId: string;
+  /** Gap between neighbouring doors, and around the outside of an overlay run. */
+  reveal: number;
+  /** Clearance all round an inset door. */
+  insetGap: number;
+}
+
+/**
+ * Boring for a 35 mm cup concealed hinge.
+ *
+ * Defaults are the IKEA UTRUSTA pattern, which is Blum's: a 35 mm cup with two
+ * 8 mm press-fit dowels 45 mm apart, sitting 9.5 mm behind the cup's centre
+ * line. Blum's own published boring distance is 3-6 mm from the door edge to
+ * the *edge* of the cup, so the centre lands 17.5 mm further in.
+ */
+export interface HingeSpec {
+  cupDiameter: number;
+  cupDepth: number;
+  /** Door edge to the near edge of the cup. Blum publishes 3-6 mm. */
+  boringDistance: number;
+  dowelDiameter: number;
+  /** Centre to centre, along the door edge. */
+  dowelSpacing: number;
+  /** How far the dowels sit behind the cup's centre line, away from the edge. */
+  dowelOffset: number;
+  dowelDepth: number;
+  /** Cup centre to the end of the door, top and bottom. 76.2 mm is 3 inches. */
+  endOffset: number;
+  /** Mounting plate holes in the carcass: 32 mm system, 37 mm from the front. */
+  plateHoleDiameter: number;
+  plateHoleDepth: number;
+  plateHoleSpacing: number;
+  plateFrontOffset: number;
 }
 
 export interface BackSpec {
@@ -178,7 +223,7 @@ export interface NestingSettings {
 // Surface effects
 // ---------------------------------------------------------------------------
 
-export type EffectKind = 'grooves';
+export type EffectKind = 'grooves' | 'frame';
 
 /**
  * Evenly spaced grooves across a face: beadboard, panelling, fluting, reeding.
@@ -202,7 +247,19 @@ export interface GrooveEffect {
   fit: 'even' | 'exact';
 }
 
-export type SurfaceEffect = GrooveEffect;
+/**
+ * A rectangular groove run round a panel, the shaker-style line on the doors in
+ * the reference photographs.
+ */
+export interface FrameEffect {
+  kind: 'frame';
+  /** Panel edge to the outside of the groove. */
+  margin: number;
+  width: number;
+  depth: number;
+}
+
+export type SurfaceEffect = GrooveEffect | FrameEffect;
 
 /** Which panels an effect lands on. */
 export type SurfaceTarget =
@@ -227,6 +284,8 @@ export interface CabinetParams {
   tool: ToolSpec;
   machine: MachineSpec;
   joinery: JoinerySettings;
+  doors: DoorSpec;
+  hinge: HingeSpec;
   base: CarcassSpec & { toeKick: ToeKickSpec };
   top: CarcassSpec & { linkWidthToBase: boolean; floor: UpperFloor };
   nesting: NestingSettings;
@@ -241,6 +300,7 @@ export interface CabinetParams {
 // ---------------------------------------------------------------------------
 
 export type PartRole =
+  | 'door'
   | 'side'
   | 'bottom'
   | 'top'

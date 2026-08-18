@@ -1,9 +1,19 @@
-import { EFFECT_LABELS, type EffectKind, type GrooveEffect, type PartRole, type SurfaceEffectSpec, type SurfaceTarget } from '@cabgen/core';
+import {
+  EFFECT_LABELS,
+  type EffectKind,
+  type FrameEffect,
+  type GrooveEffect,
+  type PartRole,
+  type SurfaceEffect,
+  type SurfaceEffectSpec,
+  type SurfaceTarget,
+} from '@cabgen/core';
 import { useStore } from '../store';
 import { CheckField, Group, Hint, NumberField, SelectField } from './Controls';
 
 /** Surfaces worth offering by name, rather than picking a part id. */
 const ROLE_TARGETS: Array<{ role: PartRole; label: string }> = [
+  { role: 'door', label: 'Doors' },
   { role: 'back', label: 'Back panel' },
   { role: 'side', label: 'Side panels' },
   { role: 'divider', label: 'Dividers' },
@@ -22,12 +32,16 @@ function parseTargetKey(key: string): SurfaceTarget {
   return { select: 'role', role: a as PartRole, carcass: b as 'base' | 'top' | 'both' };
 }
 
-function newGrooves(toolDiameter: number): GrooveEffect {
+/** A sensible starting point for each kind, sized to the cutter in the spindle. */
+function newEffect(kind: EffectKind, toolDiameter: number): SurfaceEffect {
+  if (kind === 'frame') {
+    return { kind: 'frame', margin: 60, width: Math.max(toolDiameter, 8), depth: 4 };
+  }
   return {
     kind: 'grooves',
     direction: 'vertical',
     spacing: 60,
-    // Default to the cutter you actually have; a narrower bit gives a finer bead.
+    // A narrower bit gives a finer bead, but default to what you have.
     width: toolDiameter,
     depth: 3,
     margin: 0,
@@ -54,7 +68,7 @@ export function EffectsPanel() {
             ? { select: 'part', partId: selected }
             : { select: 'role', role: 'back', carcass: 'both' },
           face: 'inside',
-          effect: newGrooves(p.tool.diameter),
+          effect: newEffect('grooves', p.tool.diameter),
         },
       ];
     });
@@ -124,7 +138,11 @@ export function EffectsPanel() {
                 value: k,
                 label: EFFECT_LABELS[k],
               }))}
-              onChange={() => { /* only one kind so far; the picker is here for the next */ }}
+              onChange={(v) =>
+                patch(i, (spec) => {
+                  if (spec.effect.kind !== v) spec.effect = newEffect(v, params.tool.diameter);
+                })
+              }
             />
 
             <SelectField
@@ -140,7 +158,7 @@ export function EffectsPanel() {
                   { value: `role:${r.role}:top`, label: `${r.label}, upper` },
                 ]),
               ]}
-              onChange={(v) => patch(i, (s) => { s.target = parseTargetKey(v); })}
+              onChange={(v) => patch(i, (spec) => { spec.target = parseTargetKey(v); })}
             />
 
             <SelectField
@@ -150,31 +168,56 @@ export function EffectsPanel() {
                 { value: 'inside', label: 'Inside (facing into the cabinet)' },
                 { value: 'outside', label: 'Outside' },
               ]}
-              onChange={(v) => patch(i, (s) => { s.face = v; })}
-              title="Pick the face already being machined where you can: the other one means turning the panel over."
+              onChange={(v) => patch(i, (spec) => { spec.face = v; })}
+              title="Pick the face already being machined where you can. A door is the exception: its design belongs on the front, and the hinge boring is on the back either way."
             />
 
-            <SelectField
-              label="Direction"
-              value={g.direction}
-              options={[
-                { value: 'vertical', label: 'Vertical' },
-                { value: 'horizontal', label: 'Horizontal' },
-              ]}
-              onChange={(v) => patch(i, (s) => { (s.effect as GrooveEffect).direction = v; })}
-            />
+            {g.kind === 'grooves' && (
+              <>
+                <SelectField
+                  label="Direction"
+                  value={g.direction}
+                  options={[
+                    { value: 'vertical', label: 'Vertical' },
+                    { value: 'horizontal', label: 'Horizontal' },
+                  ]}
+                  onChange={(v) => patch(i, (spec) => { (spec.effect as GrooveEffect).direction = v; })}
+                />
+                <NumberField
+                  label="Spacing"
+                  value={g.spacing}
+                  min={1}
+                  onChange={(v) => patch(i, (spec) => { (spec.effect as GrooveEffect).spacing = v; })}
+                />
+                <SelectField
+                  label="Spacing fit"
+                  value={g.fit}
+                  options={[
+                    { value: 'even', label: 'Even bays (adjusts spacing)' },
+                    { value: 'exact', label: 'Exact spacing (centred)' },
+                  ]}
+                  onChange={(v) => patch(i, (spec) => { (spec.effect as GrooveEffect).fit = v; })}
+                />
+              </>
+            )}
+
             <NumberField
-              label="Spacing"
-              value={g.spacing}
-              min={1}
-              onChange={(v) => patch(i, (s) => { (s.effect as GrooveEffect).spacing = v; })}
+              label={g.kind === 'frame' ? 'Inset from edge' : 'Edge margin'}
+              value={g.margin}
+              min={0}
+              onChange={(v) => patch(i, (spec) => { (spec.effect as GrooveEffect | FrameEffect).margin = v; })}
+              title={
+                g.kind === 'frame'
+                  ? 'Panel edge to the outside of the frame line.'
+                  : 'Held in from the visible area, which already excludes anything buried in a groove.'
+              }
             />
             <NumberField
               label="Groove width"
               value={g.width}
               step={0.5}
               min={0.5}
-              onChange={(v) => patch(i, (s) => { (s.effect as GrooveEffect).width = v; })}
+              onChange={(v) => patch(i, (spec) => { (spec.effect as GrooveEffect | FrameEffect).width = v; })}
               title="Cannot be narrower than the cutter."
             />
             <NumberField
@@ -182,23 +225,7 @@ export function EffectsPanel() {
               value={g.depth}
               step={0.5}
               min={0.1}
-              onChange={(v) => patch(i, (s) => { (s.effect as GrooveEffect).depth = v; })}
-            />
-            <NumberField
-              label="Edge margin"
-              value={g.margin}
-              min={0}
-              onChange={(v) => patch(i, (s) => { (s.effect as GrooveEffect).margin = v; })}
-              title="Held in from the visible area, which already excludes anything buried in a groove."
-            />
-            <SelectField
-              label="Spacing fit"
-              value={g.fit}
-              options={[
-                { value: 'even', label: 'Even bays (adjusts spacing)' },
-                { value: 'exact', label: 'Exact spacing (centred)' },
-              ]}
-              onChange={(v) => patch(i, (s) => { (s.effect as GrooveEffect).fit = v; })}
+              onChange={(v) => patch(i, (spec) => { (spec.effect as GrooveEffect | FrameEffect).depth = v; })}
             />
           </div>
         );
