@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { defaultExportOptions, exportProject, type CabinetParams } from '@cabgen/core';
+import { defaultExportOptions, exportProject, normaliseParams } from '@cabgen/core';
 import { useStore } from '../store';
 import { saveText, saveBlob, zipFiles } from '../download';
 
@@ -27,9 +27,11 @@ export function ExportBar() {
 
   const openProject = async (file: File): Promise<void> => {
     try {
-      const parsed = JSON.parse(await file.text()) as CabinetParams;
+      const parsed = JSON.parse(await file.text()) as Record<string, unknown>;
       if (!parsed.materials || !parsed.base || !parsed.top) throw new Error('not a project file');
-      load(parsed);
+      // Merged over the defaults, so a file saved before a setting existed
+      // still opens instead of producing NaNs downstream.
+      load(normaliseParams(parsed));
     } catch (e) {
       alert(`Could not open that project file: ${(e as Error).message}`);
     }

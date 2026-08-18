@@ -57,7 +57,7 @@ export function defaultParams(): CabinetParams {
       dadoDepth: 6,
       dadoStopFront: 10,
       screwHoles: true,
-      screwPilotDiameter: 4.5,
+      screwClearanceDiameter: 4.5,
       screwSpacing: 150,
       tabWidth: 40,
       tabMinCount: 3,

@@ -11,6 +11,7 @@ import type {
   Sign,
   ToeKickSpec,
 } from '../model/types.js';
+import { localFrame } from '../model/frame.js';
 import { layoutBays, pinHeights, shelfHeights } from './layout.js';
 
 /**
@@ -183,6 +184,9 @@ function buildCarcass(
       box: b,
       normalAxis,
       faceASign,
+      // Taken now, while the box is still the clear opening. Joinery grows the
+      // box into its grooves next, and the frame must not move with it.
+      frame: localFrame(b, normalAxis, faceASign),
       width: 0,
       height: 0,
       exposed: { x: 0, y: 0, w: 0, h: 0 },

@@ -77,7 +77,7 @@ export function applyDado(
   female.part.features.push(pocket);
 
   if (j.screwHoles && req.purpose !== 'back') {
-    addScrewHoles(female, groove, widthAxis?.which === 'u', j.screwSpacing, j.screwPilotDiameter, c.side);
+    addScrewHoles(female, groove, widthAxis?.which === 'u', j.screwSpacing, j.screwClearanceDiameter, c.side);
   }
 
   return { warnings };

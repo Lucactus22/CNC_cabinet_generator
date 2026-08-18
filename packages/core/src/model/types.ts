@@ -81,7 +81,15 @@ export interface JoinerySettings {
    */
   dadoStopFront: number;
   screwHoles: boolean;
-  screwPilotDiameter: number;
+  /**
+   * Clearance hole through the panel that receives the groove, sized to pass
+   * the screw's threads freely.
+   *
+   * It must clear the thread, not grip it: a hole sized to the root diameter
+   * would have the screw biting in the outer panel and jacking the joint apart
+   * instead of pulling it together.
+   */
+  screwClearanceDiameter: number;
   screwSpacing: number;
   /** Target width of a single tab in a tab-and-slot joint. */
   tabWidth: number;
@@ -214,6 +222,25 @@ export interface LocalRect {
   w: number;
   h: number;
 }
+
+/**
+ * How a panel's flat machining coordinates sit in the assembly.
+ *
+ * This is fixed when the part is built and never recomputed. Joinery grows a
+ * captured panel's box into its grooves afterwards, so deriving the frame from
+ * the box a second time would move the origin and shift every feature by one
+ * dado depth.
+ */
+export interface LocalFrame {
+  /** Assembly-space direction of local +u. */
+  u: Vec3;
+  /** Assembly-space direction of local +v. */
+  v: Vec3;
+  /** Outward normal of face A. Material lies along -n from the face. */
+  n: Vec3;
+  /** Assembly point that maps to local (0, 0). */
+  origin: Vec3;
+}
 export type GrainAxis = 'u' | 'v' | 'free';
 
 export interface PocketFeature {
@@ -271,6 +298,8 @@ export interface Part {
   box: AABB;
   normalAxis: Axis;
   faceASign: Sign;
+  /** Fixed at build time; see LocalFrame. */
+  frame: LocalFrame;
   /** Local size of the blank: u by v. */
   width: number;
   height: number;

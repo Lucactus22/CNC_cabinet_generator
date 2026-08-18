@@ -1,4 +1,6 @@
-import type { AABB, Axis, Part, Sign, Vec3 } from './types.js';
+import type { AABB, Axis, LocalFrame, Part, Sign, Vec3 } from './types.js';
+
+export type { LocalFrame };
 
 export const vec3 = (x: number, y: number, z: number): Vec3 => ({ x, y, z });
 
@@ -39,17 +41,6 @@ const AXES: Record<Axis, Vec3> = {
   y: { x: 0, y: 1, z: 0 },
   z: { x: 0, y: 0, z: 1 },
 };
-
-export interface LocalFrame {
-  /** Assembly-space direction of local +u. */
-  u: Vec3;
-  /** Assembly-space direction of local +v. */
-  v: Vec3;
-  /** Outward normal of face A. Material lies along -n from the face. */
-  n: Vec3;
-  /** Assembly point that maps to local (0, 0). */
-  origin: Vec3;
-}
 
 const scaleV = (a: Vec3, k: number): Vec3 => ({ x: a.x * k, y: a.y * k, z: a.z * k });
 const negate = (a: Vec3): Vec3 => scaleV(a, -1);
@@ -121,8 +112,16 @@ export function toAssembly(f: LocalFrame, x: number, y: number): Vec3 {
   };
 }
 
+/**
+ * A part's machining frame.
+ *
+ * Always the frame stored on the part, never a fresh derivation: by the time
+ * anything asks, joinery has already grown captured panels into their grooves,
+ * and rebuilding the frame from the enlarged box would silently offset the part
+ * by one dado depth.
+ */
 export function frameOf(part: Part): LocalFrame {
-  return localFrame(part.box, part.normalAxis, part.faceASign);
+  return part.frame;
 }
 
 /**

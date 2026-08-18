@@ -49,6 +49,12 @@ corner is automatically notched to clear both the stop *and* the radius the
 cutter leaves at the end of the pocket. Groove widths come from your **measured**
 sheet thickness, not the nominal size.
 
+Screw clearance holes are drilled straight through the outer panel, on the
+centreline of every groove, from the same face as the groove itself — so nothing
+gets marked out at assembly and no panel is turned over for them. The hole is
+sized to *pass* the threads: one sized to grip would have the screw biting in
+the outer panel and jacking the joint apart instead of pulling it together.
+
 **Through tab and slot.** Self-jigging, no fasteners needed. Every slot corner
 gets a dogbone or T-bone relief, and so does every tab root — without that, the
 cutter's radius holds the shoulder off the mating face.

@@ -12,6 +12,10 @@ const COLOURS = {
   feature: 0x3d2f1c,
 };
 
+/** How much of the cabinet is left showing around an isolated part. */
+const ISOLATED_OPACITY = 0.12;
+const HOVER_OPACITY = 0.45;
+
 /**
  * Live assembly view.
  *
@@ -34,7 +38,9 @@ export function Viewport3D({ hidden = false }: { hidden?: boolean }) {
   useEffect(() => {
     if (!mount.current) return;
     const e = createEngine(mount.current, {
-      onPick: (id) => select(id),
+      // Clicking the isolated panel again, or the background, brings the rest
+      // of the cabinet back.
+      onPick: (id) => select(useStore.getState().selectedPartId === id ? null : id),
       onHover: setHover,
     });
     engine.current = e;
@@ -57,6 +63,7 @@ export function Viewport3D({ hidden = false }: { hidden?: boolean }) {
   }, [exploded]);
 
   const shown = hover ?? selected;
+  const isolated = Boolean(selected);
   const part = useMemo(
     () => project.parts.find((p) => p.id === shown) ?? null,
     [project.parts, shown],
@@ -83,10 +90,17 @@ export function Viewport3D({ hidden = false }: { hidden?: boolean }) {
             {part.thickness.toFixed(1)} mm
             <br />
             {countFeatures(part)}
+            {isolated && (
+              <>
+                <br />
+                isolated · click the background to show everything
+              </>
+            )}
           </>
         ) : (
           <>
-            <b>{project.parts.length} parts</b> · drag to orbit, scroll to zoom, click a panel
+            <b>{project.parts.length} parts</b> · drag to orbit, scroll to zoom, click a panel to
+            isolate it
           </>
         )}
       </div>
@@ -143,6 +157,10 @@ function createEngine(
   const grid = new THREE.GridHelper(6000, 30, 0x2f353f, 0x22262e);
   grid.position.y = -1;
   scene.add(grid);
+
+  // Ghosted panels are sorted back to front by three.js, but the isolated one
+  // must come first so it is never washed out by what is in front of it.
+  renderer.sortObjects = true;
 
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
@@ -254,13 +272,44 @@ function createEngine(
     },
   };
 
+  /**
+   * Selecting a part isolates it: everything else drops to a ghost so the panel
+   * can be inspected in place, still surrounded by enough of the carcass to
+   * read where it sits. Hovering only tints, since it changes on every mouse
+   * move.
+   */
   function applyHighlight(): void {
     const focus = hoverId ?? selectedId;
+    const isolating = selectedId !== null;
+
     for (const m of meshes) {
       const mat = m.mesh.material as THREE.MeshLambertMaterial;
+      const isFocus = m.part.id === focus;
+
       if (!focus) mat.color.setHex(COLOURS.panel);
-      else if (m.part.id === focus) mat.color.setHex(COLOURS.panelSelected);
+      else if (isFocus) mat.color.setHex(COLOURS.panelSelected);
       else mat.color.setHex(COLOURS.panelFaded);
+
+      const opacity = !isolating
+        ? focus && !isFocus
+          ? HOVER_OPACITY
+          : 1
+        : isFocus
+          ? 1
+          : ISOLATED_OPACITY;
+
+      mat.opacity = opacity;
+      mat.transparent = opacity < 1;
+      mat.depthWrite = opacity >= 1;
+      mat.needsUpdate = true;
+
+      // Feature lines belong to the panel, so they fade with it.
+      m.mesh.traverse((o) => {
+        if (!(o instanceof THREE.LineLoop)) return;
+        const lm = o.material as THREE.LineBasicMaterial;
+        lm.transparent = opacity < 1;
+        lm.opacity = opacity;
+      });
     }
   }
 }
@@ -293,7 +342,14 @@ function buildPart(part: Part): BuiltPart | null {
 
   const mesh = new THREE.Mesh(
     geometry,
-    new THREE.MeshLambertMaterial({ color: COLOURS.panel }),
+    new THREE.MeshLambertMaterial({
+      color: COLOURS.panel,
+      transparent: true,
+      opacity: 1,
+      // Ghosted panels must not occlude the one being looked at, so they are
+      // drawn without writing depth and after the solid geometry.
+      depthWrite: true,
+    }),
   );
 
   const group = new THREE.Group();
@@ -320,7 +376,9 @@ function buildPart(part: Part): BuiltPart | null {
 
 /** Draw pockets and holes on the face they belong to, a hair proud of it. */
 function addFeatureLines(mesh: THREE.Mesh, part: Part, f: ReturnType<typeof frameOf>): void {
-  const material = new THREE.LineBasicMaterial({ color: COLOURS.feature });
+  // One material per panel, so a panel's lines fade with it rather than with
+  // every other panel's.
+  const material = new THREE.LineBasicMaterial({ color: COLOURS.feature, transparent: false });
   const lift = 0.35;
 
   for (const feat of part.features) {

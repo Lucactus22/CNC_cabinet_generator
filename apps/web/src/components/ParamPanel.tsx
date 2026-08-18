@@ -161,14 +161,29 @@ export function ParamPanel() {
           label="Screw holes"
           value={params.joinery.screwHoles}
           onChange={(v) => update((p) => { p.joinery.screwHoles = v; })}
+          title="Drills clearance holes through the outer panel, on the centreline of every groove, so there is nothing to mark out at assembly."
         />
         {params.joinery.screwHoles && (
-          <NumberField
-            label="Screw spacing"
-            value={params.joinery.screwSpacing}
-            min={20}
-            onChange={(v) => update((p) => { p.joinery.screwSpacing = v; })}
-          />
+          <>
+            <NumberField
+              label="Screw spacing"
+              value={params.joinery.screwSpacing}
+              min={20}
+              onChange={(v) => update((p) => { p.joinery.screwSpacing = v; })}
+            />
+            <NumberField
+              label="Clearance hole"
+              value={params.joinery.screwClearanceDiameter}
+              step={0.5}
+              min={1}
+              onChange={(v) => update((p) => { p.joinery.screwClearanceDiameter = v; })}
+              title="Must pass the screw threads freely. Sized to grip instead, the screw jacks the joint apart rather than pulling it together."
+            />
+            <Hint>
+              Holes go through the outer panel on each groove's centreline, drilled from the same
+              face as the groove so nothing needs turning over.
+            </Hint>
+          </>
         )}
       </Group>
 

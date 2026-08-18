@@ -50,9 +50,18 @@ which is inside the groove and therefore harmless. No relief needed.
 Set the front stop to zero for a through dado, visible on the front edge; the
 notch then disappears on its own.
 
-**Screws.** Clearance holes go through the receiving panel into the edge of the
-mating one, drilled from the same face as the groove so the panel never needs
-turning over.
+**Screws.** Clearance holes go right through the panel that receives the groove,
+landing on the centreline of the mating panel, so at assembly the hole is
+already exactly where the screw goes and there is nothing to measure. They are
+drilled from the same face as the groove, so the panel never needs turning over.
+
+Size the hole to *clear* the screw's threads, not to grip them. A hole at the
+root diameter makes the screw bite in the outer panel, which jacks the joint
+apart instead of drawing it together. The default of 4.5 mm suits a 4 mm screw.
+
+There is no countersink: that needs a V or countersink bit working on the
+outside face, which would mean turning every side panel over. A hand
+countersink after machining takes seconds and costs no setup.
 
 ## Through tab and slot
 
