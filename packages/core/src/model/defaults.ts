@@ -102,6 +102,9 @@ export function defaultParams(): CabinetParams {
       partGap: 2,
       allowRotation: true,
     },
+    // Panelling and the like: none by default, added from the Surface effects
+    // panel and applied to whichever face you pick.
+    surfaceEffects: [],
     labelParts: true,
   };
 }

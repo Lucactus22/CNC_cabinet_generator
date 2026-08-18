@@ -24,6 +24,21 @@ shelf pin ladder.
 Doors and drawers are not built yet. The part model and the joinery interface
 are shaped to take them without a rewrite.
 
+## Surface effects
+
+Decorative machining on a face you choose: evenly spaced grooves give the
+beadboard look on a back panel. Pick the surface (by role, or select a single
+panel), the face, direction and spacing.
+
+Grooves stay inside the panel's **visible** area, which excludes the tongues
+buried in the carcass grooves — so nothing shows at the joint line. If an effect
+lands on the face opposite to whatever is already machined, you get a warning,
+because that means turning the panel over on the bed.
+
+Effects are a registry: a new one is an applier function plus a line in
+`EFFECTS`, with no changes to the builder, nester or exporter. See
+[docs/EFFECTS.md](docs/EFFECTS.md).
+
 ## The joinery
 
 Two carcass joints, both fully machinable from a flat sheet on a 3-axis router.

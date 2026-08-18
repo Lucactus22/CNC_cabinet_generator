@@ -1,5 +1,13 @@
 import { bboxOf, buildOutline, relieveCorners } from '../geom/index.js';
-import type { Assembly, CabinetParams, DrillFeature, EngraveFeature, Part } from '../model/types.js';
+import type {
+  Assembly,
+  CabinetParams,
+  DrillFeature,
+  EngraveFeature,
+  Feature,
+  Part,
+  PocketFeature,
+} from '../model/types.js';
 import {
   buildParts,
   type BuildResult,
@@ -7,6 +15,7 @@ import {
   type PinRowRequest,
   type ToeNotchRequest,
 } from '../build/builder.js';
+import { applyEffects } from '../effects/index.js';
 import { applyDado } from './dado.js';
 import { applyTabSlot } from './tabslot.js';
 import {
@@ -40,6 +49,9 @@ export interface JoineryResult extends Assembly {
 export function generate(params: CabinetParams): JoineryResult {
   const built = buildParts(params);
   const warnings = applyJoinery(params, built);
+  // Effects run last: they need the finished blank and the region of it that
+  // stays visible, and they only ever add features on top.
+  warnings.push(...applyEffects(params, built.parts).warnings);
   return { params, parts: built.parts, warnings, notes: built.notes };
 }
 
@@ -157,18 +169,22 @@ function materialise(draft: PartDraft, params: CabinetParams): void {
   }
 
   draft.part.outline = outline;
+  draft.part.exposed = draft.exposed;
   const bb = bboxOf(outline);
   draft.part.width = bb.maxX - bb.minX;
   draft.part.height = bb.maxY - bb.minY;
 
   if (params.labelParts) {
+    // Put the label on whichever face is already being worked, so it never
+    // becomes the reason a panel gets turned over.
+    const machined = draft.part.features.find(forcesFace);
     const label: EngraveFeature = {
       kind: 'engrave',
       x: bb.minX + 12,
       y: bb.minY + 12,
       text: draft.part.id,
       height: 8,
-      side: 'A',
+      side: machined?.side ?? 'A',
     };
     draft.part.features.push(label);
   }
@@ -194,14 +210,27 @@ function applyToeNotch(draft: PartDraft, req: ToeNotchRequest): void {
   }
 }
 
+/**
+ * Whether a feature actually pins a panel to one face.
+ *
+ * A through cut goes right through, so it can be made from either side. An
+ * engraved label is a reference marking that can go wherever the panel is
+ * already being machined, so neither forces the panel to be turned over.
+ */
+export function forcesFace(f: Feature): f is PocketFeature | DrillFeature {
+  if (f.kind === 'through') return false;
+  if (f.kind === 'engrave') return false;
+  if (f.kind === 'drill' && f.depth === 'thru') return false;
+  return true;
+}
+
 /** Panels that need work on both faces, which means flipping them on the bed. */
 export function partsNeedingFlip(parts: Part[]): Part[] {
   return parts.filter((p) => {
     let a = false;
     let b = false;
     for (const f of p.features) {
-      if (f.kind === 'through') continue;
-      if (f.kind === 'drill' && f.depth === 'thru') continue;
+      if (!forcesFace(f)) continue;
       if (f.side === 'A') a = true;
       else b = true;
     }

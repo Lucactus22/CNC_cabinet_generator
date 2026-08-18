@@ -129,6 +129,50 @@ export interface NestingSettings {
   allowRotation: boolean;
 }
 
+// ---------------------------------------------------------------------------
+// Surface effects
+// ---------------------------------------------------------------------------
+
+export type EffectKind = 'grooves';
+
+/**
+ * Evenly spaced grooves across a face: beadboard, panelling, fluting, reeding.
+ * The look in the reference photographs.
+ */
+export interface GrooveEffect {
+  kind: 'grooves';
+  /** Which way the grooves run, in the assembled cabinet. */
+  direction: 'vertical' | 'horizontal';
+  /** Centre-to-centre spacing. */
+  spacing: number;
+  width: number;
+  depth: number;
+  /** Held in from the edges of the visible area. */
+  margin: number;
+  /**
+   * 'even' nudges the spacing so a whole number of equal bays fits edge to
+   * edge, the way panelling is normally set out. 'exact' keeps the spacing as
+   * given and centres the run, letting the end margins fall where they may.
+   */
+  fit: 'even' | 'exact';
+}
+
+export type SurfaceEffect = GrooveEffect;
+
+/** Which panels an effect lands on. */
+export type SurfaceTarget =
+  | { select: 'role'; role: PartRole; carcass: 'base' | 'top' | 'both' }
+  | { select: 'part'; partId: string };
+
+export interface SurfaceEffectSpec {
+  id: string;
+  enabled: boolean;
+  target: SurfaceTarget;
+  /** 'inside' is the face looking into the cabinet, 'outside' the other one. */
+  face: 'inside' | 'outside';
+  effect: SurfaceEffect;
+}
+
 export interface CabinetParams {
   name: string;
   units: Units;
@@ -141,6 +185,8 @@ export interface CabinetParams {
   base: CarcassSpec & { toeKick: ToeKickSpec };
   top: CarcassSpec & { linkWidthToBase: boolean };
   nesting: NestingSettings;
+  /** Decorative machining applied to chosen faces. */
+  surfaceEffects: SurfaceEffectSpec[];
   /** Emit engraved part labels on the DXF LABEL layer. */
   labelParts: boolean;
 }
@@ -160,6 +206,14 @@ export type PartRole =
   | 'stretcher';
 
 export type FaceSide = 'A' | 'B';
+
+/** A rectangle in a part's local machining coordinates. */
+export interface LocalRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
 export type GrainAxis = 'u' | 'v' | 'free';
 
 export interface PocketFeature {
@@ -220,6 +274,14 @@ export interface Part {
   /** Local size of the blank: u by v. */
   width: number;
   height: number;
+  /**
+   * The part of the blank still visible once assembled, in local coordinates.
+   *
+   * A captured panel grows into its grooves, so its blank is larger than the
+   * face you actually see. Surface effects work inside this region, which is
+   * what stops beading being cut across a tongue that is buried in a groove.
+   */
+  exposed: LocalRect;
   outline: Path;
   features: Feature[];
   /**

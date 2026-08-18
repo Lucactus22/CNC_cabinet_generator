@@ -185,6 +185,7 @@ function buildCarcass(
       faceASign,
       width: 0,
       height: 0,
+      exposed: { x: 0, y: 0, w: 0, h: 0 },
       outline: rect(0, 0, 0, 0),
       features: [],
       grainAxis,

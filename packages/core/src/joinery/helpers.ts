@@ -1,13 +1,8 @@
-import type { AABB, Axis, Part, Vec3 } from '../model/types.js';
+import type { AABB, Axis, LocalRect, Part, Vec3 } from '../model/types.js';
+
+export type { LocalRect };
 import { frameOf, intersectBoxes, localRectOf, type LocalFrame } from '../model/frame.js';
 import type { Corner, CornerNotch, Edge, EdgeTab } from '../geom/outline.js';
-
-export interface LocalRect {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
 
 /** Mutable working copy of a part while joinery is being applied. */
 export interface PartDraft {
@@ -15,6 +10,11 @@ export interface PartDraft {
   frame: LocalFrame;
   /** The blank's rectangle in local coordinates, before tabs and notches. */
   base: LocalRect;
+  /**
+   * The same rectangle as first built, before any joint grew the panel into a
+   * groove. That is exactly the area still on show once assembled.
+   */
+  exposed: LocalRect;
   notches: CornerNotch[];
   tabs: EdgeTab[];
 }
@@ -139,7 +139,10 @@ export const FRONT_DIR: Vec3 = { x: 0, y: -1, z: 0 };
 
 export function makeDraft(part: Part): PartDraft {
   const frame = frameOf(part);
-  return { part, frame, base: localRectOf(frame, part.box), notches: [], tabs: [] };
+  // The frame is fixed here and never recomputed, so local coordinates stay
+  // comparable even after joinery grows the box.
+  const base = localRectOf(frame, part.box);
+  return { part, frame, base, exposed: { ...base }, notches: [], tabs: [] };
 }
 
 /** Recompute the blank rectangle after the box has been grown into its joints. */

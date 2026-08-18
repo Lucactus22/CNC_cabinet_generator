@@ -1,6 +1,7 @@
 import { useStore } from '../store';
 import type { BaySpec, CarcassSpec, ShelfMode } from '@cabgen/core';
 import { CheckField, Group, Hint, NumberField, SelectField, TextField } from './Controls';
+import { EffectsPanel } from './EffectsPanel';
 
 const SHELF_MODES: Array<{ value: ShelfMode; label: string }> = [
   { value: 'none', label: 'Open, no shelves' },
@@ -170,6 +171,8 @@ export function ParamPanel() {
           />
         )}
       </Group>
+
+      <EffectsPanel />
 
       <Group title="Shelf pins">
         <NumberField
