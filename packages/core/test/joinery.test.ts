@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { bboxOf, tessellate } from '../src/geom/index.js';
-import { defaultParams, generate, partsNeedingFlip } from '../src/index.js';
+import { buildParts, defaultParams, frameOf, generate, partsNeedingFlip, toAssembly } from '../src/index.js';
 import type { CabinetParams, Part, PocketFeature } from '../src/model/types.js';
 
 const find = (parts: Part[], id: string): Part => {
@@ -203,6 +203,81 @@ describe('dado joints', () => {
     for (const s of screws) {
       if (s.kind === 'drill') expect(s.depth).toBe('thru');
     }
+  });
+});
+
+describe('rabbet back', () => {
+  // R-01: 'rabbet' used to build a back panel with zero joints — sized to the
+  // clear opening and left floating, unjoined, in the cut list. Selecting it
+  // must produce a real joint, open at the rear edge rather than the groove
+  // style's enclosed pocket.
+  const params = defaultParams();
+  params.base.back.style = 'rabbet';
+  const { parts, warnings } = generate(params);
+  const yBack = params.base.depth;
+  const dadoDepth = params.joinery.dadoDepth;
+
+  it('generates without complaint', () => {
+    expect(warnings).toEqual([]);
+  });
+
+  it('cuts a rebate on every panel the back meets, not just the clear-opening blank', () => {
+    for (const id of ['B-SIDE-L', 'B-SIDE-R', 'B-TOP', 'B-BOTTOM']) {
+      const backPockets = pockets(find(parts, id)).filter((f) => f.purpose === 'back');
+      expect(backPockets.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('opens the rebate onto the carcass rear edge, unlike the enclosed groove', () => {
+    const side = find(parts, 'B-SIDE-L');
+    const frame = frameOf(side);
+    const backPocket = pockets(side).find((f) => f.purpose === 'back')!;
+    const ys = backPocket.path.pts.map((v) => toAssembly(frame, v.x, v.y).y);
+    expect(Math.max(...ys)).toBeCloseTo(yBack, 6);
+  });
+
+  it('still captures the back panel on all four edges, same as the groove style', () => {
+    const back = find(parts, 'B-BACK');
+    const t = params.materials[0]!.actualThickness;
+    // Clear opening in X is width - 2t; the back gains one dado depth per side.
+    expect(back.box.max.x - back.box.min.x).toBeCloseTo(
+      params.base.width - 2 * t + 2 * dadoDepth,
+      6,
+    );
+  });
+
+  it('leaves the groove style enclosed, with material remaining behind it', () => {
+    // The contrast that makes 'rabbet' worth offering: the groove style keeps
+    // a shoulder of solid material at the true rear edge so the back stays
+    // hidden, which is exactly what a rabbet deliberately gives up.
+    const grooveParams = defaultParams();
+    const { parts: grooveParts } = generate(grooveParams);
+    const side = find(grooveParts, 'B-SIDE-L');
+    const frame = frameOf(side);
+    const backPocket = pockets(side).find((f) => f.purpose === 'back')!;
+    const ys = backPocket.path.pts.map((v) => toAssembly(frame, v.x, v.y).y);
+    expect(Math.max(...ys)).toBeLessThan(grooveParams.base.depth - 1);
+  });
+});
+
+describe('back panel never floats unjoined', () => {
+  // The regression this guards: no back style should ever produce a back
+  // panel with no joints referencing it. That is precisely the bug rabbet
+  // shipped with — a wrong cabinet, cut with no warning.
+  it.each(['groove', 'rabbet'] as const)('gives the back at least one joint for style %s', (style) => {
+    const params = defaultParams();
+    params.base.back.style = style;
+    const built = buildParts(params);
+    expect(built.parts.some((p) => p.id === 'B-BACK')).toBe(true);
+    const backJoints = built.joints.filter((j) => j.maleId === 'B-BACK' || j.femaleId === 'B-BACK');
+    expect(backJoints.length).toBeGreaterThan(0);
+  });
+
+  it('builds no back part at all for style none, rather than an unjoined one', () => {
+    const params = defaultParams();
+    params.base.back.style = 'none';
+    const built = buildParts(params);
+    expect(built.parts.some((p) => p.id === 'B-BACK')).toBe(false);
   });
 });
 

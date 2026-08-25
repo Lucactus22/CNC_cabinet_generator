@@ -207,8 +207,6 @@ person will delete.
 
 Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
-- `back.style: 'rabbet'` is offered in the UI and does nothing — the panel is
-  built but no joint is cut (**R-01**)
 - `CabinetParams.units` is dead: millimetres are the only unit and the field is
   never read. **R-02** deletes it
 - one cabinet type only; `CabinetParams` *is* the project (**R-03**)

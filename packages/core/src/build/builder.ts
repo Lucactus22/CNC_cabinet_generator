@@ -28,6 +28,12 @@ export interface JointRequest {
   purpose: 'carcass' | 'shelf' | 'back' | 'divider' | 'toe-rail';
   /** Backs and toe rails always sit in a plain groove, whatever the carcass joint is. */
   forceDado?: boolean;
+  /**
+   * A rabbet, not a groove: the pocket must run off this assembly Y — the
+   * carcass's rear face — rather than stop short of it, so the joint is open
+   * on that edge instead of leaving a shoulder behind it.
+   */
+  openEdgeAtY?: number;
 }
 
 export interface BuildResult {
@@ -481,23 +487,29 @@ function buildCarcass(
     // grows it into them, exactly as it does for every other captured panel.
     add(backId, `${human} back`, 'back', backMat.id, backT,
       box(t, W - t, backY1 - backT, backY1, shelfZ0, shelfZ1), 'y', '-', 'free');
-    if (spec.back.style === 'groove') {
-      for (const femaleId of [leftId, rightId, topId]) {
-        joints.push({ maleId: backId, femaleId, purpose: 'back', forceDado: true });
-      }
-      // The back's bottom edge sits in the floor, whichever panel that is.
-      joints.push(
-        hasOwnBottom
-          ? { maleId: backId, femaleId: bottomId, purpose: 'back', forceDado: true }
-          : {
-              maleId: backId,
-              femaleId: floorId,
-              purpose: 'back',
-              forceDado: true,
-              depthOverride: params.joinery.stackDadoDepth,
-            },
-      );
+
+    // A rabbet is the same housing joint as a groove, except the pocket is not
+    // left with a shoulder of solid material behind it: it is grown out to the
+    // carcass's true rear face, so the back's cavity is open on that edge
+    // instead of fully enclosed. See JOINERY.md for why that is worth having.
+    const openEdgeAtY = spec.back.style === 'rabbet' ? yBack : undefined;
+
+    for (const femaleId of [leftId, rightId, topId]) {
+      joints.push({ maleId: backId, femaleId, purpose: 'back', forceDado: true, openEdgeAtY });
     }
+    // The back's bottom edge sits in the floor, whichever panel that is.
+    joints.push(
+      hasOwnBottom
+        ? { maleId: backId, femaleId: bottomId, purpose: 'back', forceDado: true, openEdgeAtY }
+        : {
+            maleId: backId,
+            femaleId: floorId,
+            purpose: 'back',
+            forceDado: true,
+            depthOverride: params.joinery.stackDadoDepth,
+            openEdgeAtY,
+          },
+    );
   }
 }
 

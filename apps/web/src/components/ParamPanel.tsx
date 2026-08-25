@@ -546,6 +546,7 @@ function CarcassGroup({
           { value: 'none', label: 'None' },
         ]}
         onChange={(v) => update((p) => { (p[which] as CarcassSpec).back.style = v; })}
+        title="A groove hides the back behind a shoulder of solid material. A rabbet opens onto the rear edge instead, so the back and the sides can be scribed flush to a wall that is not flat, in one pass."
       />
       {spec.back.style !== 'none' && (
         <NumberField
@@ -553,7 +554,11 @@ function CarcassGroup({
           value={spec.back.inset}
           min={0}
           onChange={(v) => update((p) => { (p[which] as CarcassSpec).back.inset = v; })}
-          title="How far in from the rear edge the back sits, leaving room for scribing to the wall."
+          title={
+            spec.back.style === 'rabbet'
+              ? 'How far the back sits forward of the true rear edge. Zero lands it flush, which is what makes the rabbet worth having.'
+              : 'How far in from the rear edge the back sits, leaving room for scribing to the wall.'
+          }
         />
       )}
 

@@ -66,6 +66,14 @@ export function applyDado(
     notchMaleFront(male, c, depth, stop + toolR + j.fitClearance, warnings);
   }
 
+  // A rabbet: grow the pocket the rest of the way to the carcass's rear face,
+  // so it opens onto that edge instead of leaving a shoulder of material
+  // behind the back panel. No notch is needed here — unlike the front stop,
+  // there is no solid material left in front of an open edge to hide.
+  if (req.openEdgeAtY !== undefined) {
+    extendToEdge(groove, female, req.openEdgeAtY);
+  }
+
   if (groove.w < params.tool.diameter - 1e-6 || groove.h < params.tool.diameter - 1e-6) {
     warnings.push(
       `${female.part.label}: a ${fmt(Math.min(groove.w, groove.h))} mm groove is narrower than the ${params.tool.diameter} mm cutter.`,
@@ -114,6 +122,35 @@ function shortenAtFront(
       groove.h -= stop;
     } else {
       groove.h -= stop;
+    }
+  }
+}
+
+/**
+ * Grow a groove out to a carcass edge instead of leaving a shoulder there —
+ * the mirror image of `shortenAtFront`. A rabbet has to run off the panel's
+ * rear face rather than stop short of it, so whichever end of the pocket is
+ * nearer that edge gets pulled out to meet it exactly.
+ */
+function extendToEdge(groove: LocalRect, female: PartDraft, edgeY: number): void {
+  const yMap = mapAxis(female.frame, 'y');
+  if (!yMap) return;
+  const originY = female.frame.origin.y;
+  const edgeLocal = (edgeY - originY) * yMap.sign;
+
+  if (yMap.which === 'u') {
+    if (edgeLocal < groove.x) {
+      groove.w += groove.x - edgeLocal;
+      groove.x = edgeLocal;
+    } else if (edgeLocal > groove.x + groove.w) {
+      groove.w = edgeLocal - groove.x;
+    }
+  } else {
+    if (edgeLocal < groove.y) {
+      groove.h += groove.y - edgeLocal;
+      groove.y = edgeLocal;
+    } else if (edgeLocal > groove.y + groove.h) {
+      groove.h = edgeLocal - groove.y;
     }
   }
 }
