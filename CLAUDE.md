@@ -25,7 +25,7 @@ npm run typecheck    # both packages
 npm run build        # production build of the web app
 ```
 
-There is no linter yet — that is roadmap item R-03.
+There is no linter yet — that is roadmap item R-02.
 
 ## What this project is about
 

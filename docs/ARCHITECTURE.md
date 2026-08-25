@@ -209,7 +209,11 @@ Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
 - `back.style: 'rabbet'` is offered in the UI and does nothing — the panel is
   built but no joint is cut (**R-01**)
-- `units: 'in'` exists in the model and is never read (**R-02**)
-- one cabinet type only; `CabinetParams` *is* the project (**R-04**)
+- `CabinetParams.units` is dead: millimetres are the only unit and the field is
+  never read. **R-02** deletes it
+- one cabinet type only; `CabinetParams` *is* the project (**R-03**)
+- everything is a rectangle. Out-of-square rooms need one tapered part shape
+  (**R-05**), which `buildOutline` cannot yet make
+- frameless only; no face frames (**R-07**)
 - no drawers, no hardware catalogue, no edge banding
 - the web app has no automated tests
