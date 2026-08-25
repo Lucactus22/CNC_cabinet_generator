@@ -15,7 +15,11 @@ export function ExportBar() {
 
   const doExport = (): void => {
     const bundle = exportProject(project, { ...defaultExportOptions(), safeNames });
-    const slug = params.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'cabinet';
+    const slug =
+      params.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || 'cabinet';
     saveBlob(
       zipFiles(bundle.files.map((f) => ({ name: f.name, content: f.dxf }))),
       `${slug}-cnc.zip`,
@@ -44,7 +48,11 @@ export function ExportBar() {
         title="Writes POCKET_D6P35 instead of POCKET_D6.35, for importers that dislike dots."
         style={{ color: 'var(--muted)', cursor: 'pointer' }}
       >
-        <input type="checkbox" checked={safeNames} onChange={(e) => setSafeNames(e.target.checked)} />
+        <input
+          type="checkbox"
+          checked={safeNames}
+          onChange={(e) => setSafeNames(e.target.checked)}
+        />
         safe layer names
       </label>
       <button onClick={() => fileInput.current?.click()}>Open</button>

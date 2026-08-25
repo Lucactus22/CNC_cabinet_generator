@@ -32,12 +32,7 @@ export function clipPathToBand(path: Path, band: Band): Path | null {
  * Sutherland-Hodgman against one edge. `keepAbove` keeps the side of the line
  * with the larger coordinate.
  */
-function clipHalfPlane(
-  pts: Vec2[],
-  axis: 'x' | 'y',
-  at: number,
-  keepAbove: boolean,
-): Vec2[] {
+function clipHalfPlane(pts: Vec2[], axis: 'x' | 'y', at: number, keepAbove: boolean): Vec2[] {
   if (pts.length === 0) return pts;
   const value = (p: Vec2): number => (axis === 'x' ? p.x : p.y);
   const inside = (p: Vec2): boolean => (keepAbove ? value(p) >= at - 1e-9 : value(p) <= at + 1e-9);

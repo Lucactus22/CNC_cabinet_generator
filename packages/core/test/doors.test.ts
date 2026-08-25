@@ -78,7 +78,11 @@ describe('door layout', () => {
   });
 
   it('sits inset doors inside the opening instead', () => {
-    const p = buildProject(doorsOn((x) => { x.doors.fit = 'inset'; }));
+    const p = buildProject(
+      doorsOn((x) => {
+        x.doors.fit = 'inset';
+      }),
+    );
     const door = find(p.parts, 'B-DOOR-1');
     const side = find(p.parts, 'B-SIDE-L');
     expect(door.box.min.y).toBeGreaterThanOrEqual(side.box.min.y - 1e-6);
@@ -86,7 +90,11 @@ describe('door layout', () => {
   });
 
   it('splits a pair down the middle with a reveal between', () => {
-    const p = buildProject(doorsOn((x) => { x.base.bays[0]!.doors = 'double'; }));
+    const p = buildProject(
+      doorsOn((x) => {
+        x.base.bays[0]!.doors = 'double';
+      }),
+    );
     const l = find(p.parts, 'B-DOOR-1L');
     const r = find(p.parts, 'B-DOOR-1R');
     expect(r.box.min.x - l.box.max.x).toBeCloseTo(p.params.doors.reveal, 6);
@@ -94,9 +102,11 @@ describe('door layout', () => {
   });
 
   it('builds no doors when every bay is open', () => {
-    const p = buildProject(doorsOn((x) => {
-      for (const b of x.base.bays) b.doors = 'none';
-    }));
+    const p = buildProject(
+      doorsOn((x) => {
+        for (const b of x.base.bays) b.doors = 'none';
+      }),
+    );
     expect(p.parts.filter((q) => q.role === 'door')).toHaveLength(0);
   });
 });
@@ -136,7 +146,10 @@ describe('UTRUSTA hinge boring', () => {
     const cupX = h.boringDistance + h.cupDiameter / 2;
     for (const one of d) expect(one.x).toBeCloseTo(cupX + h.dowelOffset, 6);
 
-    const first = d.filter((one) => Math.abs(one.y - 76.2) < h.dowelSpacing).map((o) => o.y).sort();
+    const first = d
+      .filter((one) => Math.abs(one.y - 76.2) < h.dowelSpacing)
+      .map((o) => o.y)
+      .sort();
     expect(first[1]! - first[0]!).toBeCloseTo(h.dowelSpacing, 6);
   });
 
@@ -152,10 +165,14 @@ describe('UTRUSTA hinge boring', () => {
   });
 
   it('places the cups the standard distance in from each end', () => {
-    const ys = [...new Set(cups(door).map((c) => {
-      const bb = bboxOf(c.path);
-      return Math.round(((bb.minY + bb.maxY) / 2) * 10) / 10;
-    }))].sort((a, b) => a - b);
+    const ys = [
+      ...new Set(
+        cups(door).map((c) => {
+          const bb = bboxOf(c.path);
+          return Math.round(((bb.minY + bb.maxY) / 2) * 10) / 10;
+        }),
+      ),
+    ].sort((a, b) => a - b);
     expect(ys[0]).toBeCloseTo(h.endOffset, 1);
     expect(ys[ys.length - 1]).toBeCloseTo(door.height - h.endOffset, 1);
   });
@@ -174,15 +191,26 @@ describe('UTRUSTA hinge boring', () => {
   });
 
   it('warns when the cup would go through a thin door', () => {
-    const p = buildProject(doorsOn((x) => {
-      x.materials.push({ ...x.materials[1]!, id: 'thin', name: '12 mm door', actualThickness: 11.9 });
-      x.doors.materialId = 'thin';
-    }));
+    const p = buildProject(
+      doorsOn((x) => {
+        x.materials.push({
+          ...x.materials[1]!,
+          id: 'thin',
+          name: '12 mm door',
+          actualThickness: 11.9,
+        });
+        x.doors.materialId = 'thin';
+      }),
+    );
     expect(p.diagnostics.some((d) => d.message.includes('straight through'))).toBe(true);
   });
 
   it('warns when the boring distance is outside what the hardware allows', () => {
-    const p = buildProject(doorsOn((x) => { x.hinge.boringDistance = 15; }));
+    const p = buildProject(
+      doorsOn((x) => {
+        x.hinge.boringDistance = 15;
+      }),
+    );
     expect(p.diagnostics.some((d) => d.message.includes('3-8 mm'))).toBe(true);
   });
 });
@@ -262,7 +290,8 @@ describe('doors through the rest of the pipeline', () => {
     const project = buildProject(doorsOn());
     expect(project.nest.unplaced).toEqual([]);
     expect(project.cutList.filter((r) => r.role === 'door')).toHaveLength(2);
-    expect(project.diagnostics.filter((d) => d.severity === 'error' && d.topic === 'joinery'))
-      .toEqual([]);
+    expect(
+      project.diagnostics.filter((d) => d.severity === 'error' && d.topic === 'joinery'),
+    ).toEqual([]);
   });
 });

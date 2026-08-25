@@ -101,14 +101,10 @@ interface CarcassContext {
   standsOnId: string | null;
 }
 
-const box = (
-  x0: number,
-  x1: number,
-  y0: number,
-  y1: number,
-  z0: number,
-  z1: number,
-): AABB => ({ min: { x: x0, y: y0, z: z0 }, max: { x: x1, y: y1, z: z1 } });
+const box = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number): AABB => ({
+  min: { x: x0, y: y0, z: z0 },
+  max: { x: x1, y: y1, z: z1 },
+});
 
 export function buildParts(params: CabinetParams): BuildResult {
   const carcassMat = findMaterial(params, params.carcassMaterialId);
@@ -154,7 +150,19 @@ export function buildParts(params: CabinetParams): BuildResult {
   ];
 
   for (const ctx of contexts) {
-    buildCarcass(ctx, params, carcassMat, shelfMat, t, parts, joints, pinRows, toeNotches, hinges, notes);
+    buildCarcass(
+      ctx,
+      params,
+      carcassMat,
+      shelfMat,
+      t,
+      parts,
+      joints,
+      pinRows,
+      toeNotches,
+      hinges,
+      notes,
+    );
   }
 
   if (params.top.floor === 'base-top' && params.base.topStyle === 'inset') {
@@ -250,16 +258,43 @@ function buildCarcass(
   const sideTop = capped ? zTop - t : zTop;
   const leftId = `${prefix}-SIDE-L`;
   const rightId = `${prefix}-SIDE-R`;
-  add(leftId, `${human} side, left`, 'side', carcassMat.id, t,
-    box(0, t, yFront, yBack, z0, sideTop), 'x', '+', 'v');
-  add(rightId, `${human} side, right`, 'side', carcassMat.id, t,
-    box(W - t, W, yFront, yBack, z0, sideTop), 'x', '-', 'v');
+  add(
+    leftId,
+    `${human} side, left`,
+    'side',
+    carcassMat.id,
+    t,
+    box(0, t, yFront, yBack, z0, sideTop),
+    'x',
+    '+',
+    'v',
+  );
+  add(
+    rightId,
+    `${human} side, right`,
+    'side',
+    carcassMat.id,
+    t,
+    box(W - t, W, yFront, yBack, z0, sideTop),
+    'x',
+    '-',
+    'v',
+  );
 
   // --- Bottom and top panels ---------------------------------------------
   // Sized to the clear opening; the joinery stage grows them into their dados.
   const topId = `${prefix}-TOP`;
-  add(topId, `${human} top`, 'top', carcassMat.id, t,
-    box(capped ? 0 : t, capped ? W : W - t, yFront, yBack, zTop - t, zTop), 'z', '-', 'u');
+  add(
+    topId,
+    `${human} top`,
+    'top',
+    carcassMat.id,
+    t,
+    box(capped ? 0 : t, capped ? W : W - t, yFront, yBack, zTop - t, zTop),
+    'z',
+    '-',
+    'u',
+  );
 
   if (capped) {
     // The sides run up into shallow dados in the top's underside. That is the
@@ -285,8 +320,17 @@ function buildCarcass(
   const bottomId = `${prefix}-BOTTOM`;
   if (hasOwnBottom) {
     const bottomZ = z0 + toeH;
-    add(bottomId, `${human} bottom`, 'bottom', carcassMat.id, t,
-      box(t, W - t, yFront, yBack, bottomZ, bottomZ + t), 'z', '+', 'u');
+    add(
+      bottomId,
+      `${human} bottom`,
+      'bottom',
+      carcassMat.id,
+      t,
+      box(t, W - t, yFront, yBack, bottomZ, bottomZ + t),
+      'z',
+      '+',
+      'u',
+    );
     for (const femaleId of [leftId, rightId]) {
       joints.push({ maleId: bottomId, femaleId, stopFrontAtY: yFront, purpose: 'carcass' });
     }
@@ -331,8 +375,17 @@ function buildCarcass(
     }
     const railId = `${prefix}-TOERAIL`;
     const railY = yFront + ctx.toeKick.setback;
-    add(railId, `${human} toe kick rail`, 'toe-rail', carcassMat.id, t,
-      box(t, W - t, railY, railY + t, z0, z0 + toeH), 'y', '-', 'u');
+    add(
+      railId,
+      `${human} toe kick rail`,
+      'toe-rail',
+      carcassMat.id,
+      t,
+      box(t, W - t, railY, railY + t, z0, z0 + toeH),
+      'y',
+      '-',
+      'u',
+    );
     for (const femaleId of [leftId, rightId]) {
       joints.push({ maleId: railId, femaleId, purpose: 'toe-rail', forceDado: true });
     }
@@ -350,18 +403,28 @@ function buildCarcass(
   dividerX.forEach((x, i) => {
     const id = `${prefix}-DIV-${i + 1}`;
     dividerIds.push(id);
-    add(id, `${human} divider ${i + 1}`, 'divider', carcassMat.id, t,
-      box(x, x + t, yFront, innerBackY, shelfZ0, shelfZ1), 'x', '+', 'v');
+    add(
+      id,
+      `${human} divider ${i + 1}`,
+      'divider',
+      carcassMat.id,
+      t,
+      box(x, x + t, yFront, innerBackY, shelfZ0, shelfZ1),
+      'x',
+      '+',
+      'v',
+    );
     joints.push(floorJoint(id));
     joints.push({ maleId: id, femaleId: topId, stopFrontAtY: yFront, purpose: 'divider' });
   });
 
   // --- Shelves -----------------------------------------------------------
   bays.forEach((bay, i) => {
-    const baySpec = spec.bays[i] ?? spec.bays[spec.bays.length - 1] ?? {
-      shelves: 'none' as const,
-      shelfCount: 0,
-    };
+    const baySpec = spec.bays[i] ??
+      spec.bays[spec.bays.length - 1] ?? {
+        shelves: 'none' as const,
+        shelfCount: 0,
+      };
     // Whichever panels bound this bay: outer sides at the ends, dividers within.
     const leftPanel = i === 0 ? leftId : dividerIds[i - 1]!;
     const rightPanel = i === bays.length - 1 ? rightId : dividerIds[i]!;
@@ -370,10 +433,17 @@ function buildCarcass(
       const zs = shelfHeights(shelfZ0, shelfZ1, baySpec.shelfCount, t);
       zs.forEach((z, k) => {
         const id = `${prefix}-SHELF-${i + 1}-${k + 1}`;
-        add(id, `${human} shelf, bay ${i + 1} no ${k + 1}`, 'shelf', shelfMat.id,
+        add(
+          id,
+          `${human} shelf, bay ${i + 1} no ${k + 1}`,
+          'shelf',
+          shelfMat.id,
           shelfMat.actualThickness,
           box(bay.x0, bay.x1, yFront, innerBackY, z, z + shelfMat.actualThickness),
-          'z', '+', 'u');
+          'z',
+          '+',
+          'u',
+        );
         joints.push({ maleId: id, femaleId: leftPanel, stopFrontAtY: yFront, purpose: 'shelf' });
         joints.push({ maleId: id, femaleId: rightPanel, stopFrontAtY: yFront, purpose: 'shelf' });
       });
@@ -393,11 +463,24 @@ function buildCarcass(
         // One loose shelf per bay as a starting point, sized to drop in freely.
         const clearance = 2;
         const id = `${prefix}-SHELF-ADJ-${i + 1}`;
-        add(id, `${human} adjustable shelf, bay ${i + 1}`, 'shelf', shelfMat.id,
+        add(
+          id,
+          `${human} adjustable shelf, bay ${i + 1}`,
+          'shelf',
+          shelfMat.id,
           shelfMat.actualThickness,
-          box(bay.x0 + clearance / 2, bay.x1 - clearance / 2, yFront + clearance,
-            innerBackY, shelfZ0 + 200, shelfZ0 + 200 + shelfMat.actualThickness),
-          'z', '+', 'u');
+          box(
+            bay.x0 + clearance / 2,
+            bay.x1 - clearance / 2,
+            yFront + clearance,
+            innerBackY,
+            shelfZ0 + 200,
+            shelfZ0 + 200 + shelfMat.actualThickness,
+          ),
+          'z',
+          '+',
+          'u',
+        );
       } else {
         notes.push(
           `${human} carcass bay ${i + 1}: the opening is too short for a shelf pin ladder, so no holes were drilled.`,
@@ -460,9 +543,17 @@ function buildCarcass(
         const id = `${prefix}-DOOR-${i + 1}${leaf.suffix}`;
         // Face A is the back, where the hinge cups go; any decoration goes on
         // the front, which is what makes a door a two-sided part.
-        add(id, `${human} door, bay ${i + 1}${leaf.suffix ? ` ${leaf.suffix}` : ''}`, 'door',
-          doorMat.id, td,
-          box(leaf.from, leaf.to, yDoor0, yDoor0 + td, zBottom, zTopDoor), 'y', '+', 'v');
+        add(
+          id,
+          `${human} door, bay ${i + 1}${leaf.suffix ? ` ${leaf.suffix}` : ''}`,
+          'door',
+          doorMat.id,
+          td,
+          box(leaf.from, leaf.to, yDoor0, yDoor0 + td, zBottom, zTopDoor),
+          'y',
+          '+',
+          'v',
+        );
 
         const heights = hingeHeights(zBottom, zTopDoor, params.hinge.endOffset);
         // Plates screw to whichever panel the hinge side runs against.
@@ -485,8 +576,17 @@ function buildCarcass(
     const backId = `${prefix}-BACK`;
     // Sized to the clear opening. If it sits in grooves, the joinery stage
     // grows it into them, exactly as it does for every other captured panel.
-    add(backId, `${human} back`, 'back', backMat.id, backT,
-      box(t, W - t, backY1 - backT, backY1, shelfZ0, shelfZ1), 'y', '-', 'free');
+    add(
+      backId,
+      `${human} back`,
+      'back',
+      backMat.id,
+      backT,
+      box(t, W - t, backY1 - backT, backY1, shelfZ0, shelfZ1),
+      'y',
+      '-',
+      'free',
+    );
 
     // A rabbet is the same housing joint as a groove, except the pocket is not
     // left with a shoulder of solid material behind it: it is grown out to the

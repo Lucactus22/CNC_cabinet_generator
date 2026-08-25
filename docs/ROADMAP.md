@@ -101,10 +101,10 @@ must have no runtime dependencies — an `eslint-plugin-import` boundary rule
 catches both.
 
 **Acceptance criteria.**
-- [ ] `npm run lint` passes clean on the existing tree
-- [ ] CI runs lint, typecheck, test and build, and fails on any of them
-- [ ] A dependency boundary rule protects the core's purity
-- [ ] `units` is gone from the model, the defaults and `normaliseParams`
+- [x] `npm run lint` passes clean on the existing tree
+- [x] CI runs lint, typecheck, test and build, and fails on any of them
+- [x] A dependency boundary rule protects the core's purity
+- [x] `units` is gone from the model, the defaults and `normaliseParams`
 
 ---
 

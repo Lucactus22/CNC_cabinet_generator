@@ -13,7 +13,10 @@ interface Circle {
 }
 
 /** Pull entities back out of written DXF, so the checks read the real output. */
-function parse(dxf: string): { polylines: Array<{ layer: string; pts: Array<{ x: number; y: number }> }>; circles: Circle[] } {
+function parse(dxf: string): {
+  polylines: Array<{ layer: string; pts: Array<{ x: number; y: number }> }>;
+  circles: Circle[];
+} {
   const lines = dxf.split(/\r\n/);
   const polylines: Array<{ layer: string; pts: Array<{ x: number; y: number }> }> = [];
   const circles: Circle[] = [];
@@ -67,13 +70,19 @@ describe('feed-through tiling', () => {
     .map((f) => parse(f.dxf));
 
   it('splits the sheet into more than one tile', () => {
-    expect(tiles.length).toBe(planTiles(sheet.length, sheet.width, params.machine, params.nesting.sheetMargin)!.tiles.length);
+    expect(tiles.length).toBe(
+      planTiles(sheet.length, sheet.width, params.machine, params.nesting.sheetMargin)!.tiles
+        .length,
+    );
     expect(tiles.length).toBeGreaterThan(1);
   });
 
   it('keeps every tile inside the machine envelope', () => {
     for (const tile of tiles) {
-      const xs = [...tile.polylines.flatMap((p) => p.pts.map((q) => q.x)), ...tile.circles.map((c) => c.x)];
+      const xs = [
+        ...tile.polylines.flatMap((p) => p.pts.map((q) => q.x)),
+        ...tile.circles.map((c) => c.x),
+      ];
       if (xs.length === 0) continue;
       expect(Math.min(...xs)).toBeGreaterThanOrEqual(-1e-6);
       expect(Math.max(...xs)).toBeLessThanOrEqual(params.machine.travelX + 1e-6);
@@ -95,7 +104,8 @@ describe('feed-through tiling', () => {
   it('uses the same two Y positions on every tile', () => {
     const ys = new Set<number>();
     for (const tile of tiles) {
-      for (const c of tile.circles.filter((x) => x.layer === 'TILE_REG')) ys.add(Math.round(c.y * 100));
+      for (const c of tile.circles.filter((x) => x.layer === 'TILE_REG'))
+        ys.add(Math.round(c.y * 100));
     }
     expect(ys.size).toBe(2);
   });
@@ -135,10 +145,15 @@ describe('feed-through tiling', () => {
   it('carries every drilled hole through to exactly one tile', () => {
     const key = (layer: string, x: number, y: number): string =>
       `${layer}@${x.toFixed(1)},${y.toFixed(1)}`;
-    const onSheet = whole.circles.filter((c) => c.layer !== 'TILE_REG').map((c) => key(c.layer, c.x, c.y)).sort();
+    const onSheet = whole.circles
+      .filter((c) => c.layer !== 'TILE_REG')
+      .map((c) => key(c.layer, c.x, c.y))
+      .sort();
     const onTiles = tiles
       .flatMap((t, i) =>
-        t.circles.filter((c) => c.layer !== 'TILE_REG').map((c) => key(c.layer, c.x + i * step, c.y)),
+        t.circles
+          .filter((c) => c.layer !== 'TILE_REG')
+          .map((c) => key(c.layer, c.x + i * step, c.y)),
       )
       .sort();
     expect(onTiles).toEqual(onSheet);

@@ -88,11 +88,14 @@ export function EffectsPanel() {
   const availableRoles = new Set(project.parts.map((p) => p.role));
 
   return (
-    <Group title={`Surface effects${effects.length ? ` (${effects.length})` : ''}`} open={effects.length > 0}>
+    <Group
+      title={`Surface effects${effects.length ? ` (${effects.length})` : ''}`}
+      open={effects.length > 0}
+    >
       {effects.length === 0 && (
         <Hint>
-          Decorative machining on a chosen face: vertical grooves on a back panel give the
-          beadboard look. Select a panel first to target just that one.
+          Decorative machining on a chosen face: vertical grooves on a back panel give the beadboard
+          look. Select a panel first to target just that one.
         </Hint>
       )}
 
@@ -128,7 +131,11 @@ export function EffectsPanel() {
             <CheckField
               label="Enabled"
               value={spec.enabled}
-              onChange={(v) => patch(i, (s) => { s.enabled = v; })}
+              onChange={(v) =>
+                patch(i, (s) => {
+                  s.enabled = v;
+                })
+              }
             />
 
             <SelectField
@@ -158,7 +165,11 @@ export function EffectsPanel() {
                   { value: `role:${r.role}:top`, label: `${r.label}, upper` },
                 ]),
               ]}
-              onChange={(v) => patch(i, (spec) => { spec.target = parseTargetKey(v); })}
+              onChange={(v) =>
+                patch(i, (spec) => {
+                  spec.target = parseTargetKey(v);
+                })
+              }
             />
 
             <SelectField
@@ -168,7 +179,11 @@ export function EffectsPanel() {
                 { value: 'inside', label: 'Inside (facing into the cabinet)' },
                 { value: 'outside', label: 'Outside' },
               ]}
-              onChange={(v) => patch(i, (spec) => { spec.face = v; })}
+              onChange={(v) =>
+                patch(i, (spec) => {
+                  spec.face = v;
+                })
+              }
               title="Pick the face already being machined where you can. A door is the exception: its design belongs on the front, and the hinge boring is on the back either way."
             />
 
@@ -181,13 +196,21 @@ export function EffectsPanel() {
                     { value: 'vertical', label: 'Vertical' },
                     { value: 'horizontal', label: 'Horizontal' },
                   ]}
-                  onChange={(v) => patch(i, (spec) => { (spec.effect as GrooveEffect).direction = v; })}
+                  onChange={(v) =>
+                    patch(i, (spec) => {
+                      (spec.effect as GrooveEffect).direction = v;
+                    })
+                  }
                 />
                 <NumberField
                   label="Spacing"
                   value={g.spacing}
                   min={1}
-                  onChange={(v) => patch(i, (spec) => { (spec.effect as GrooveEffect).spacing = v; })}
+                  onChange={(v) =>
+                    patch(i, (spec) => {
+                      (spec.effect as GrooveEffect).spacing = v;
+                    })
+                  }
                 />
                 <SelectField
                   label="Spacing fit"
@@ -196,7 +219,11 @@ export function EffectsPanel() {
                     { value: 'even', label: 'Even bays (adjusts spacing)' },
                     { value: 'exact', label: 'Exact spacing (centred)' },
                   ]}
-                  onChange={(v) => patch(i, (spec) => { (spec.effect as GrooveEffect).fit = v; })}
+                  onChange={(v) =>
+                    patch(i, (spec) => {
+                      (spec.effect as GrooveEffect).fit = v;
+                    })
+                  }
                 />
               </>
             )}
@@ -205,7 +232,11 @@ export function EffectsPanel() {
               label={g.kind === 'frame' ? 'Inset from edge' : 'Edge margin'}
               value={g.margin}
               min={0}
-              onChange={(v) => patch(i, (spec) => { (spec.effect as GrooveEffect | FrameEffect).margin = v; })}
+              onChange={(v) =>
+                patch(i, (spec) => {
+                  (spec.effect as GrooveEffect | FrameEffect).margin = v;
+                })
+              }
               title={
                 g.kind === 'frame'
                   ? 'Panel edge to the outside of the frame line.'
@@ -217,7 +248,11 @@ export function EffectsPanel() {
               value={g.width}
               step={0.5}
               min={0.5}
-              onChange={(v) => patch(i, (spec) => { (spec.effect as GrooveEffect | FrameEffect).width = v; })}
+              onChange={(v) =>
+                patch(i, (spec) => {
+                  (spec.effect as GrooveEffect | FrameEffect).width = v;
+                })
+              }
               title="Cannot be narrower than the cutter."
             />
             <NumberField
@@ -225,7 +260,11 @@ export function EffectsPanel() {
               value={g.depth}
               step={0.5}
               min={0.1}
-              onChange={(v) => patch(i, (spec) => { (spec.effect as GrooveEffect | FrameEffect).depth = v; })}
+              onChange={(v) =>
+                patch(i, (spec) => {
+                  (spec.effect as GrooveEffect | FrameEffect).depth = v;
+                })
+              }
             />
           </div>
         );

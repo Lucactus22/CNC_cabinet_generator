@@ -23,42 +23,42 @@ export function PartView() {
   return (
     <div className="viewport">
       <div className="scroller" style={{ display: 'grid', gridTemplateRows: 'auto 1fr', gap: 18 }}>
-      {part && <PartDrawing part={part} />}
-      <div>
-        <table className="parts">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Description</th>
-              <th>Length</th>
-              <th>Width</th>
-              <th>Thick</th>
-              <th>Sheet</th>
-              <th>Grain</th>
-              <th>Pockets</th>
-              <th>Holes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {project.cutList.map((row) => (
-              <tr
-                key={row.id}
-                className={row.id === part?.id ? 'selected' : ''}
-                onClick={() => select(row.id)}
-              >
-                <td>{row.id}</td>
-                <td>{row.label}</td>
-                <td>{row.length}</td>
-                <td>{row.width}</td>
-                <td>{row.thickness}</td>
-                <td>{row.sheet}</td>
-                <td>{row.grain}</td>
-                <td>{row.pockets}</td>
-                <td>{row.holes}</td>
+        {part && <PartDrawing part={part} />}
+        <div>
+          <table className="parts">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Description</th>
+                <th>Length</th>
+                <th>Width</th>
+                <th>Thick</th>
+                <th>Sheet</th>
+                <th>Grain</th>
+                <th>Pockets</th>
+                <th>Holes</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {project.cutList.map((row) => (
+                <tr
+                  key={row.id}
+                  className={row.id === part?.id ? 'selected' : ''}
+                  onClick={() => select(row.id)}
+                >
+                  <td>{row.id}</td>
+                  <td>{row.label}</td>
+                  <td>{row.length}</td>
+                  <td>{row.width}</td>
+                  <td>{row.thickness}</td>
+                  <td>{row.sheet}</td>
+                  <td>{row.grain}</td>
+                  <td>{row.pockets}</td>
+                  <td>{row.holes}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

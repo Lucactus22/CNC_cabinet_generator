@@ -11,7 +11,6 @@ import type {
 import {
   buildParts,
   type BuildResult,
-  type JointRequest,
   type PinRowRequest,
   type ToeNotchRequest,
 } from '../build/builder.js';
@@ -133,7 +132,11 @@ function applyPinRow(
   }
 }
 
-function toLocalXY(draft: PartDraft, assemblyY: number, assemblyZ: number): { x: number; y: number } {
+function toLocalXY(
+  draft: PartDraft,
+  assemblyY: number,
+  assemblyZ: number,
+): { x: number; y: number } {
   const o = draft.frame.origin;
   const p = { x: o.x, y: assemblyY, z: assemblyZ };
   const d = { x: p.x - o.x, y: p.y - o.y, z: p.z - o.z };

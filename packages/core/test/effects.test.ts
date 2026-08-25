@@ -8,7 +8,13 @@ import {
   grooveCentres,
   partsNeedingFlip,
 } from '../src/index.js';
-import type { CabinetParams, GrooveEffect, Part, PocketFeature, SurfaceEffectSpec } from '../src/model/types.js';
+import type {
+  CabinetParams,
+  GrooveEffect,
+  Part,
+  PocketFeature,
+  SurfaceEffectSpec,
+} from '../src/model/types.js';
 
 const GROOVES: GrooveEffect = {
   kind: 'grooves',
@@ -20,7 +26,10 @@ const GROOVES: GrooveEffect = {
   fit: 'even',
 };
 
-function withEffect(patch: Partial<SurfaceEffectSpec> = {}, effect: Partial<GrooveEffect> = {}): CabinetParams {
+function withEffect(
+  patch: Partial<SurfaceEffectSpec> = {},
+  effect: Partial<GrooveEffect> = {},
+): CabinetParams {
   const p = defaultParams();
   p.surfaceEffects = [
     {
@@ -145,7 +154,9 @@ describe('grooves on the back panel', () => {
   });
 
   it('reaches the export as ordinary pockets on their own depth layer', () => {
-    const all = exportProject(project).files.map((f) => f.dxf).join('');
+    const all = exportProject(project)
+      .files.map((f) => f.dxf)
+      .join('');
     // Effects emit plain features, so the exporter needs no special case: a
     // 3 mm groove simply lands on its own depth layer alongside the joinery.
     expect(all).toContain('POCKET_D3');
@@ -155,11 +166,15 @@ describe('grooves on the back panel', () => {
 
 describe('targeting a surface', () => {
   it('applies to both carcasses, or just one', () => {
-    const both = buildProject(withEffect({ target: { select: 'role', role: 'back', carcass: 'both' } }));
+    const both = buildProject(
+      withEffect({ target: { select: 'role', role: 'back', carcass: 'both' } }),
+    );
     expect(grooves(find(both.parts, 'B-BACK')).length).toBeGreaterThan(0);
     expect(grooves(find(both.parts, 'T-BACK')).length).toBeGreaterThan(0);
 
-    const upper = buildProject(withEffect({ target: { select: 'role', role: 'back', carcass: 'top' } }));
+    const upper = buildProject(
+      withEffect({ target: { select: 'role', role: 'back', carcass: 'top' } }),
+    );
     expect(grooves(find(upper.parts, 'B-BACK'))).toHaveLength(0);
     expect(grooves(find(upper.parts, 'T-BACK')).length).toBeGreaterThan(0);
   });

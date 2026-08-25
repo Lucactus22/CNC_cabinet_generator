@@ -31,7 +31,6 @@ export function applyHinges(
 
   const h = params.hinge;
   const byId = new Map(parts.map((p) => [p.id, p]));
-  const cupCentre = h.boringDistance + h.cupDiameter / 2;
   let reported = false;
 
   for (const req of requests) {
@@ -89,7 +88,11 @@ function boreDoor(door: Part, req: HingeRequest, h: HingeSpec, warnings: string[
       // Forstner, but every 3-axis router can clear it with the cutter it
       // already has in the spindle.
       kind: 'pocket',
-      path: circlePath(axisPoint(zMap, across, along).x, axisPoint(zMap, across, along).y, h.cupDiameter / 2),
+      path: circlePath(
+        axisPoint(zMap, across, along).x,
+        axisPoint(zMap, across, along).y,
+        h.cupDiameter / 2,
+      ),
       depth: h.cupDepth,
       side: 'A',
       purpose: 'hinge-cup',

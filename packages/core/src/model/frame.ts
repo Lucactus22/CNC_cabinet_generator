@@ -67,9 +67,7 @@ export function localFrame(box: AABB, normalAxis: Axis, faceASign: Sign): LocalF
 
   // Local (0, 0) is the corner of face A that is lowest in both u and v.
   const faceOffset = faceASign === '+' ? box.max : box.min;
-  const corners = boxCorners(box).filter(
-    (c) => Math.abs(dot3(c, n) - dot3(faceOffset, n)) < 1e-9,
-  );
+  const corners = boxCorners(box).filter((c) => Math.abs(dot3(c, n) - dot3(faceOffset, n)) < 1e-9);
   let origin = corners[0]!;
   let best = Infinity;
   for (const c of corners) {
@@ -128,7 +126,10 @@ export function frameOf(part: Part): LocalFrame {
  * Project a box into a panel's local frame and return the covered 2D rectangle.
  * Used to work out exactly where a mating panel lands on a face.
  */
-export function localRectOf(f: LocalFrame, box: AABB): { x: number; y: number; w: number; h: number } {
+export function localRectOf(
+  f: LocalFrame,
+  box: AABB,
+): { x: number; y: number; w: number; h: number } {
   const cs = boxCorners(box).map((c) => toLocal(f, c));
   const xs = cs.map((c) => c.x);
   const ys = cs.map((c) => c.y);

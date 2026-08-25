@@ -1,12 +1,6 @@
 import { frameOf } from '../model/frame.js';
 import { forcesFace } from '../joinery/index.js';
-import type {
-  CabinetParams,
-  LocalRect,
-  Part,
-  SurfaceEffectSpec,
-  SurfaceTarget,
-} from '../model/types.js';
+import type { CabinetParams, LocalRect, Part, SurfaceTarget } from '../model/types.js';
 import { applyFrame } from './frame.js';
 import { applyGrooves } from './grooves.js';
 import type { EffectContext, EffectRegistry } from './types.js';

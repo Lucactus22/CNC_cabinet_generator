@@ -68,11 +68,15 @@ export function shelfHeights(z0: number, z1: number, count: number, t: number): 
 }
 
 /** Shelf pin hole heights under the 32 mm system, snapped to the pitch. */
-export function pinHeights(z0: number, z1: number, spec: {
-  pitch: number;
-  startAbove: number;
-  endBelow: number;
-}): number[] {
+export function pinHeights(
+  z0: number,
+  z1: number,
+  spec: {
+    pitch: number;
+    startAbove: number;
+    endBelow: number;
+  },
+): number[] {
   const lo = z0 + spec.startAbove;
   const hi = z1 - spec.endBelow;
   if (hi <= lo || spec.pitch <= 0) return [];

@@ -18,8 +18,7 @@ export function App() {
   const project = useStore((s) => s.project);
 
   const sheets = project.nest.sheets.length;
-  const height =
-    project.params.base.height + project.params.top.height;
+  const height = project.params.base.height + project.params.top.height;
 
   return (
     <div className="app">

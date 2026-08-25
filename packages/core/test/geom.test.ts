@@ -12,7 +12,6 @@ import {
   relieveCorners,
   reversePath,
   signedArea,
-  tessellate,
 } from '../src/geom/index.js';
 
 describe('path basics', () => {
