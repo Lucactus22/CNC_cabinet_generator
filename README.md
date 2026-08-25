@@ -13,6 +13,10 @@ npm run dev      # http://localhost:5173
 npm test
 ```
 
+**Version 0.1.** One cabinet type, cutting real parts. See
+[docs/ROADMAP.md](docs/ROADMAP.md) for the path to 1.0, and
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it works inside.
+
 ## What it makes
 
 One cabinet type, fully parametric: a **deeper base carcass with a shallower
@@ -187,11 +191,30 @@ Full spec: [docs/DXF.md](docs/DXF.md).
 ```
 packages/core/   zero-dependency TypeScript: model, joinery, nesting, DXF
 apps/web/        React + three.js front end
-docs/            joinery reference, DXF spec, design plan
+docs/            architecture, roadmap and the domain references
 ```
 
 `packages/core` has no runtime dependencies and no UI, so the geometry is
 testable on its own and reusable from a CLI or a different front end.
+
+## Documentation
+
+| | |
+|---|---|
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | How the pipeline fits together, the invariants, where to add things |
+| [ROADMAP](docs/ROADMAP.md) | What 1.0 means and the work orders to get there |
+| [JOINERY](docs/JOINERY.md) | Every joint, with the geometry and the reasoning |
+| [DOORS](docs/DOORS.md) | Doors, UTRUSTA hinge boring, face designs |
+| [EFFECTS](docs/EFFECTS.md) | Surface decoration and how to add a new kind |
+| [DXF](docs/DXF.md) | Output format, layer convention, tiling workflow |
+| [CLAUDE.md](CLAUDE.md) | Conventions and definition of done for contributors |
+
+## Known gaps
+
+Honest list, all tracked in the roadmap: `back.style: 'rabbet'` is offered and
+does nothing (R-01); `units: 'in'` is in the model and never read (R-02); there
+is one cabinet type and no drawers, hardware catalogue or edge banding; the web
+app has no automated tests.
 
 ## Licence
 

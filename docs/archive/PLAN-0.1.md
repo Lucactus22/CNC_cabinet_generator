@@ -1,3 +1,10 @@
+> **Historical.** This is the plan written before 0.1 was built, kept for the
+> reasoning behind the original decisions. It is **not** a description of the
+> current system and parts of it are now out of date.
+>
+> For what exists today see [../ARCHITECTURE.md](../ARCHITECTURE.md); for what
+> comes next see [../ROADMAP.md](../ROADMAP.md).
+
 # CNC Cabinet Generator — Design & Implementation Plan
 
 > Status: **approved, in progress**.
