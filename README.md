@@ -211,11 +211,10 @@ testable on its own and reusable from a CLI or a different front end.
 
 ## Known gaps
 
-Honest list, all tracked in the roadmap: `back.style: 'rabbet'` is offered and
-does nothing (R-01); there is one cabinet type and `CabinetParams` *is* the
-project (R-03); no drawers, hardware catalogue, edge banding or face frames;
-everything is a rectangle, so an out-of-square room cannot yet be scribed to
-(R-05); the web app has no automated tests.
+Honest list, all tracked in the roadmap: there is one cabinet type and
+`CabinetParams` *is* the project (R-03); no drawers, hardware catalogue, edge
+banding or face frames; everything is a rectangle, so an out-of-square room
+cannot yet be scribed to (R-05); the web app has no automated tests.
 
 Millimetres only, deliberately.
 

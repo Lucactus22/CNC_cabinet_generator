@@ -172,12 +172,31 @@ an error if they meet through the panel.
 
 ## Back panels
 
-Captured in a groove on all four sides, set in from the rear edge so there is
-room to scribe the carcass to a wall that is not flat. The groove uses the same
-dado logic and runs through at both ends — there is no front edge to hide it on.
+Captured on all four sides — sides, top and bottom or floor — using the same
+dado logic as everywhere else, running through at both ends since there is no
+front edge to hide it on. A back always sits in a plain housing joint, whatever
+the carcass joint is set to: tabs through a back panel would be pointless work.
 
-A back always sits in a plain groove, whatever the carcass joint is set to. Tabs
-through a back panel would be pointless work.
+Two styles, both built from `applyDado`, differing only in whether the pocket
+stops short of the true rear edge or is deliberately grown out to meet it.
+
+**Groove (default).** The pocket stops `back.inset` short of the panel's true
+rear edge, leaving a shoulder of solid material behind it. The back is fully
+hidden: nothing shows from the rear, and the sides', top's and bottom's own
+true edges stay untouched, which is what makes them scribable to a wall
+independently of the back.
+
+**Rabbet.** The pocket is grown out to the panel's true rear edge instead of
+being stopped short of it — the same joint, with no notch needed, since unlike
+a stopped front there is no solid material ahead of an open end to hide. With
+`back.inset` at zero the back's own outer face lands flush with that edge too,
+so the sides' rear edges and the back present one continuous flat plane. That
+is the reason to offer a rabbet at all: it can be scribed or planed to an
+out-of-true wall in one pass, where a recessed groove back would leave the
+back's face stepped behind the sides and awkward to reach.
+
+Pick groove to keep the back invisible from behind; pick rabbet when the back
+of the carcass has to meet a wall that is not flat.
 
 ## Shelf pins (32 mm system)
 

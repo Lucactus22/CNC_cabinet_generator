@@ -66,11 +66,11 @@ new strategy. A rabbeted back is easier to scribe to an out-of-true wall, which
 is the reason to offer it at all — say so in the docs.
 
 **Acceptance criteria.**
-- [ ] Selecting rabbet produces a rebate on each surrounding panel and a back
+- [x] Selecting rabbet produces a rebate on each surrounding panel and a back
       sized to sit in it
-- [ ] The back is captured on all four edges, as the groove style is
-- [ ] `docs/JOINERY.md` describes the difference and when to pick which
-- [ ] No option in the UI produces an unjoined part
+- [x] The back is captured on all four edges, as the groove style is
+- [x] `docs/JOINERY.md` describes the difference and when to pick which
+- [x] No option in the UI produces an unjoined part
 
 **Tests.** Rabbet produces pockets on the side/top/bottom; the back panel's box
 reaches into them; a regression test that **no part in any configuration ends up
