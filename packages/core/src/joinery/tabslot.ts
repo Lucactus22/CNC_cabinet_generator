@@ -1,5 +1,5 @@
 import { rect, relieveCorners } from '../geom/index.js';
-import type { AABB, Axis, CabinetParams, ThroughFeature } from '../model/types.js';
+import type { AABB, Axis, ProjectParams, ThroughFeature } from '../model/types.js';
 import { localRectOf } from '../model/frame.js';
 import type { JointRequest } from '../build/builder.js';
 import {
@@ -25,7 +25,7 @@ export function applyTabSlot(
   male: PartDraft,
   female: PartDraft,
   _req: JointRequest,
-  params: CabinetParams,
+  params: ProjectParams,
 ): JointOutcome {
   const warnings: string[] = [];
   const j = params.joinery;

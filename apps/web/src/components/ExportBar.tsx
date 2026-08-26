@@ -32,7 +32,10 @@ export function ExportBar() {
   const openProject = async (file: File): Promise<void> => {
     try {
       const parsed = JSON.parse(await file.text()) as Record<string, unknown>;
-      if (!parsed.materials || !parsed.base || !parsed.top) throw new Error('not a project file');
+      // A 0.1 file has `base` and `top` where a current one has `cabinets`.
+      // Both open: normaliseParams turns the old pair into one cabinet.
+      const looksLikeAProject = parsed.cabinets || parsed.base || parsed.top;
+      if (!parsed.materials || !looksLikeAProject) throw new Error('not a project file');
       // Merged over the defaults, so a file saved before a setting existed
       // still opens instead of producing NaNs downstream.
       load(normaliseParams(parsed));

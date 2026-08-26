@@ -1,5 +1,5 @@
 import { rect, type Path } from '../geom/index.js';
-import type { CabinetParams, Part } from '../model/types.js';
+import type { ProjectParams, Part } from '../model/types.js';
 import type { NestedSheet } from '../nest/index.js';
 import { planTiles, type TilePlan } from '../machine/tiling.js';
 import { clipPathToBand, circleInBand, type Band } from './clip.js';
@@ -42,7 +42,7 @@ export interface SheetExport {
  * right. Those parts are flagged in the diagnostics as well.
  */
 export function composeSheet(
-  params: CabinetParams,
+  params: ProjectParams,
   parts: Part[],
   sheet: NestedSheet,
   opts: SheetExportOptions,
@@ -103,7 +103,7 @@ export function composeSheet(
 
 /** Compose a sheet and, when it is longer than the machine, split it into tiles. */
 export function exportSheet(
-  params: CabinetParams,
+  params: ProjectParams,
   parts: Part[],
   sheet: NestedSheet,
   opts: SheetExportOptions = defaultExportOptions(),

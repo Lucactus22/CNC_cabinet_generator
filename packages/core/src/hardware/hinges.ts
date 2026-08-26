@@ -1,7 +1,7 @@
 import { circlePath } from '../geom/index.js';
 import { frameOf } from '../model/frame.js';
 import type {
-  CabinetParams,
+  ProjectParams,
   DrillFeature,
   HingeSpec,
   Part,
@@ -22,7 +22,7 @@ export interface HingeResult {
  * dimension comes from the hinge spec so a different make can be dialled in.
  */
 export function applyHinges(
-  params: CabinetParams,
+  params: ProjectParams,
   parts: Part[],
   requests: HingeRequest[],
 ): HingeResult {

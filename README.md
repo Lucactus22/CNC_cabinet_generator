@@ -13,29 +13,41 @@ npm run dev      # http://localhost:5173
 npm test
 ```
 
-**Version 0.1.** One cabinet type, cutting real parts. See
+**Version 0.1.** A run of cabinets, cutting real parts. See
 [docs/ROADMAP.md](docs/ROADMAP.md) for the path to 1.0, and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it works inside.
 
 ## What it makes
 
-One cabinet type, fully parametric: a **deeper base carcass with a shallower
-upper carcass stacked directly on it**, rear faces flush against the wall so the
-base's top panel forms a ledge at the front. Integral toe kick, vertical
-dividers, and per-bay shelves that are either dadoed in place or sit on a 32 mm
-shelf pin ladder.
+A **run of cabinets** standing side by side along a wall. Each cabinet is a
+stack of one or more **carcasses** sitting on each other, rear faces flush
+against the wall so a shallower box on top steps back at the front and the panel
+below it forms a ledge.
 
-The base's top panel is **capped** by default: it laps over the side panels
-rather than sitting between them, so the finished ledge reads as one unbroken
-surface with no joint line showing from above. The sides run up into shallow
-dados in its underside — the face already being machined for the dividers and
-the back, so capping costs no extra setup.
+The default project is one cabinet of two carcasses — a deep base with a
+shallower shelved upper on it, the unit in the reference photographs. Add
+cabinets to the run, stack more carcasses, reorder them, and every part is
+nested, listed and checked across the lot.
 
-The upper carcass can also be built **without a bottom of its own**, standing
-instead in shallow locating dados machined into the base's top panel. One less
+Each carcass is fully parametric: integral toe kick on the one standing on the
+floor, vertical dividers, and per-bay shelves that are either dadoed in place or
+sit on a 32 mm shelf pin ladder.
+
+A carcass's top panel can be **capped**: it laps over the side panels rather
+than sitting between them, so the finished ledge reads as one unbroken surface
+with no joint line showing from above. The sides run up into shallow dados in
+its underside — the face already being machined for the dividers and the back,
+so capping costs no extra setup.
+
+A stacked carcass can also be built **without a bottom of its own**, standing
+instead in shallow locating dados machined into the top panel below it. One less
 panel, one less joint line, and gravity holds it while the glue goes off. The
-cost is that the base's top panel is then machined on both faces, which the
+cost is that the panel below is then machined on both faces, which the
 diagnostics say plainly.
+
+Every part carries an ID naming where it came from — `C1-B-SIDE-L` is the left
+side of the base carcass of the first cabinet — and that ID is engraved on the
+LABEL layer, so a pile of panels off the machine sorts itself.
 
 ## Doors
 
@@ -211,10 +223,11 @@ testable on its own and reusable from a CLI or a different front end.
 
 ## Known gaps
 
-Honest list, all tracked in the roadmap: there is one cabinet type and
-`CabinetParams` *is* the project (R-03); no drawers, hardware catalogue, edge
-banding or face frames; everything is a rectangle, so an out-of-square room
-cannot yet be scribed to (R-05); the web app has no automated tests.
+Honest list, all tracked in the roadmap: there is one cabinet *type*, so every
+cabinet in a run starts from the same shape and is edited into a wall or tall
+unit by hand (R-04); no drawers, hardware catalogue, edge banding or face
+frames; everything is a rectangle, so an out-of-square room cannot yet be
+scribed to (R-05); the web app has no automated tests.
 
 Millimetres only, deliberately.
 

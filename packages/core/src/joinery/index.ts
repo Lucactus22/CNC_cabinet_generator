@@ -1,7 +1,7 @@
 import { bboxOf, buildOutline, relieveCorners } from '../geom/index.js';
 import type {
   Assembly,
-  CabinetParams,
+  ProjectParams,
   DrillFeature,
   EngraveFeature,
   Feature,
@@ -46,7 +46,7 @@ export interface JoineryResult extends Assembly {
  * in the material, then materialises each blank's outline once every joint that
  * touches it has had its say.
  */
-export function generate(params: CabinetParams): JoineryResult {
+export function generate(params: ProjectParams): JoineryResult {
   const built = buildParts(params);
   const warnings = applyJoinery(params, built);
   // Effects run last: they need the finished blank and the region of it that
@@ -55,7 +55,7 @@ export function generate(params: CabinetParams): JoineryResult {
   return { params, parts: built.parts, warnings, notes: built.notes };
 }
 
-export function applyJoinery(params: CabinetParams, built: BuildResult): string[] {
+export function applyJoinery(params: ProjectParams, built: BuildResult): string[] {
   const warnings: string[] = [];
   const drafts = new Map<string, PartDraft>();
   for (const part of built.parts) drafts.set(part.id, makeDraft(part));
@@ -94,7 +94,7 @@ export function applyJoinery(params: CabinetParams, built: BuildResult): string[
 function applyPinRow(
   draft: PartDraft,
   row: PinRowRequest,
-  params: CabinetParams,
+  params: ProjectParams,
   warnings: string[],
 ): void {
   const pin = params.joinery.shelfPin;
@@ -151,7 +151,7 @@ function toLocalXY(
  * Build the final outline once every joint has contributed its notches and
  * tabs, then record the blank size the nester and cut list will work from.
  */
-function materialise(draft: PartDraft, params: CabinetParams): void {
+function materialise(draft: PartDraft, params: ProjectParams): void {
   refreshBase(draft);
   const { base, notches, tabs } = draft;
 

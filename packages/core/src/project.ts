@@ -1,4 +1,4 @@
-import type { CabinetParams, Part } from './model/types.js';
+import type { ProjectParams, Part } from './model/types.js';
 import { generate, partsNeedingFlip } from './joinery/index.js';
 import { nestParts, type NestResult } from './nest/index.js';
 import { checkManufacturability, type Diagnostic } from './machine/check.js';
@@ -15,7 +15,7 @@ import {
 } from './export/index.js';
 
 export interface ProjectResult {
-  params: CabinetParams;
+  params: ProjectParams;
   parts: Part[];
   nest: NestResult;
   diagnostics: Diagnostic[];
@@ -30,7 +30,7 @@ export interface ProjectResult {
  * Deliberately pure and synchronous. The UI can call it on every keystroke,
  * and a test can call it without any scaffolding.
  */
-export function buildProject(params: CabinetParams): ProjectResult {
+export function buildProject(params: ProjectParams): ProjectResult {
   const { parts, warnings, notes } = generate(params);
   const nest = nestParts(params, parts);
   const flips = partsNeedingFlip(parts);

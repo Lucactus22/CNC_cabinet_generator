@@ -1,5 +1,5 @@
 import { rect, relieveCorners } from '../geom/index.js';
-import type { CabinetParams, DrillFeature, Part, PocketFeature } from '../model/types.js';
+import type { ProjectParams, DrillFeature, Part, PocketFeature } from '../model/types.js';
 import type { JointRequest } from '../build/builder.js';
 import {
   contactOf,
@@ -31,7 +31,7 @@ export function applyDado(
   male: PartDraft,
   female: PartDraft,
   req: JointRequest,
-  params: CabinetParams,
+  params: ProjectParams,
 ): JointOutcome {
   const warnings: string[] = [];
   const j = params.joinery;

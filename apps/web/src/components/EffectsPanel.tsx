@@ -1,5 +1,7 @@
 import {
+  describeTarget,
   EFFECT_LABELS,
+  resolveTarget,
   type EffectKind,
   type FrameEffect,
   type GrooveEffect,
@@ -23,13 +25,24 @@ const ROLE_TARGETS: Array<{ role: PartRole; label: string }> = [
   { role: 'toe-rail', label: 'Toe kick rail' },
 ];
 
+/**
+ * A role target as one select value: role, then the cabinet and carcass it is
+ * held to, with an empty field meaning 'every one of them'.
+ */
 const targetKey = (t: SurfaceTarget): string =>
-  t.select === 'part' ? `part:${t.partId}` : `role:${t.role}:${t.carcass}`;
+  t.select === 'part'
+    ? `part:${t.partId}`
+    : `role:${t.role}:${t.cabinetId ?? ''}:${t.carcassId ?? ''}`;
 
 function parseTargetKey(key: string): SurfaceTarget {
-  const [kind, a, b] = key.split(':');
-  if (kind === 'part') return { select: 'part', partId: a! };
-  return { select: 'role', role: a as PartRole, carcass: b as 'base' | 'top' | 'both' };
+  const [kind, role, cabinetId, carcassId] = key.split(':');
+  if (kind === 'part') return { select: 'part', partId: role! };
+  return {
+    select: 'role',
+    role: role as PartRole,
+    ...(cabinetId ? { cabinetId } : {}),
+    ...(carcassId ? { carcassId } : {}),
+  };
 }
 
 /** A sensible starting point for each kind, sized to the cutter in the spindle. */
@@ -66,7 +79,7 @@ export function EffectsPanel() {
           enabled: true,
           target: selected
             ? { select: 'part', partId: selected }
-            : { select: 'role', role: 'back', carcass: 'both' },
+            : { select: 'role', role: 'back' },
           face: 'inside',
           effect: newEffect('grooves', p.tool.diameter),
         },
@@ -84,8 +97,32 @@ export function EffectsPanel() {
       p.surfaceEffects = (p.surfaceEffects ?? []).filter((_, k) => k !== i);
     });
 
-  // Only offer surfaces this cabinet actually has.
+  // Only offer surfaces this project actually has.
   const availableRoles = new Set(project.parts.map((p) => p.role));
+
+  // Every carcass in the run, by name, so an effect can be held to one box
+  // without having to know what its parts are called.
+  const places = params.cabinets.flatMap((cabinet) =>
+    cabinet.carcasses.map((carcass) => ({
+      cabinetId: cabinet.id,
+      carcassId: carcass.id,
+      label:
+        params.cabinets.length > 1
+          ? `${cabinet.name} · ${carcass.name.toLowerCase()}`
+          : carcass.name.toLowerCase(),
+    })),
+  );
+
+  const surfaceOptions = [
+    ...(selected ? [{ value: `part:${selected}`, label: `Selected part: ${selected}` }] : []),
+    ...ROLE_TARGETS.filter((r) => availableRoles.has(r.role)).flatMap((r) => [
+      { value: `role:${r.role}::`, label: `${r.label}, everywhere` },
+      ...places.map((place) => ({
+        value: `role:${r.role}:${place.cabinetId}:${place.carcassId}`,
+        label: `${r.label}, ${place.label}`,
+      })),
+    ]),
+  ];
 
   return (
     <Group
@@ -101,12 +138,7 @@ export function EffectsPanel() {
 
       {effects.map((spec, i) => {
         const g = spec.effect;
-        const targeted = project.parts.filter((p) =>
-          spec.target.select === 'part'
-            ? p.id === spec.target.partId
-            : p.role === spec.target.role &&
-              (spec.target.carcass === 'both' || p.carcass === spec.target.carcass),
-        );
+        const targeted = resolveTarget(project.parts, spec.target);
         return (
           <div
             key={spec.id}
@@ -156,14 +188,19 @@ export function EffectsPanel() {
               label="Surface"
               value={targetKey(spec.target)}
               options={[
-                ...(selected
-                  ? [{ value: `part:${selected}`, label: `Selected part: ${selected}` }]
-                  : []),
-                ...ROLE_TARGETS.filter((r) => availableRoles.has(r.role)).flatMap((r) => [
-                  { value: `role:${r.role}:both`, label: `${r.label}, both carcasses` },
-                  { value: `role:${r.role}:base`, label: `${r.label}, base` },
-                  { value: `role:${r.role}:top`, label: `${r.label}, upper` },
-                ]),
+                // A stored target the list does not offer — a part that has
+                // since been removed, or a scope from an older file — would
+                // otherwise render as a blank select that silently rewrites
+                // itself the moment anything else is touched.
+                ...(surfaceOptions.some((o) => o.value === targetKey(spec.target))
+                  ? []
+                  : [
+                      {
+                        value: targetKey(spec.target),
+                        label: `${describeTarget(spec.target)} (not in this project)`,
+                      },
+                    ]),
+                ...surfaceOptions,
               ]}
               onChange={(v) =>
                 patch(i, (spec) => {

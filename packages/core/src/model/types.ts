@@ -51,14 +51,14 @@ export type CarcassJoint = 'dado' | 'tabslot';
 export type BackStyle = 'groove' | 'rabbet' | 'none';
 
 /**
- * Where the upper carcass gets its floor.
+ * Where a stacked carcass gets its floor.
  *
- * 'own' gives it a bottom panel of its own. 'base-top' leaves it out and stands
- * the upper carcass in shallow locating dados machined into the base's top
- * panel instead: one less panel, one less joint line, and gravity does the
- * holding once it is glued.
+ * 'own' gives it a bottom panel of its own. 'below' leaves it out and stands the
+ * carcass in shallow locating dados machined into the top panel of the carcass
+ * underneath: one less panel, one less joint line, and gravity does the holding
+ * once it is glued. The carcass standing on the ground always has its own.
  */
-export type UpperFloor = 'own' | 'base-top';
+export type CarcassFloor = 'own' | 'below';
 
 /**
  * How the top panel meets the sides.
@@ -113,9 +113,9 @@ export interface JoinerySettings {
   tabWidth: number;
   tabMinCount: number;
   /**
-   * Depth of the locating dados the upper carcass stands in when it has no
-   * bottom of its own. Kept shallow: the base's top panel is already grooved
-   * on its underside, and the two sets of pockets cross.
+   * Depth of the locating dados a stacked carcass stands in when it has no
+   * bottom of its own. Kept shallow: the panel below is already grooved on its
+   * underside, and the two sets of pockets cross.
    */
   stackDadoDepth: number;
   shelfPin: ShelfPinSpec;
@@ -200,6 +200,48 @@ export interface ToeKickSpec {
 }
 
 /**
+ * One box, in a stack of them.
+ *
+ * A cabinet is a column of these standing on each other, so everything that
+ * used to be special about the upper carcass — following the width below it,
+ * borrowing the panel below for a floor — is a setting every carcass carries.
+ */
+export interface Carcass extends CarcassSpec {
+  /**
+   * Short token naming this carcass inside its cabinet, and the middle field of
+   * every part ID it produces. 'B' for the base, 'T' for the upper, as a
+   * woodworker would write them on the panels themselves.
+   */
+  id: string;
+  /** What the carcass is called on screen and in the cut list. */
+  name: string;
+  /**
+   * Take the width of the carcass below rather than the one set here, so a
+   * stack stays flush down its sides when the bottom box is resized.
+   */
+  linkWidthToBelow: boolean;
+  floor: CarcassFloor;
+  /**
+   * Only the carcass standing on the ground can have one: above that there is
+   * no floor to recess from, and the locating dados it would stand in are
+   * exactly where the notch would be cut.
+   */
+  toeKick: ToeKickSpec;
+}
+
+/**
+ * One unit in the run: a column of carcasses standing on each other, sharing a
+ * position along the wall.
+ */
+export interface Cabinet {
+  /** First field of every part ID this cabinet produces, e.g. 'C1'. */
+  id: string;
+  name: string;
+  /** From the ground up. The first stands on the floor. */
+  carcasses: Carcass[];
+}
+
+/**
  * What the nester optimises for.
  *
  * 'material' packs as tightly as it can and ignores where the machine's tile
@@ -260,9 +302,15 @@ export interface FrameEffect {
 
 export type SurfaceEffect = GrooveEffect | FrameEffect;
 
-/** Which panels an effect lands on. */
+/**
+ * Which panels an effect lands on.
+ *
+ * On a role target, an absent `cabinetId` or `carcassId` means every one of
+ * them: 'the back panels' reaches the whole run, 'the back panels of C2' just
+ * that unit.
+ */
 export type SurfaceTarget =
-  | { select: 'role'; role: PartRole; carcass: 'base' | 'top' | 'both' }
+  | { select: 'role'; role: PartRole; cabinetId?: string; carcassId?: string }
   | { select: 'part'; partId: string };
 
 export interface SurfaceEffectSpec {
@@ -274,7 +322,15 @@ export interface SurfaceEffectSpec {
   effect: SurfaceEffect;
 }
 
-export interface CabinetParams {
+/**
+ * Everything a project is: the run of cabinets, and the settings shared by all
+ * of them.
+ *
+ * Materials, tooling, the machine and the joinery are project-wide because they
+ * describe the workshop rather than the furniture — one spindle, one stack of
+ * sheets, one set of grooves that have to fit each other.
+ */
+export interface ProjectParams {
   name: string;
   materials: Material[];
   carcassMaterialId: string;
@@ -284,8 +340,8 @@ export interface CabinetParams {
   joinery: JoinerySettings;
   doors: DoorSpec;
   hinge: HingeSpec;
-  base: CarcassSpec & { toeKick: ToeKickSpec };
-  top: CarcassSpec & { linkWidthToBase: boolean; floor: UpperFloor };
+  /** In the order they stand along the run, left to right. */
+  cabinets: Cabinet[];
   nesting: NestingSettings;
   /** Decorative machining applied to chosen faces. */
   surfaceEffects: SurfaceEffectSpec[];
@@ -379,7 +435,10 @@ export interface Part {
   id: string;
   label: string;
   role: PartRole;
-  carcass: 'base' | 'top';
+  /** Which cabinet in the run this came out of. */
+  cabinetId: string;
+  /** Which carcass of that cabinet. */
+  carcassId: string;
   materialId: string;
   thickness: number;
   box: AABB;
@@ -409,6 +468,6 @@ export interface Part {
 }
 
 export interface Assembly {
-  params: CabinetParams;
+  params: ProjectParams;
   parts: Part[];
 }

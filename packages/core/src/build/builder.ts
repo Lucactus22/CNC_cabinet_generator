@@ -2,12 +2,13 @@ import { rect } from '../geom/index.js';
 import type {
   AABB,
   Axis,
+  Cabinet,
+  Carcass,
   GrainAxis,
-  CabinetParams,
-  CarcassSpec,
   Material,
   Part,
   PartRole,
+  ProjectParams,
   Sign,
   ToeKickSpec,
 } from '../model/types.js';
@@ -86,9 +87,14 @@ export interface PinRowRequest {
 }
 
 interface CarcassContext {
-  which: 'base' | 'top';
-  spec: CarcassSpec;
+  cabinetId: string;
+  /** What this carcass is called in labels and diagnostics; unique in the project. */
+  human: string;
+  /** Width already resolved, so a carcass linked to the one below reads as itself. */
+  spec: Carcass;
   toeKick: ToeKickSpec | null;
+  /** Assembly-space left face of this carcass: where its cabinet stands in the run. */
+  x0: number;
   /** Assembly-space front face of this carcass. */
   yFront: number;
   /** Assembly-space floor of this carcass. */
@@ -106,7 +112,7 @@ const box = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: num
   max: { x: x1, y: y1, z: z1 },
 });
 
-export function buildParts(params: CabinetParams): BuildResult {
+export function buildParts(params: ProjectParams): BuildResult {
   const carcassMat = findMaterial(params, params.carcassMaterialId);
   const shelfMat = findMaterial(params, params.shelfMaterialId);
   const t = carcassMat.actualThickness;
@@ -118,74 +124,137 @@ export function buildParts(params: CabinetParams): BuildResult {
   const hinges: HingeRequest[] = [];
   const notes: string[] = [];
 
-  const baseDepth = params.base.depth;
-  const topWidth = params.top.linkWidthToBase ? params.base.width : params.top.width;
-  const topSpec: CarcassSpec = { ...params.top, width: topWidth };
+  // Cabinets stand side by side along the wall, each starting where the one
+  // before it ends. Deriving the position from the order rather than storing an
+  // offset per cabinet is what makes reordering the list mean something, and
+  // makes it impossible to leave two units overlapping each other.
+  let xRun = 0;
 
-  // Rear faces are flush against the wall, so the shallower upper carcass is
-  // set back at the front. That step is what forms the ledge in the reference
-  // photographs.
-  const topFrontY = baseDepth - topSpec.depth;
+  /**
+   * What to call a carcass in a label or a diagnostic.
+   *
+   * A name has to identify one panel. With a single cabinet the carcass name
+   * does that on its own, and reading "Stacked unit base side, left" would be
+   * noise. In a run it does not: three panels all called "Base side, left" is
+   * exactly the confusion that gets the wrong one cut down to size.
+   */
+  const nameOf = (cabinet: Cabinet, carcass: Carcass): string =>
+    params.cabinets.length > 1 ? `${cabinet.name} ${carcass.name.toLowerCase()}` : carcass.name;
 
-  const contexts: CarcassContext[] = [
-    {
-      which: 'base',
-      spec: params.base,
-      toeKick: params.base.toeKick.enabled ? params.base.toeKick : null,
-      yFront: 0,
-      z0: 0,
-      standsOnId: null,
-    },
-    {
-      which: 'top',
-      spec: topSpec,
-      toeKick: null,
-      yFront: topFrontY,
-      // The upper carcass sits directly on the base's top panel.
-      z0: params.base.height,
-      // With no bottom of its own it stands in that panel, which the base
-      // carcass has already built by the time we get here.
-      standsOnId: params.top.floor === 'base-top' ? 'B-TOP' : null,
-    },
-  ];
+  for (const cabinet of params.cabinets) {
+    const carcasses = resolveWidths(cabinet.carcasses);
+    if (carcasses.length === 0) {
+      notes.push(`${cabinet.name} has no carcasses in it, so it produces no parts.`);
+      continue;
+    }
 
-  for (const ctx of contexts) {
-    buildCarcass(
-      ctx,
-      params,
-      carcassMat,
-      shelfMat,
-      t,
-      parts,
-      joints,
-      pinRows,
-      toeNotches,
-      hinges,
-      notes,
-    );
-  }
+    // Rear faces are flush against the wall, so a shallower carcass is set back
+    // at the front. That step is what forms the ledge in the reference
+    // photographs.
+    const yBack = carcasses[0]!.depth;
+    let z0 = 0;
 
-  if (params.top.floor === 'base-top' && params.base.topStyle === 'inset') {
-    // An inset top only spans the clear opening, so the upper's sides would
-    // land half on it and half on the end grain of the base's own sides,
-    // leaving the locating dado a fraction of its intended width.
-    notes.push(
-      'The upper carcass stands on the base top, but that panel is inset between the base sides, so it does not reach under the upper sides. Cap the base top so it laps over them.',
-    );
-  }
+    carcasses.forEach((carcass, k) => {
+      const below = carcasses[k - 1];
+      const onTheGround = k === 0;
+      const human = nameOf(cabinet, carcass);
+      // A carcass can only borrow a floor from something underneath it.
+      const standsOnBelow = !onTheGround && carcass.floor === 'below';
 
-  if (topSpec.depth > baseDepth) {
-    notes.push(
-      'The upper carcass is deeper than the base, so it overhangs at the front instead of stepping back.',
-    );
+      if (onTheGround && carcass.floor === 'below') {
+        notes.push(
+          `${human} stands on the ground, so it was given a bottom panel of its own: there is no carcass below it to stand in.`,
+        );
+      }
+      if (!onTheGround && carcass.toeKick.enabled) {
+        notes.push(
+          `${human} is not on the floor, so its toe kick was left off: above ground that notch is a recess, not a plinth, and it lands exactly where the panel below has to carry it.`,
+        );
+      }
+      if (standsOnBelow && below!.topStyle === 'inset') {
+        // An inset top only spans the clear opening, so the sides above would
+        // land half on it and half on the end grain of the lower carcass's own
+        // sides, leaving the locating dado a fraction of its intended width.
+        notes.push(
+          `${human} stands on the ${below!.name.toLowerCase()} top, but that panel is inset between the ${below!.name.toLowerCase()} sides, so it does not reach under its sides. Cap it so it laps over them.`,
+        );
+      }
+      // Measured against the carcass it actually stands on, not against the one
+      // on the floor: in a stack of three, a box deeper than the one under it
+      // hangs off the panel that is carrying it even when the bottom box is
+      // deeper than both.
+      if (below && carcass.depth > below.depth + 1e-9) {
+        notes.push(
+          `${human} is ${(carcass.depth - below.depth).toFixed(0)} mm deeper than the ${below.name.toLowerCase()} it stands on, so it overhangs at the front instead of stepping back.`,
+        );
+      }
+
+      buildCarcass(
+        {
+          cabinetId: cabinet.id,
+          human,
+          spec: carcass,
+          toeKick: onTheGround && carcass.toeKick.enabled ? carcass.toeKick : null,
+          x0: xRun,
+          yFront: yBack - carcass.depth,
+          z0,
+          // The panel below has already been built by the time we get here.
+          standsOnId: standsOnBelow ? `${cabinet.id}-${below!.id}-TOP` : null,
+        },
+        params,
+        carcassMat,
+        shelfMat,
+        t,
+        parts,
+        joints,
+        pinRows,
+        toeNotches,
+        hinges,
+        notes,
+      );
+      z0 += carcass.height;
+    });
+
+    // The widest box in the stack is what the next cabinet has to clear.
+    xRun += Math.max(...carcasses.map((c) => c.width));
   }
 
   return { parts, joints, pinRows, toeNotches, hinges, notes };
 }
 
+/**
+ * Resolve each carcass's width, following the chain of links down the stack.
+ *
+ * Done once up front so the rest of the builder never has to ask what a
+ * carcass's width really is, and so a link three boxes deep still lands on the
+ * width actually set at the bottom.
+ */
+export function resolveWidths(carcasses: Carcass[]): Carcass[] {
+  const out: Carcass[] = [];
+  carcasses.forEach((carcass, k) => {
+    const below = out[k - 1];
+    const width = below && carcass.linkWidthToBelow ? below.width : carcass.width;
+    out.push(width === carcass.width ? carcass : { ...carcass, width });
+  });
+  return out;
+}
+
+/** Where each cabinet stands along the run, and how wide its footprint is. */
+export function cabinetPositions(cabinets: Cabinet[]): Array<{ id: string; x: number; w: number }> {
+  const out: Array<{ id: string; x: number; w: number }> = [];
+  let x = 0;
+  for (const cabinet of cabinets) {
+    const widths = resolveWidths(cabinet.carcasses).map((c) => c.width);
+    const w = widths.length > 0 ? Math.max(...widths) : 0;
+    out.push({ id: cabinet.id, x, w });
+    x += w;
+  }
+  return out;
+}
+
 function buildCarcass(
   ctx: CarcassContext,
-  params: CabinetParams,
+  params: ProjectParams,
   carcassMat: Material,
   shelfMat: Material,
   t: number,
@@ -196,14 +265,17 @@ function buildCarcass(
   hinges: HingeRequest[],
   notes: string[],
 ): void {
-  const { spec, which, yFront, z0 } = ctx;
+  const { spec, yFront, z0 } = ctx;
   const W = spec.width;
   const H = spec.height;
   const D = spec.depth;
   const yBack = yFront + D;
   const zTop = z0 + H;
-  const prefix = which === 'base' ? 'B' : 'T';
-  const human = which === 'base' ? 'Base' : 'Upper';
+  // Left and right faces of this carcass, in the run rather than in itself.
+  const xL = ctx.x0;
+  const xR = ctx.x0 + W;
+  const prefix = `${ctx.cabinetId}-${spec.id}`;
+  const human = ctx.human;
 
   const backMat = spec.back.style === 'none' ? null : findMaterial(params, spec.back.materialId);
   const backT = backMat?.actualThickness ?? 0;
@@ -232,7 +304,8 @@ function buildCarcass(
       id,
       label,
       role,
-      carcass: which,
+      cabinetId: ctx.cabinetId,
+      carcassId: spec.id,
       materialId,
       thickness,
       box: b,
@@ -264,7 +337,7 @@ function buildCarcass(
     'side',
     carcassMat.id,
     t,
-    box(0, t, yFront, yBack, z0, sideTop),
+    box(xL, xL + t, yFront, yBack, z0, sideTop),
     'x',
     '+',
     'v',
@@ -275,7 +348,7 @@ function buildCarcass(
     'side',
     carcassMat.id,
     t,
-    box(W - t, W, yFront, yBack, z0, sideTop),
+    box(xR - t, xR, yFront, yBack, z0, sideTop),
     'x',
     '-',
     'v',
@@ -290,7 +363,7 @@ function buildCarcass(
     'top',
     carcassMat.id,
     t,
-    box(capped ? 0 : t, capped ? W : W - t, yFront, yBack, zTop - t, zTop),
+    box(capped ? xL : xL + t, capped ? xR : xR - t, yFront, yBack, zTop - t, zTop),
     'z',
     '-',
     'u',
@@ -326,7 +399,7 @@ function buildCarcass(
       'bottom',
       carcassMat.id,
       t,
-      box(t, W - t, yFront, yBack, bottomZ, bottomZ + t),
+      box(xL + t, xR - t, yFront, yBack, bottomZ, bottomZ + t),
       'z',
       '+',
       'u',
@@ -381,7 +454,7 @@ function buildCarcass(
       'toe-rail',
       carcassMat.id,
       t,
-      box(t, W - t, railY, railY + t, z0, z0 + toeH),
+      box(xL + t, xR - t, railY, railY + t, z0, z0 + toeH),
       'y',
       '-',
       'u',
@@ -392,7 +465,13 @@ function buildCarcass(
   }
 
   // --- Dividers ----------------------------------------------------------
-  const { bays, dividerX, fellBackToEven } = layoutBays(spec, t);
+  const layout = layoutBays(spec, t);
+  // layoutBays works in the carcass's own coordinates, from its left face at
+  // zero. Everything downstream wants assembly space, so shift once, here,
+  // rather than remembering to add the offset at a dozen call sites.
+  const bays = layout.bays.map((b) => ({ ...b, x0: b.x0 + xL, x1: b.x1 + xL }));
+  const dividerX = layout.dividerX.map((x) => x + xL);
+  const fellBackToEven = layout.fellBackToEven;
   if (fellBackToEven) {
     notes.push(
       `${human} carcass: the explicit bay widths did not add up to the interior width, so bays were split evenly.`,
@@ -516,8 +595,8 @@ function buildCarcass(
       if (d.fit === 'overlay') {
         // Each door covers half of the panel it shares with its neighbour, and
         // all of an outer side, so the run reads as one continuous front.
-        x0 = i === 0 ? 0 : dividerX[i - 1]! + t / 2;
-        x1 = i === bays.length - 1 ? W : dividerX[i]! + t / 2;
+        x0 = i === 0 ? xL : dividerX[i - 1]! + t / 2;
+        x1 = i === bays.length - 1 ? xR : dividerX[i]! + t / 2;
         x0 += d.reveal / 2;
         x1 -= d.reveal / 2;
         zBottom = runBottom + d.reveal / 2;
@@ -582,7 +661,7 @@ function buildCarcass(
       'back',
       backMat.id,
       backT,
-      box(t, W - t, backY1 - backT, backY1, shelfZ0, shelfZ1),
+      box(xL + t, xR - t, backY1 - backT, backY1, shelfZ0, shelfZ1),
       'y',
       '-',
       'free',
@@ -613,7 +692,7 @@ function buildCarcass(
   }
 }
 
-export function findMaterial(params: CabinetParams, id: string): Material {
+export function findMaterial(params: ProjectParams, id: string): Material {
   const m = params.materials.find((x) => x.id === id);
   if (!m) throw new Error(`Unknown material '${id}'. Check the materials list.`);
   return m;

@@ -1,5 +1,5 @@
 import type {
-  CabinetParams,
+  ProjectParams,
   EffectKind,
   Feature,
   LocalRect,
@@ -16,7 +16,7 @@ export interface EffectContext {
   region: LocalRect;
   /** Which machined face the effect lands on. */
   side: 'A' | 'B';
-  params: CabinetParams;
+  params: ProjectParams;
 }
 
 export interface EffectOutput {

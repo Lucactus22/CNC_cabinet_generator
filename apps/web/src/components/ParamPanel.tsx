@@ -1,5 +1,16 @@
 import { useStore } from '../store';
-import type { BaySpec, CarcassSpec, DoorStyle, ShelfMode } from '@cabgen/core';
+import {
+  cabinetPositions,
+  duplicateCabinet,
+  newCabinet,
+  newCarcass,
+  resolveWidths,
+  type BaySpec,
+  type Cabinet,
+  type Carcass,
+  type DoorStyle,
+  type ShelfMode,
+} from '@cabgen/core';
 import { CheckField, Group, Hint, NumberField, SelectField, TextField } from './Controls';
 import { EffectsPanel } from './EffectsPanel';
 
@@ -39,41 +50,8 @@ export function ParamPanel() {
         />
       </Group>
 
-      <CarcassGroup which="base" title="Base carcass" open />
-      <CarcassGroup which="top" title="Upper carcass" />
-
-      <Group title="Toe kick">
-        <CheckField
-          label="Enabled"
-          value={params.base.toeKick.enabled}
-          onChange={(v) =>
-            update((p) => {
-              p.base.toeKick.enabled = v;
-            })
-          }
-        />
-        <NumberField
-          label="Height"
-          value={params.base.toeKick.height}
-          onChange={(v) =>
-            update((p) => {
-              p.base.toeKick.height = v;
-            })
-          }
-          min={0}
-        />
-        <NumberField
-          label="Setback"
-          value={params.base.toeKick.setback}
-          onChange={(v) =>
-            update((p) => {
-              p.base.toeKick.setback = v;
-            })
-          }
-          min={0}
-        />
-        <Hint>Cut straight out of the side panels, with a rail across the front.</Hint>
-      </Group>
+      <CabinetList />
+      <CarcassGroups />
 
       <Group title="Material">
         {params.materials.map((m, i) => (
@@ -603,115 +581,271 @@ export function ParamPanel() {
   );
 }
 
+/**
+ * The run, as a list you can reorder.
+ *
+ * Cabinets are placed along the wall in this order, each starting where the one
+ * before it ends, so the list is not just presentation: moving a cabinet up
+ * moves it left in the kitchen. The measured position is shown against each one
+ * so that is obvious rather than something to work out.
+ */
+function CabinetList() {
+  const params = useStore((s) => s.params);
+  const update = useStore((s) => s.update);
+  const selectedId = useStore((s) => s.selectedCabinetId);
+  const selectCabinet = useStore((s) => s.selectCabinet);
+  const positions = cabinetPositions(params.cabinets);
+
+  const move = (index: number, by: number): void => {
+    const to = index + by;
+    if (to < 0 || to >= params.cabinets.length) return;
+    update((p) => {
+      const [moved] = p.cabinets.splice(index, 1);
+      p.cabinets.splice(to, 0, moved!);
+    });
+  };
+
+  const add = (): void =>
+    update((p) => {
+      const cabinet = newCabinet(p.cabinets);
+      p.cabinets.push(cabinet);
+      selectCabinet(cabinet.id);
+    });
+
+  const duplicate = (index: number): void =>
+    update((p) => {
+      const copy = duplicateCabinet(p.cabinets[index]!, p.cabinets);
+      p.cabinets.splice(index + 1, 0, copy);
+      selectCabinet(copy.id);
+    });
+
+  const remove = (index: number): void =>
+    update((p) => {
+      p.cabinets.splice(index, 1);
+    });
+
+  const total = positions.reduce((a, c) => a + c.w, 0);
+
+  return (
+    <Group title={`Run (${params.cabinets.length})`} open>
+      {params.cabinets.map((cabinet, i) => {
+        const at = positions[i]!;
+        const selected = cabinet.id === selectedId;
+        return (
+          <div
+            key={cabinet.id}
+            style={{
+              display: 'grid',
+              gap: 6,
+              padding: '6px 0',
+              borderTop: i === 0 ? 'none' : '1px solid var(--line)',
+            }}
+          >
+            <button
+              onClick={() => selectCabinet(cabinet.id)}
+              aria-pressed={selected}
+              title="Edit this cabinet's carcasses"
+              style={{
+                textAlign: 'left',
+                borderColor: selected ? 'var(--accent)' : undefined,
+                color: selected ? 'var(--accent)' : undefined,
+              }}
+            >
+              {cabinet.id} · {cabinet.name}
+            </button>
+            <div className="row" style={{ flexWrap: 'nowrap' }}>
+              <button
+                onClick={() => move(i, -1)}
+                disabled={i === 0}
+                title="Move left along the run"
+                aria-label={`Move ${cabinet.name} left along the run`}
+              >
+                ↑
+              </button>
+              <button
+                onClick={() => move(i, 1)}
+                disabled={i === params.cabinets.length - 1}
+                title="Move right along the run"
+                aria-label={`Move ${cabinet.name} right along the run`}
+              >
+                ↓
+              </button>
+              <button
+                onClick={() => duplicate(i)}
+                title="Copy this cabinet into the run"
+                style={{ flex: 1 }}
+              >
+                Copy
+              </button>
+              <button
+                onClick={() => remove(i)}
+                disabled={params.cabinets.length === 1}
+                style={{ flex: 1 }}
+                title={
+                  params.cabinets.length === 1
+                    ? 'A project needs at least one cabinet.'
+                    : 'Remove this cabinet from the run'
+                }
+              >
+                Remove
+              </button>
+            </div>
+            {selected && (
+              <TextField
+                label="Name"
+                value={cabinet.name}
+                onChange={(v) =>
+                  update((p) => {
+                    p.cabinets[i]!.name = v;
+                  })
+                }
+              />
+            )}
+            <Hint>
+              {at.w.toFixed(0)} mm wide, standing {at.x.toFixed(0)} mm along the run ·{' '}
+              {cabinet.carcasses.length} carcass{cabinet.carcasses.length === 1 ? '' : 'es'}
+            </Hint>
+          </div>
+        );
+      })}
+      <button onClick={add}>Add cabinet</button>
+      {params.cabinets.length > 1 && (
+        <Hint>The run measures {total.toFixed(0)} mm end to end.</Hint>
+      )}
+    </Group>
+  );
+}
+
+/** The stack inside the selected cabinet, from the floor up. */
+function CarcassGroups() {
+  const params = useStore((s) => s.params);
+  const update = useStore((s) => s.update);
+  const selectedId = useStore((s) => s.selectedCabinetId);
+
+  const cabinetIndex = params.cabinets.findIndex((c) => c.id === selectedId);
+  const cabinet = params.cabinets[cabinetIndex];
+  if (!cabinet) return null;
+
+  const addCarcass = (): void =>
+    update((p) => {
+      const stack = p.cabinets[cabinetIndex]!.carcasses;
+      stack.push(newCarcass(stack));
+    });
+
+  return (
+    <>
+      {cabinet.carcasses.map((carcass, k) => (
+        <CarcassGroup
+          key={carcass.id}
+          cabinet={cabinet}
+          cabinetIndex={cabinetIndex}
+          carcassIndex={k}
+          open={k === 0}
+        />
+      ))}
+      <Group title="Stack" open={cabinet.carcasses.length === 0}>
+        <Hint>
+          Carcasses stand on each other from the floor up. Only the one on the ground can have a toe
+          kick.
+        </Hint>
+        <button onClick={addCarcass}>Add a carcass on top</button>
+      </Group>
+    </>
+  );
+}
+
 function CarcassGroup({
-  which,
-  title,
+  cabinet,
+  cabinetIndex,
+  carcassIndex,
   open = false,
 }: {
-  which: 'base' | 'top';
-  title: string;
+  cabinet: Cabinet;
+  cabinetIndex: number;
+  carcassIndex: number;
   open?: boolean;
 }) {
   const params = useStore((s) => s.params);
   const update = useStore((s) => s.update);
-  const spec = params[which] as CarcassSpec;
-  const isTop = which === 'top';
+  const spec = cabinet.carcasses[carcassIndex]!;
+  const below = cabinet.carcasses[carcassIndex - 1];
+  const onTheGround = carcassIndex === 0;
 
-  const setBay = (i: number, patch: Partial<BaySpec>): void =>
+  /** Edit this carcass in place, wherever it has ended up in the list. */
+  const patch = (fn: (c: Carcass) => void): void =>
     update((p) => {
-      const target = p[which] as CarcassSpec;
+      fn(p.cabinets[cabinetIndex]!.carcasses[carcassIndex]!);
+    });
+
+  const setBay = (i: number, patchBay: Partial<BaySpec>): void =>
+    patch((target) => {
       while (target.bays.length <= i) {
         target.bays.push({ shelves: 'none', shelfCount: 0, doors: 'none' });
       }
-      target.bays[i] = { ...target.bays[i]!, ...patch };
+      target.bays[i] = { ...target.bays[i]!, ...patchBay };
     });
 
   const bayCount = spec.dividerCount + 1;
+  const linked = Boolean(below) && spec.linkWidthToBelow;
+  // What this carcass will actually be cut to. A link chains down the stack, so
+  // the box below may itself be following the one under it — reading its stored
+  // width would show a dimension that is not the one on the sheet.
+  const width = resolveWidths(cabinet.carcasses)[carcassIndex]!.width;
 
   return (
-    <Group title={title} open={open}>
-      {isTop ? (
-        <>
-          <CheckField
-            label="Match base width"
-            value={params.top.linkWidthToBase}
-            onChange={(v) =>
-              update((p) => {
-                p.top.linkWidthToBase = v;
-              })
-            }
-          />
-          {!params.top.linkWidthToBase && (
-            <NumberField
-              label="Width"
-              value={spec.width}
-              min={100}
-              onChange={(v) =>
-                update((p) => {
-                  p.top.width = v;
-                })
-              }
-            />
-          )}
-        </>
-      ) : (
+    <Group title={`${cabinet.id}-${spec.id} · ${spec.name}`} open={open}>
+      <TextField label="Name" value={spec.name} onChange={(v) => patch((c) => (c.name = v))} />
+      {below && (
+        <CheckField
+          label={`Match ${below.name.toLowerCase()} width`}
+          value={spec.linkWidthToBelow}
+          onChange={(v) => patch((c) => (c.linkWidthToBelow = v))}
+        />
+      )}
+      {!linked && (
         <NumberField
           label="Width"
           value={spec.width}
           min={100}
-          onChange={(v) =>
-            update((p) => {
-              p.base.width = v;
-            })
-          }
+          onChange={(v) => patch((c) => (c.width = v))}
         />
       )}
       <NumberField
         label="Height"
         value={spec.height}
         min={100}
-        onChange={(v) =>
-          update((p) => {
-            (p[which] as CarcassSpec).height = v;
-          })
-        }
+        onChange={(v) => patch((c) => (c.height = v))}
       />
       <NumberField
         label="Depth"
         value={spec.depth}
         min={100}
-        onChange={(v) =>
-          update((p) => {
-            (p[which] as CarcassSpec).depth = v;
-          })
-        }
+        onChange={(v) => patch((c) => (c.depth = v))}
         title={
-          isTop ? 'Shallower than the base, which is what forms the ledge at the front.' : undefined
+          below
+            ? 'Shallower than the carcass below, which is what forms the ledge at the front.'
+            : undefined
         }
       />
-      {isTop && (
+      {below && (
         <Hint>
-          Sits on the base, flush at the wall. Steps back{' '}
-          {Math.max(0, params.base.depth - params.top.depth).toFixed(0)} mm at the front.
+          Sits on the {below.name.toLowerCase()}, flush at the wall. Steps back{' '}
+          {Math.max(0, cabinet.carcasses[0]!.depth - spec.depth).toFixed(0)} mm at the front.
         </Hint>
       )}
-      {isTop && (
+      {below && (
         <>
           <SelectField
             label="Bottom panel"
-            value={params.top.floor}
+            value={spec.floor}
             options={[
               { value: 'own', label: 'Its own panel' },
-              { value: 'base-top', label: 'None, stands on the base top' },
+              { value: 'below', label: `None, stands on the ${below.name.toLowerCase()} top` },
             ]}
-            onChange={(v) =>
-              update((p) => {
-                p.top.floor = v;
-              })
-            }
-            title="Leaving it out stands the upper carcass in shallow dados in the base's top panel. One less panel, but that panel then needs machining on both faces."
+            onChange={(v) => patch((c) => (c.floor = v))}
+            title="Leaving it out stands this carcass in shallow dados in the top panel below. One less panel, but that panel then needs machining on both faces."
           />
-          {params.top.floor === 'base-top' && (
+          {spec.floor === 'below' && (
             <>
               <NumberField
                 label="Locating dado"
@@ -723,11 +857,11 @@ function CarcassGroup({
                     p.joinery.stackDadoDepth = v;
                   })
                 }
-                title="Kept shallow: the base's top panel is grooved on its underside too, and the two sets of pockets cross."
+                title="Kept shallow: the panel below is grooved on its underside too, and the two sets of pockets cross."
               />
               <Hint>
-                The upper's sides, dividers and back all stand in the base's top panel. Glue them
-                in; gravity does the rest.
+                This carcass's sides, dividers and back all stand in the {below.name.toLowerCase()}{' '}
+                top. Glue them in; gravity does the rest.
               </Hint>
             </>
           )}
@@ -740,11 +874,7 @@ function CarcassGroup({
           { value: 'capped', label: 'Capped over the sides' },
           { value: 'inset', label: 'Inset between the sides' },
         ]}
-        onChange={(v) =>
-          update((p) => {
-            (p[which] as CarcassSpec).topStyle = v;
-          })
-        }
+        onChange={(v) => patch((c) => (c.topStyle = v))}
         title="Capped lays the top over the side edges, so the surface reads as one panel with no seam showing from above."
       />
       <NumberField
@@ -753,11 +883,7 @@ function CarcassGroup({
         suffix=""
         min={0}
         max={8}
-        onChange={(v) =>
-          update((p) => {
-            (p[which] as CarcassSpec).dividerCount = Math.max(0, Math.round(v));
-          })
-        }
+        onChange={(v) => patch((c) => (c.dividerCount = Math.max(0, Math.round(v))))}
       />
       <SelectField
         label="Back panel"
@@ -767,11 +893,7 @@ function CarcassGroup({
           { value: 'rabbet', label: 'In a rabbet' },
           { value: 'none', label: 'None' },
         ]}
-        onChange={(v) =>
-          update((p) => {
-            (p[which] as CarcassSpec).back.style = v;
-          })
-        }
+        onChange={(v) => patch((c) => (c.back.style = v))}
         title="A groove hides the back behind a shoulder of solid material. A rabbet opens onto the rear edge instead, so the back and the sides can be scribed flush to a wall that is not flat, in one pass."
       />
       {spec.back.style !== 'none' && (
@@ -779,17 +901,40 @@ function CarcassGroup({
           label="Back inset"
           value={spec.back.inset}
           min={0}
-          onChange={(v) =>
-            update((p) => {
-              (p[which] as CarcassSpec).back.inset = v;
-            })
-          }
+          onChange={(v) => patch((c) => (c.back.inset = v))}
           title={
             spec.back.style === 'rabbet'
               ? 'How far the back sits forward of the true rear edge. Zero lands it flush, which is what makes the rabbet worth having.'
               : 'How far in from the rear edge the back sits, leaving room for scribing to the wall.'
           }
         />
+      )}
+
+      {onTheGround && (
+        <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
+          <CheckField
+            label="Toe kick"
+            value={spec.toeKick.enabled}
+            onChange={(v) => patch((c) => (c.toeKick.enabled = v))}
+          />
+          {spec.toeKick.enabled && (
+            <>
+              <NumberField
+                label="Height"
+                value={spec.toeKick.height}
+                min={0}
+                onChange={(v) => patch((c) => (c.toeKick.height = v))}
+              />
+              <NumberField
+                label="Setback"
+                value={spec.toeKick.setback}
+                min={0}
+                onChange={(v) => patch((c) => (c.toeKick.setback = v))}
+              />
+              <Hint>Cut straight out of the side panels, with a rail across the front.</Hint>
+            </>
+          )}
+        </div>
       )}
 
       {Array.from({ length: bayCount }, (_, i) => {
@@ -830,6 +975,27 @@ function CarcassGroup({
           </div>
         );
       })}
+
+      <div className="row" style={{ paddingTop: 8 }}>
+        <span style={{ flex: 1, fontSize: 12, color: 'var(--muted)' }}>
+          {width.toFixed(0)} × {spec.height.toFixed(0)} × {spec.depth.toFixed(0)} mm
+        </span>
+        <button
+          onClick={() =>
+            update((p) => {
+              p.cabinets[cabinetIndex]!.carcasses.splice(carcassIndex, 1);
+            })
+          }
+          disabled={cabinet.carcasses.length === 1}
+          title={
+            cabinet.carcasses.length === 1
+              ? 'A cabinet needs at least one carcass.'
+              : 'Remove this carcass from the stack'
+          }
+        >
+          Remove carcass
+        </button>
+      </div>
     </Group>
   );
 }

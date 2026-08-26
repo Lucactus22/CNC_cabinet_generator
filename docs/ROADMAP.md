@@ -1,6 +1,6 @@
 # Roadmap to 1.0
 
-**Current version: 0.1.** One cabinet type, fully parametric, cutting real DXF.
+**Current version: 0.1.** A run of cabinets, fully parametric, cutting real DXF.
 
 Each item below is a **self-contained work order**. Pick the first one that is
 not done, read it, read [ARCHITECTURE.md](ARCHITECTURE.md), and work it to its
@@ -139,12 +139,26 @@ cabinet prefix (`C1-B-SIDE-L`). Do this in one pass and update every test.
 Keep `standsOnId` and the capped-top logic working — they already express
 inter-carcass relationships and should generalise cleanly to *n* carcasses.
 
+**Revised while working it.** Two criteria as first written could not both be
+true, and one of them was wrong:
+
+- *Byte-identical DXF* and *part IDs identify their cabinet* contradict each
+  other, because the part ID is engraved on the LABEL layer. Prefixing IDs
+  changes those bytes and always will. The criterion below now says what is
+  actually worth pinning — identical geometry — and `golden.test.ts` proves it
+  by exporting the default project with labels off and comparing byte for byte
+  against files the 0.1 code wrote. The prefixing is pinned separately.
+- The cut list gained a **Cabinet** column, so its CSV is deliberately not
+  identical to 0.1's. Sorting a kitchen's worth of panels back into piles needs
+  it.
+
 **Acceptance criteria.**
-- [ ] A project can hold several cabinets, positioned along a run
-- [ ] The default project generates byte-identical DXF to 0.1
-- [ ] Nesting and the cut list span all cabinets in the project
-- [ ] Part IDs identify their cabinet
-- [ ] The UI has a cabinet list: add, remove, duplicate, reorder, select
+- [x] A project can hold several cabinets, positioned along a run
+- [x] The default project generates geometry identical to 0.1, byte for byte in
+      the sheet DXF, differing only by the cabinet prefix in the engraved IDs
+- [x] Nesting and the cut list span all cabinets in the project
+- [x] Part IDs identify their cabinet
+- [x] The UI has a cabinet list: add, remove, duplicate, reorder, select
 
 **Tests.** The snapshot equality test above is the important one. Then:
 several cabinets nest together; IDs stay unique; a cabinet can be removed
@@ -152,6 +166,17 @@ without disturbing the others.
 
 **Risks.** The biggest item on the roadmap. Land the model change and the
 snapshot test *first*, in their own commit, before touching the UI.
+
+**What it cost, for the items that follow.** `CabinetParams` is now
+`ProjectParams`; `params.base` and `params.top` are `params.cabinets[i]
+.carcasses[k]`; `Part.carcass` is `Part.cabinetId` and `Part.carcassId`;
+`UpperFloor` is `CarcassFloor` and its `'base-top'` is `'below'`;
+`linkWidthToBase` is `linkWidthToBelow`. `normaliseParams` migrates all of it,
+so 0.1 project files still open. One real bug fell out on the way: `applyEffects`
+took the centroid of the **whole assembly** to decide which face is the inside,
+which is correct for one cabinet and wrong for a run — the outermost side panel
+of a unit at either end would have had its panelling cut on the wrong face. It
+now works per cabinet.
 
 ---
 
@@ -556,5 +581,7 @@ forcing it through. The roadmap is a plan, not a contract.
   constraint, not an edge case.
 - **R-07, face-frame construction**, added, and both it and out-of-square rooms
   removed from the non-goals.
+- **R-03** had two acceptance criteria that could not both hold; see the note in
+  the item for what replaced them and why.
 
 Items were renumbered into a gapless sequence at the same time.

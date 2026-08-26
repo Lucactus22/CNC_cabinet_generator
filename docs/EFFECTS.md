@@ -19,7 +19,7 @@ beadboard look.
 
 | Setting | Meaning |
 |---|---|
-| Surface | Which panels: by role (back, sides, dividers…) in one or both carcasses, or a single selected part |
+| Surface | Which panels: by role (back, sides, dividers…) either everywhere or held to one carcass of one cabinet, or a single selected part |
 | Face | `inside` looks into the cabinet, `outside` is the other one |
 | Direction | `vertical` or `horizontal`, as seen on the assembled cabinet |
 | Spacing | Centre-to-centre |

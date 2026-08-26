@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { base } from './carcasses.js';
 import { bboxOf, buildProject, defaultParams, hingeHeights } from '../src/index.js';
-import type { CabinetParams, DrillFeature, Part, PocketFeature } from '../src/model/types.js';
+import type { ProjectParams, DrillFeature, Part, PocketFeature } from '../src/model/types.js';
 
-const doorsOn = (patch: (p: CabinetParams) => void = () => {}): CabinetParams => {
+const doorsOn = (patch: (p: ProjectParams) => void = () => {}): ProjectParams => {
   const p = defaultParams();
   patch(p);
   return p;
@@ -44,35 +45,35 @@ describe('door layout', () => {
   const doors = project.parts.filter((p) => p.role === 'door');
 
   it('builds one door per bay that asks for one', () => {
-    expect(doors.map((d) => d.id).sort()).toEqual(['B-DOOR-1', 'B-DOOR-2']);
+    expect(doors.map((d) => d.id).sort()).toEqual(['C1-B-DOOR-1', 'C1-B-DOOR-2']);
   });
 
   it('hangs overlay doors in front of the carcass', () => {
-    const door = find(project.parts, 'B-DOOR-1');
-    const side = find(project.parts, 'B-SIDE-L');
+    const door = find(project.parts, 'C1-B-DOOR-1');
+    const side = find(project.parts, 'C1-B-SIDE-L');
     expect(door.box.max.y).toBeCloseTo(side.box.min.y, 6); // back of door on the carcass front
     expect(door.box.min.y).toBeLessThan(side.box.min.y);
   });
 
   it('leaves an even reveal between neighbouring doors', () => {
-    const a = find(project.parts, 'B-DOOR-1');
-    const b = find(project.parts, 'B-DOOR-2');
+    const a = find(project.parts, 'C1-B-DOOR-1');
+    const b = find(project.parts, 'C1-B-DOOR-2');
     expect(b.box.min.x - a.box.max.x).toBeCloseTo(project.params.doors.reveal, 6);
   });
 
   it('covers the carcass to its outer edges, less half a reveal', () => {
     const reveal = project.params.doors.reveal;
-    expect(find(project.parts, 'B-DOOR-1').box.min.x).toBeCloseTo(reveal / 2, 6);
-    expect(find(project.parts, 'B-DOOR-2').box.max.x).toBeCloseTo(
-      project.params.base.width - reveal / 2,
+    expect(find(project.parts, 'C1-B-DOOR-1').box.min.x).toBeCloseTo(reveal / 2, 6);
+    expect(find(project.parts, 'C1-B-DOOR-2').box.max.x).toBeCloseTo(
+      base(project.params).width - reveal / 2,
       6,
     );
   });
 
   it('stops the doors under the ledge and above the toe kick', () => {
-    const door = find(project.parts, 'B-DOOR-1');
-    const top = find(project.parts, 'B-TOP');
-    const kick = project.params.base.toeKick;
+    const door = find(project.parts, 'C1-B-DOOR-1');
+    const top = find(project.parts, 'C1-B-TOP');
+    const kick = base(project.params).toeKick;
     expect(door.box.max.z).toBeLessThanOrEqual(top.box.min.z + 1e-6);
     expect(door.box.min.z).toBeGreaterThanOrEqual(kick.height);
   });
@@ -83,8 +84,8 @@ describe('door layout', () => {
         x.doors.fit = 'inset';
       }),
     );
-    const door = find(p.parts, 'B-DOOR-1');
-    const side = find(p.parts, 'B-SIDE-L');
+    const door = find(p.parts, 'C1-B-DOOR-1');
+    const side = find(p.parts, 'C1-B-SIDE-L');
     expect(door.box.min.y).toBeGreaterThanOrEqual(side.box.min.y - 1e-6);
     expect(door.box.min.x).toBeGreaterThan(side.box.max.x);
   });
@@ -92,11 +93,11 @@ describe('door layout', () => {
   it('splits a pair down the middle with a reveal between', () => {
     const p = buildProject(
       doorsOn((x) => {
-        x.base.bays[0]!.doors = 'double';
+        base(x).bays[0]!.doors = 'double';
       }),
     );
-    const l = find(p.parts, 'B-DOOR-1L');
-    const r = find(p.parts, 'B-DOOR-1R');
+    const l = find(p.parts, 'C1-B-DOOR-1L');
+    const r = find(p.parts, 'C1-B-DOOR-1R');
     expect(r.box.min.x - l.box.max.x).toBeCloseTo(p.params.doors.reveal, 6);
     expect(l.box.max.x - l.box.min.x).toBeCloseTo(r.box.max.x - r.box.min.x, 6);
   });
@@ -104,7 +105,7 @@ describe('door layout', () => {
   it('builds no doors when every bay is open', () => {
     const p = buildProject(
       doorsOn((x) => {
-        for (const b of x.base.bays) b.doors = 'none';
+        for (const b of base(x).bays) b.doors = 'none';
       }),
     );
     expect(p.parts.filter((q) => q.role === 'door')).toHaveLength(0);
@@ -115,7 +116,7 @@ describe('UTRUSTA hinge boring', () => {
   const params = doorsOn();
   const project = buildProject(params);
   const h = params.hinge;
-  const door = find(project.parts, 'B-DOOR-2'); // hinged on its right, low local x
+  const door = find(project.parts, 'C1-B-DOOR-2'); // hinged on its right, low local x
 
   it('bores a 35 mm cup to the right depth on the back face', () => {
     expect(cups(door)).toHaveLength(2);
@@ -154,7 +155,7 @@ describe('UTRUSTA hinge boring', () => {
   });
 
   it('mirrors the pattern for a door hinged on the other side', () => {
-    const left = find(project.parts, 'B-DOOR-1');
+    const left = find(project.parts, 'C1-B-DOOR-1');
     const expected = left.width - (h.boringDistance + h.cupDiameter / 2);
     for (const c of cups(left)) {
       const bb = bboxOf(c.path);
@@ -178,7 +179,7 @@ describe('UTRUSTA hinge boring', () => {
   });
 
   it('drills the plate holes on the 32 mm system in the carcass', () => {
-    const side = find(project.parts, 'B-SIDE-L');
+    const side = find(project.parts, 'C1-B-SIDE-L');
     const p = plates(side);
     expect(p.length).toBe(4); // two hinges, two holes each
     for (const one of p) {
@@ -216,13 +217,13 @@ describe('UTRUSTA hinge boring', () => {
 });
 
 describe('door designs', () => {
-  const shaker = (): CabinetParams =>
+  const shaker = (): ProjectParams =>
     doorsOn((p) => {
       p.surfaceEffects = [
         {
           id: 'shaker',
           enabled: true,
-          target: { select: 'role', role: 'door', carcass: 'both' },
+          target: { select: 'role', role: 'door', carcassId: undefined },
           face: 'outside',
           effect: { kind: 'frame', margin: 60, width: 8, depth: 4 },
         },
@@ -231,7 +232,7 @@ describe('door designs', () => {
 
   it('runs a frame groove round the door face', () => {
     const project = buildProject(shaker());
-    const door = find(project.parts, 'B-DOOR-1');
+    const door = find(project.parts, 'C1-B-DOOR-1');
     const frame = door.features.filter(
       (f): f is PocketFeature => f.kind === 'pocket' && f.purpose === 'surface-frame',
     );
@@ -255,7 +256,7 @@ describe('door designs', () => {
   it('lists the doors as needing both faces cut', () => {
     const project = buildProject(shaker());
     const flip = project.diagnostics.find((d) => d.message.includes('turned over on the bed'));
-    expect(flip?.partIds).toContain('B-DOOR-1');
+    expect(flip?.partIds).toContain('C1-B-DOOR-1');
   });
 
   it('takes beadboard grooves on a door just as well', () => {
@@ -264,7 +265,7 @@ describe('door designs', () => {
         {
           id: 'bead',
           enabled: true,
-          target: { select: 'role', role: 'door', carcass: 'base' },
+          target: { select: 'role', role: 'door', carcassId: 'B' },
           face: 'outside',
           effect: {
             kind: 'grooves',
@@ -278,7 +279,7 @@ describe('door designs', () => {
         },
       ];
     });
-    const door = find(buildProject(p).parts, 'B-DOOR-1');
+    const door = find(buildProject(p).parts, 'C1-B-DOOR-1');
     expect(
       door.features.filter((f) => f.kind === 'pocket' && f.purpose === 'surface-grooves').length,
     ).toBeGreaterThan(3);

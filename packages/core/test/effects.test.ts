@@ -9,7 +9,7 @@ import {
   partsNeedingFlip,
 } from '../src/index.js';
 import type {
-  CabinetParams,
+  ProjectParams,
   GrooveEffect,
   Part,
   PocketFeature,
@@ -29,13 +29,13 @@ const GROOVES: GrooveEffect = {
 function withEffect(
   patch: Partial<SurfaceEffectSpec> = {},
   effect: Partial<GrooveEffect> = {},
-): CabinetParams {
+): ProjectParams {
   const p = defaultParams();
   p.surfaceEffects = [
     {
       id: 'e1',
       enabled: true,
-      target: { select: 'role', role: 'back', carcass: 'both' },
+      target: { select: 'role', role: 'back', carcassId: undefined },
       face: 'inside',
       effect: { ...GROOVES, ...effect },
       ...patch,
@@ -84,7 +84,7 @@ describe('groove layout', () => {
 describe('grooves on the back panel', () => {
   const params = withEffect();
   const project = buildProject(params);
-  const back = find(project.parts, 'T-BACK');
+  const back = find(project.parts, 'C1-T-BACK');
   const cut = grooves(back);
 
   it('cuts grooves at the requested depth on the inside face', () => {
@@ -108,7 +108,7 @@ describe('grooves on the back panel', () => {
 
   it('honours the spacing literally when asked to fit exactly', () => {
     const p = buildProject(withEffect({}, { fit: 'exact' }));
-    const xs = grooves(find(p.parts, 'T-BACK'))
+    const xs = grooves(find(p.parts, 'C1-T-BACK'))
       .map((g) => bboxOf(g.path).minX)
       .sort((a, b) => a - b);
     for (let i = 1; i < xs.length; i++) expect(xs[i]! - xs[i - 1]!).toBeCloseTo(GROOVES.spacing, 6);
@@ -124,7 +124,7 @@ describe('grooves on the back panel', () => {
 
   it('runs them horizontally when asked', () => {
     const p = buildProject(withEffect({}, { direction: 'horizontal' }));
-    for (const g of grooves(find(p.parts, 'T-BACK'))) {
+    for (const g of grooves(find(p.parts, 'C1-T-BACK'))) {
       const bb = bboxOf(g.path);
       expect(bb.maxY - bb.minY).toBeCloseTo(GROOVES.width, 6);
       expect(bb.maxX - bb.minX).toBeGreaterThan(bb.maxY - bb.minY);
@@ -147,7 +147,7 @@ describe('grooves on the back panel', () => {
 
   it('holds off the edges by the margin when one is set', () => {
     const p = buildProject(withEffect({}, { margin: 20 }));
-    const part = find(p.parts, 'T-BACK');
+    const part = find(p.parts, 'C1-T-BACK');
     for (const g of grooves(part)) {
       expect(bboxOf(g.path).minX).toBeGreaterThanOrEqual(part.exposed.x + 20 - 1e-6);
     }
@@ -167,22 +167,22 @@ describe('grooves on the back panel', () => {
 describe('targeting a surface', () => {
   it('applies to both carcasses, or just one', () => {
     const both = buildProject(
-      withEffect({ target: { select: 'role', role: 'back', carcass: 'both' } }),
+      withEffect({ target: { select: 'role', role: 'back', carcassId: undefined } }),
     );
-    expect(grooves(find(both.parts, 'B-BACK')).length).toBeGreaterThan(0);
-    expect(grooves(find(both.parts, 'T-BACK')).length).toBeGreaterThan(0);
+    expect(grooves(find(both.parts, 'C1-B-BACK')).length).toBeGreaterThan(0);
+    expect(grooves(find(both.parts, 'C1-T-BACK')).length).toBeGreaterThan(0);
 
     const upper = buildProject(
-      withEffect({ target: { select: 'role', role: 'back', carcass: 'top' } }),
+      withEffect({ target: { select: 'role', role: 'back', carcassId: 'T' } }),
     );
-    expect(grooves(find(upper.parts, 'B-BACK'))).toHaveLength(0);
-    expect(grooves(find(upper.parts, 'T-BACK')).length).toBeGreaterThan(0);
+    expect(grooves(find(upper.parts, 'C1-B-BACK'))).toHaveLength(0);
+    expect(grooves(find(upper.parts, 'C1-T-BACK')).length).toBeGreaterThan(0);
   });
 
   it('applies to a single named part', () => {
-    const p = buildProject(withEffect({ target: { select: 'part', partId: 'T-BACK' } }));
-    expect(grooves(find(p.parts, 'T-BACK')).length).toBeGreaterThan(0);
-    expect(grooves(find(p.parts, 'B-BACK'))).toHaveLength(0);
+    const p = buildProject(withEffect({ target: { select: 'part', partId: 'C1-T-BACK' } }));
+    expect(grooves(find(p.parts, 'C1-T-BACK')).length).toBeGreaterThan(0);
+    expect(grooves(find(p.parts, 'C1-B-BACK'))).toHaveLength(0);
   });
 
   it('says so when the target matches nothing', () => {
@@ -192,16 +192,16 @@ describe('targeting a surface', () => {
 
   it('can be switched off without being removed', () => {
     const p = buildProject(withEffect({ enabled: false }));
-    expect(grooves(find(p.parts, 'T-BACK'))).toHaveLength(0);
+    expect(grooves(find(p.parts, 'C1-T-BACK'))).toHaveLength(0);
   });
 
   it('resolves inside and outside geometrically, not by face letter', () => {
     const { parts } = buildProject(defaultParams());
     const centroid = { x: 450, y: 300, z: 1000 };
     // A side panel's inner face and the back panel's inner face are both A.
-    expect(faceSideFor(find(parts, 'B-SIDE-L'), centroid, 'inside')).toBe('A');
-    expect(faceSideFor(find(parts, 'B-SIDE-L'), centroid, 'outside')).toBe('B');
-    expect(faceSideFor(find(parts, 'B-BACK'), centroid, 'inside')).toBe('A');
+    expect(faceSideFor(find(parts, 'C1-B-SIDE-L'), centroid, 'inside')).toBe('A');
+    expect(faceSideFor(find(parts, 'C1-B-SIDE-L'), centroid, 'outside')).toBe('B');
+    expect(faceSideFor(find(parts, 'C1-B-BACK'), centroid, 'inside')).toBe('A');
   });
 });
 
@@ -212,21 +212,21 @@ describe('the both-sides warning', () => {
 
   it('stays quiet when the effect lands on the face already being machined', () => {
     const p = buildProject(
-      withEffect({ target: { select: 'role', role: 'side', carcass: 'base' }, face: 'inside' }),
+      withEffect({ target: { select: 'role', role: 'side', carcassId: 'B' }, face: 'inside' }),
     );
     expect(effectFlipWarning(p)).toBeUndefined();
   });
 
   it('warns when the effect forces the panel onto its second face', () => {
     const p = buildProject(
-      withEffect({ target: { select: 'role', role: 'side', carcass: 'base' }, face: 'outside' }),
+      withEffect({ target: { select: 'role', role: 'side', carcassId: 'B' }, face: 'outside' }),
     );
     const warn = effectFlipWarning(p);
     expect(warn).toBeDefined();
     expect(warn!.message).toContain('has to be turned over on the bed');
     expect(warn!.severity).toBe('warning');
     expect(warn!.message).toContain('outside face');
-    expect(partsNeedingFlip(p.parts).map((x) => x.id)).toContain('B-SIDE-L');
+    expect(partsNeedingFlip(p.parts).map((x) => x.id)).toContain('C1-B-SIDE-L');
   });
 
   it('does not let an engraved label count as machining a face', () => {
@@ -234,7 +234,7 @@ describe('the both-sides warning', () => {
     // gets turned over.
     const p = buildProject(withEffect({ face: 'outside' }));
     expect(effectFlipWarning(p)).toBeUndefined();
-    expect(partsNeedingFlip(p.parts).map((x) => x.id)).not.toContain('T-BACK');
+    expect(partsNeedingFlip(p.parts).map((x) => x.id)).not.toContain('C1-T-BACK');
   });
 });
 
