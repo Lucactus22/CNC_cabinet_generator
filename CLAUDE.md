@@ -110,3 +110,5 @@ errors while you are there.
 Work on the branch you were given. Commit messages explain the reasoning, not
 just the change — what was wrong, why this fixes it, what it costs. If a bug was
 found on the way, say what it was and how it would have shown up.
+
+ask an advisor for feedback before commiting.
