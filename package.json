@@ -3,16 +3,30 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "build": "npm run build -w @cabgen/core && npm run build -w @cabgen/web",
     "dev": "npm run dev -w @cabgen/web",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -b packages/core apps/web"
+    "typecheck": "tsc -b packages/core apps/web",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import-x": "^4.17.1",
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6",
     "typescript": "^5.6.3",
+    "typescript-eslint": "^8.68.0",
     "vitest": "^2.1.4"
   }
 }

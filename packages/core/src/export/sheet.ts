@@ -3,13 +3,7 @@ import type { CabinetParams, Part } from '../model/types.js';
 import type { NestedSheet } from '../nest/index.js';
 import { planTiles, type TilePlan } from '../machine/tiling.js';
 import { clipPathToBand, circleInBand, type Band } from './clip.js';
-import {
-  drillLayer,
-  FLIP_SUFFIX,
-  LAYER,
-  pocketLayer,
-  type LayerOptions,
-} from './layers.js';
+import { drillLayer, FLIP_SUFFIX, LAYER, pocketLayer, type LayerOptions } from './layers.js';
 import { emptyDrawing, writeDxf, type DxfDrawing } from './dxf.js';
 import { applyToPath, mirrorAcrossSheet, mirrorPoint, partTransform } from './transform.js';
 
@@ -116,7 +110,12 @@ export function exportSheet(
 ): SheetExport {
   const { drawing, warnings } = composeSheet(params, parts, sheet, opts);
   // Tiling follows how far the parts reach, not the blank's nominal length.
-  const plan = planTiles(sheet.contentLength, sheet.width, params.machine, params.nesting.sheetMargin);
+  const plan = planTiles(
+    sheet.contentLength,
+    sheet.width,
+    params.machine,
+    params.nesting.sheetMargin,
+  );
 
   const base = `${slug(params.name)}-sheet${sheet.index + 1}`;
   const full: SheetFile = { name: `${base}.dxf`, dxf: writeDxf(drawing) };

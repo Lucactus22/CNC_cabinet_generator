@@ -83,7 +83,7 @@ export function arcFromBulge(a: Vec2, b: Vec2, bulge: number): ArcInfo {
   const r = Math.abs(chord / (2 * Math.sin(theta / 2)));
   const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
   // Distance from chord midpoint to centre, signed by sweep direction.
-  const h = (chord / 2) / Math.tan(theta / 2);
+  const h = chord / 2 / Math.tan(theta / 2);
   const d = norm(sub(b, a));
   const nx = -d.y;
   const ny = d.x;

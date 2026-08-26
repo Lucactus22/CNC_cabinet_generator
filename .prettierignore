@@ -1,0 +1,8 @@
+dist
+coverage
+package-lock.json
+*.tsbuildinfo
+
+# Prose is hand-wrapped and hand-tabled on purpose; Prettier's table and
+# emphasis-marker rewrites would churn every doc for no functional gain.
+*.md

@@ -1,10 +1,5 @@
 import { create } from 'zustand';
-import {
-  buildProject,
-  defaultParams,
-  type CabinetParams,
-  type ProjectResult,
-} from '@cabgen/core';
+import { buildProject, defaultParams, type CabinetParams, type ProjectResult } from '@cabgen/core';
 
 export type ViewTab = '3d' | 'sheets' | 'parts';
 

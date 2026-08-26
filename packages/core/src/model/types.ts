@@ -1,7 +1,6 @@
 import type { Path } from '../geom/index.js';
 import type { ReliefStyle } from '../geom/relief.js';
 
-export type Units = 'mm' | 'in';
 export type Axis = 'x' | 'y' | 'z';
 export type Sign = '+' | '-';
 
@@ -277,7 +276,6 @@ export interface SurfaceEffectSpec {
 
 export interface CabinetParams {
   name: string;
-  units: Units;
   materials: Material[];
   carcassMaterialId: string;
   shelfMaterialId: string;
@@ -300,15 +298,7 @@ export interface CabinetParams {
 // ---------------------------------------------------------------------------
 
 export type PartRole =
-  | 'door'
-  | 'side'
-  | 'bottom'
-  | 'top'
-  | 'divider'
-  | 'shelf'
-  | 'back'
-  | 'toe-rail'
-  | 'stretcher';
+  'door' | 'side' | 'bottom' | 'top' | 'divider' | 'shelf' | 'back' | 'toe-rail' | 'stretcher';
 
 export type FaceSide = 'A' | 'B';
 

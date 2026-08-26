@@ -34,7 +34,6 @@ export function defaultMaterials(): Material[] {
 export function defaultParams(): CabinetParams {
   return {
     name: 'Stacked built-in',
-    units: 'mm',
     materials: defaultMaterials(),
     carcassMaterialId: MATERIAL_CARCASS,
     shelfMaterialId: MATERIAL_CARCASS,

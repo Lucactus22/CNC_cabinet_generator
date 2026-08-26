@@ -38,11 +38,7 @@ export function num(value: number, opts: LayerOptions): string {
 export const pocketLayer = (depth: number, opts: LayerOptions): string =>
   `POCKET_D${num(depth, opts)}`;
 
-export const drillLayer = (
-  diameter: number,
-  depth: number | 'thru',
-  opts: LayerOptions,
-): string =>
+export const drillLayer = (diameter: number, depth: number | 'thru', opts: LayerOptions): string =>
   depth === 'thru'
     ? `DRILL_${num(diameter, opts)}_THRU`
     : `DRILL_${num(diameter, opts)}_D${num(depth, opts)}`;

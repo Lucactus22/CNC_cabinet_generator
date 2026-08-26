@@ -20,12 +20,12 @@ Parametric cabinet designer that outputs CNC-ready DXF. Read this first, then
 ```bash
 npm install
 npm run dev          # http://localhost:5173
-npm test             # 182 tests, ~2s
+npm test             # 190 tests, ~2s
 npm run typecheck    # both packages
+npm run lint         # ESLint, including the core dependency boundary rule
+npm run format       # Prettier, writes in place
 npm run build        # production build of the web app
 ```
-
-There is no linter yet — that is roadmap item R-02.
 
 ## What this project is about
 
@@ -70,7 +70,7 @@ strategy.
 
 An item is not finished until all of these are true:
 
-- [ ] `npm test` and `npm run typecheck` pass
+- [ ] `npm test`, `npm run typecheck` and `npm run lint` pass
 - [ ] New behaviour is covered by tests that say *why the failure would matter*
 - [ ] It has been checked in the running app, not just in tests
 - [ ] Every diagnostic it can produce has been seen to fire

@@ -90,19 +90,21 @@ export function applyDado(
   female.part.features.push(pocket);
 
   if (j.screwHoles && req.purpose !== 'back') {
-    addScrewHoles(female, groove, widthAxis?.which === 'u', j.screwSpacing, j.screwClearanceDiameter, c.side);
+    addScrewHoles(
+      female,
+      groove,
+      widthAxis?.which === 'u',
+      j.screwSpacing,
+      j.screwClearanceDiameter,
+      c.side,
+    );
   }
 
   return { warnings };
 }
 
 /** Pull the groove back from the carcass front edge by `stop`. */
-function shortenAtFront(
-  groove: LocalRect,
-  female: PartDraft,
-  frontY: number,
-  stop: number,
-): void {
+function shortenAtFront(groove: LocalRect, female: PartDraft, frontY: number, stop: number): void {
   const yMap = mapAxis(female.frame, 'y');
   if (!yMap) return;
   // Local coordinate of the carcass front face on this panel.

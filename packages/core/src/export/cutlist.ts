@@ -23,11 +23,7 @@ export interface CutListRow {
 }
 
 /** One row per part, in the order they appear on the sheets. */
-export function buildCutList(
-  params: CabinetParams,
-  parts: Part[],
-  nest: NestResult,
-): CutListRow[] {
+export function buildCutList(params: CabinetParams, parts: Part[], nest: NestResult): CutListRow[] {
   const sheetOf = new Map<string, number>();
   for (const s of nest.sheets) for (const p of s.parts) sheetOf.set(p.partId, s.index + 1);
 

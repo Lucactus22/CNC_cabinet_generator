@@ -164,7 +164,8 @@ function createEngine(
 
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
-  let meshes: Array<{ mesh: THREE.Mesh; part: Part; home: THREE.Vector3; away: THREE.Vector3 }> = [];
+  let meshes: Array<{ mesh: THREE.Mesh; part: Part; home: THREE.Vector3; away: THREE.Vector3 }> =
+    [];
   let selectedId: string | null = null;
   let hoverId: string | null = null;
   let explode = 0;
@@ -200,9 +201,7 @@ function createEngine(
     pressAt = { x: ev.clientX, y: ev.clientY };
   };
   const onClick = (ev: MouseEvent): void => {
-    const moved = pressAt
-      ? Math.hypot(ev.clientX - pressAt.x, ev.clientY - pressAt.y)
-      : 0;
+    const moved = pressAt ? Math.hypot(ev.clientX - pressAt.x, ev.clientY - pressAt.y) : 0;
     pressAt = null;
     if (moved > 4) return;
     handlers.onPick(pick()?.part.id ?? null);
@@ -259,7 +258,9 @@ function createEngine(
         const size = bounds.getSize(new THREE.Vector3());
         const radius = Math.max(size.x, size.y, size.z);
         controls.target.copy(centre);
-        camera.position.copy(centre).add(new THREE.Vector3(radius * 0.9, radius * 0.35, radius * 1.3));
+        camera.position
+          .copy(centre)
+          .add(new THREE.Vector3(radius * 0.9, radius * 0.35, radius * 1.3));
         camera.near = radius / 100;
         camera.far = radius * 20;
         camera.updateProjectionMatrix();
@@ -346,7 +347,8 @@ function buildPart(part: Part): BuiltPart | null {
   for (const f of part.features) {
     if (f.kind !== 'through') continue;
     const hole = tessellate(f.path, 0.4);
-    if (hole.length >= 3) shape.holes.push(new THREE.Path(hole.map((p) => new THREE.Vector2(p.x, p.y))));
+    if (hole.length >= 3)
+      shape.holes.push(new THREE.Path(hole.map((p) => new THREE.Vector2(p.x, p.y))));
   }
 
   const geometry = new THREE.ExtrudeGeometry(shape, {

@@ -45,9 +45,10 @@ export function normaliseParams(raw: unknown): CabinetParams {
       ...(input.top as object),
       back: { ...base.top.back, ...((input.top as Record<string, unknown>)?.back as object) },
     },
-    materials: Array.isArray(input.materials) && input.materials.length > 0
-      ? (input.materials as CabinetParams['materials'])
-      : base.materials,
+    materials:
+      Array.isArray(input.materials) && input.materials.length > 0
+        ? (input.materials as CabinetParams['materials'])
+        : base.materials,
     surfaceEffects: Array.isArray(input.surfaceEffects)
       ? (input.surfaceEffects as CabinetParams['surfaceEffects'])
       : [],

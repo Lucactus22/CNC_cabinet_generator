@@ -42,12 +42,7 @@ export class MaxRectsBin {
   }
 
   /** Try to place a w x h part. Returns null when it will not fit. */
-  insert(
-    w: number,
-    h: number,
-    allowRotate: boolean,
-    bands?: BandConstraint,
-  ): Placement | null {
+  insert(w: number, h: number, allowRotate: boolean, bands?: BandConstraint): Placement | null {
     const spot = this.findSpot(w, h, allowRotate, bands);
     if (!spot) return null;
 

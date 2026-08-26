@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { bboxOf, tessellate } from '../src/geom/index.js';
-import { buildParts, defaultParams, frameOf, generate, partsNeedingFlip, toAssembly } from '../src/index.js';
+import {
+  buildParts,
+  defaultParams,
+  frameOf,
+  generate,
+  partsNeedingFlip,
+  toAssembly,
+} from '../src/index.js';
 import type { CabinetParams, Part, PocketFeature } from '../src/model/types.js';
 
 const find = (parts: Part[], id: string): Part => {
@@ -153,7 +160,9 @@ describe('dado joints', () => {
       const bb = bboxOf(f.path);
       return Math.min(bb.maxX - bb.minX, bb.maxY - bb.minY);
     });
-    const carcassGrooves = narrow.filter((w) => Math.abs(w - (t + params.joinery.fitClearance)) < 1e-6);
+    const carcassGrooves = narrow.filter(
+      (w) => Math.abs(w - (t + params.joinery.fitClearance)) < 1e-6,
+    );
     expect(carcassGrooves.length).toBeGreaterThanOrEqual(2); // bottom and top
   });
 
@@ -264,14 +273,19 @@ describe('back panel never floats unjoined', () => {
   // The regression this guards: no back style should ever produce a back
   // panel with no joints referencing it. That is precisely the bug rabbet
   // shipped with — a wrong cabinet, cut with no warning.
-  it.each(['groove', 'rabbet'] as const)('gives the back at least one joint for style %s', (style) => {
-    const params = defaultParams();
-    params.base.back.style = style;
-    const built = buildParts(params);
-    expect(built.parts.some((p) => p.id === 'B-BACK')).toBe(true);
-    const backJoints = built.joints.filter((j) => j.maleId === 'B-BACK' || j.femaleId === 'B-BACK');
-    expect(backJoints.length).toBeGreaterThan(0);
-  });
+  it.each(['groove', 'rabbet'] as const)(
+    'gives the back at least one joint for style %s',
+    (style) => {
+      const params = defaultParams();
+      params.base.back.style = style;
+      const built = buildParts(params);
+      expect(built.parts.some((p) => p.id === 'B-BACK')).toBe(true);
+      const backJoints = built.joints.filter(
+        (j) => j.maleId === 'B-BACK' || j.femaleId === 'B-BACK',
+      );
+      expect(backJoints.length).toBeGreaterThan(0);
+    },
+  );
 
   it('builds no back part at all for style none, rather than an unjoined one', () => {
     const params = defaultParams();

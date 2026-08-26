@@ -81,9 +81,7 @@ export function relieveCorners(path: Path, opts: ReliefOptions): Path {
     }
 
     const relief =
-      opts.style === 'dogbone'
-        ? dogbone(cur, u1, u2, opts)
-        : tbone(cur, u1, u2, prev, next, opts);
+      opts.style === 'dogbone' ? dogbone(cur, u1, u2, opts) : tbone(cur, u1, u2, prev, next, opts);
 
     if (relief) out.push(...relief);
     else out.push(cur);
@@ -173,7 +171,8 @@ function tbone(
   // mortise: the width is the dimension that has to stay exact.
   const alongPrev =
     axis === 'prev' ||
-    (axis === 'auto' && Math.hypot(prev.x - V.x, prev.y - V.y) >= Math.hypot(next.x - V.x, next.y - V.y));
+    (axis === 'auto' &&
+      Math.hypot(prev.x - V.x, prev.y - V.y) >= Math.hypot(next.x - V.x, next.y - V.y));
   const u = alongPrev ? u1 : u2;
   const C: Vec2 = { x: V.x - u.x * r * s, y: V.y - u.y * r * s };
   return loopAround(V, u1, u2, C, r);
@@ -186,10 +185,7 @@ function clampFactor(f: number): number {
 }
 
 /** Corners a round cutter cannot fully clear, by the same rule relieveCorners uses. */
-export function findInsideCorners(
-  path: Path,
-  corners: 'convex' | 'concave' = 'convex',
-): number[] {
+export function findInsideCorners(path: Path, corners: 'convex' | 'concave' = 'convex'): number[] {
   if (!path.closed) return [];
   const p = ensureCCW(path);
   const idx: number[] = [];

@@ -36,7 +36,9 @@ export type EffectApplier<E extends SurfaceEffect = SurfaceEffect> = (
   ctx: EffectContext,
 ) => EffectOutput;
 
-export type EffectRegistry = { [K in EffectKind]: EffectApplier<Extract<SurfaceEffect, { kind: K }>> };
+export type EffectRegistry = {
+  [K in EffectKind]: EffectApplier<Extract<SurfaceEffect, { kind: K }>>;
+};
 
 /** Human-readable name, for the UI's effect picker. */
 export const EFFECT_LABELS: Record<EffectKind, string> = {
