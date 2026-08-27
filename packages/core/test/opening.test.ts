@@ -42,6 +42,14 @@ function squareOpening(params: ProjectParams): OpeningSpec {
 
 const scribes = (parts: Part[]): Part[] => parts.filter((p) => p.role === 'scribe');
 
+/** How wide a blank is along one of its horizontal edges. */
+const edgeWidth = (part: Part, edge: 'top' | 'bottom'): number => {
+  const xs = part.outline.pts
+    .filter((v) => (edge === 'top' ? v.y > 1 : Math.abs(v.y) < 1e-6))
+    .map((v) => v.x);
+  return Math.max(...xs) - Math.min(...xs);
+};
+
 describe('the measured opening', () => {
   it('is off by default, so a project that was never measured is untouched', () => {
     expect(defaultParams().opening.enabled).toBe(false);
@@ -281,10 +289,50 @@ describe('scribe strips and filler panels', () => {
     expect(stripOf('C1-T-SCRIBE-L').box.max.z).toBeCloseTo(runSize(params.cabinets).height, 6);
   });
 
+  it('cuts a set-back strip to the gap at its own front plane', () => {
+    const params = leaningWall();
+    // An acute corner drifts over the depth of the run. The upper box is 400 of
+    // the run's 600 mm deep, so the wall beside it has only closed in two
+    // thirds as far and its strip has that much further to reach. Cut to the
+    // base's gap it would be short of the plaster with nothing left to pack.
+    params.opening.cornerAngleLeft = 80;
+    const parts = scribes(buildProject(params).parts);
+    const lean = wallLean(base(params).depth, 80);
+    const setBack = base(params).depth - carcass(params, 'T').depth;
+    // Compared where the two strips meet, so only the change of plane is left:
+    // the top edge of the lower strip against the bottom edge of the upper one.
+    const step =
+      edgeWidth(
+        parts.find((p) => p.id === 'C1-T-SCRIBE-L')!,
+        'bottom',
+      ) -
+      edgeWidth(
+        parts.find((p) => p.id === 'C1-B-SCRIBE-L')!,
+        'top',
+      );
+    expect(step).toBeCloseTo((lean * setBack) / base(params).depth, 6);
+  });
+
+  it('stands each strip against the box beside it, not the widest in the stack', () => {
+    const params = leaningWall();
+    // A narrower box higher up stops short of the run's own corner. A strip
+    // placed at that corner hangs in the air beside it, fixed to nothing.
+    carcass(params, 'T').linkWidthToBelow = false;
+    carcass(params, 'T').width = base(params).width - 100;
+    const parts = scribes(buildProject(params).parts);
+    const upper = parts.find((p) => p.id === 'C1-T-SCRIBE-R')!;
+    const lower = parts.find((p) => p.id === 'C1-B-SCRIBE-R')!;
+    expect(upper.box.min.x).toBeCloseTo(carcass(params, 'T').width, 6);
+    expect(lower.box.min.x).toBeCloseTo(base(params).width, 6);
+    // And where they meet it is exactly 100 mm wider, because that is how much
+    // further it has to reach.
+    expect(edgeWidth(upper, 'bottom') - edgeWidth(lower, 'top')).toBeCloseTo(100, 6);
+  });
+
   it('runs one strip up a stack that does not step back', () => {
     const params = leaningWall();
-    // Same depth top and bottom: the front is continuous, and a joint line
-    // across it is a joint line nobody wants.
+    // Same depth and width top and bottom: the side is continuous, and a joint
+    // line across it is a joint line nobody wants.
     carcass(params, 'T').depth = base(params).depth;
     expect(scribes(buildProject(params).parts).map((p) => p.id)).toEqual([
       'C1-B-SCRIBE-L',
@@ -425,6 +473,17 @@ describe('what the diagnostics say about a crooked room', () => {
     expect(said).toContain(
       'The opening is 12 mm narrower at the bottom than at the top. The strips follow 6 mm of that; a 20 mm scribe allowance covers the remaining 6 mm with 14 mm to spare.',
     );
+  });
+
+  it('rounds a derived angle before putting it in a sentence', () => {
+    const params = defaultParams();
+    // An angle worked out from a triangle is a float. Printed raw it reads
+    // '88.57605330026247°', which is not a number anyone measured.
+    params.opening = { ...squareOpening(params), cornerAngleLeft: 88.57605330026247 };
+    const run = runSize(params.cabinets);
+    const said = describeFit(params.opening, fitOpening(params.opening, run), run);
+    expect(said.some((s) => s.includes('the corner measures 88.6°'))).toBe(true);
+    expect(said.some((s) => s.includes('88.57605'))).toBe(false);
   });
 
   it('does not warn about crookedness the blank is already cut to', () => {

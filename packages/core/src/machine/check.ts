@@ -1,4 +1,5 @@
 import { bboxOf } from '../geom/index.js';
+import { checkMeasurements } from '../model/measure.js';
 import { describeFit, fitOpening } from '../model/opening.js';
 import { runSize } from '../build/builder.js';
 import type { ProjectParams, Part, PocketFeature } from '../model/types.js';
@@ -255,6 +256,13 @@ function openingDiagnostics(params: ProjectParams, parts: Part[]): Diagnostic[] 
 
   for (const sentence of describeFit(opening, fit, run)) {
     out.push({ severity: 'info', topic: 'opening', message: sentence });
+  }
+
+  // A reading that looks like a slip of the tape rather than a crooked room.
+  // Said here as well as in the walkthrough, because the fields can be typed
+  // straight into the panel without ever opening it.
+  for (const problem of checkMeasurements(opening)) {
+    out.push({ ...problem, topic: 'opening' });
   }
 
   if (!params.materials.some((m) => m.id === opening.scribe.materialId)) {

@@ -13,7 +13,7 @@ import type {
   ToeKickSpec,
   Vec3,
 } from '../model/types.js';
-import { fitOpening, gapAtHeight, type OpeningFit, type RunSize } from '../model/opening.js';
+import { fitOpening, gapAt, type OpeningFit, type RunSize } from '../model/opening.js';
 import { localFrame } from '../model/frame.js';
 import { hingeHeights, layoutBays, pinHeights, shelfHeights, wallMountXs } from './layout.js';
 
@@ -267,13 +267,10 @@ export function buildParts(params: ProjectParams): BuildResult {
     // The end cabinets are the ones that meet the room, and only they carry a
     // scribe. Recorded here rather than re-derived afterwards so the numbers
     // come from the very placement the panels were built at.
-    const faces = frontFaces(carcasses, yBack);
+    const faces = frontFaces(carcasses, yBack, xRun);
+    const outer = xRun + Math.max(...carcasses.map((c) => c.width));
     if (ends.left === undefined) ends.left = { cabinetId: cabinet.id, x: xRun, faces };
-    ends.right = {
-      cabinetId: cabinet.id,
-      x: xRun + Math.max(...carcasses.map((c) => c.width)),
-      faces,
-    };
+    ends.right = { cabinetId: cabinet.id, x: outer, faces };
 
     // The widest box in the stack is what the next cabinet has to clear.
     xRun += Math.max(...carcasses.map((c) => c.width));
@@ -281,15 +278,7 @@ export function buildParts(params: ProjectParams): BuildResult {
 
   if (params.opening.enabled) {
     const run = runSize(params.cabinets);
-    buildScribeParts(
-      params,
-      fitOpening(params.opening, run),
-      run.height,
-      ends,
-      parts,
-      tapers,
-      notes,
-    );
+    buildScribeParts(params, fitOpening(params.opening, run), run, ends, parts, tapers, notes);
   }
 
   return { parts, joints, pinRows, toeNotches, hinges, wallMounts, tapers, notes };
@@ -305,20 +294,21 @@ export function buildParts(params: ProjectParams): BuildResult {
  */
 interface RunEnd {
   cabinetId: string;
-  /** Assembly X of the outer face of the run at this end. */
+  /** Assembly X of the run's own outer corner at this end: its footprint. */
   x: number;
-  /** One per front plane in the stack, from the floor up. */
+  /** One per stretch of the stack that presents a single face, from the floor up. */
   faces: FrontFace[];
 }
 
 /**
- * A stretch of the cabinet's front that lies in one plane.
+ * A stretch of the cabinet's side that presents one face to the room.
  *
- * Carcasses at different depths step back from each other, so a single strip
- * run up the whole stack would stand proud of the shallower boxes with nothing
- * behind it. One strip per plane follows the front the way a filler actually
- * does. Boxes at the same depth share a plane and share a strip: a joint line
- * where the front is continuous is a joint line nobody wants.
+ * Carcasses step back from each other in depth and can differ in width, so a
+ * single strip run up the whole stack would stand proud of the shallower boxes
+ * with nothing behind it, and float clear of the narrower ones with nothing to
+ * fix it to. One strip per stretch follows the side the way a filler actually
+ * does. Boxes that agree on both share a stretch and share a strip: a joint
+ * line where the front is continuous is a joint line nobody wants.
  */
 interface FrontFace {
   /** The lowest carcass in this stretch, whose id the strip is filed under. */
@@ -326,24 +316,32 @@ interface FrontFace {
   /** What that carcass is called, for a label that says which one it stands against. */
   carcassName: string;
   yFront: number;
+  /** Assembly X of this stretch's own left and right faces. */
+  xLeft: number;
+  xRight: number;
   z0: number;
   z1: number;
 }
 
-function frontFaces(carcasses: Carcass[], yBack: number): FrontFace[] {
+function frontFaces(carcasses: Carcass[], yBack: number, x0: number): FrontFace[] {
   const out: FrontFace[] = [];
   let z = 0;
   carcasses.forEach((carcass, k) => {
     // The toe kick is a recess, so the strip starts above it.
     const bottom = k === 0 && carcass.toeKick.enabled ? carcass.toeKick.height : z;
     const yFront = yBack - carcass.depth;
+    const xRight = x0 + carcass.width;
     const last = out[out.length - 1];
-    if (last && Math.abs(last.yFront - yFront) < TOL) last.z1 = z + carcass.height;
+    const same =
+      last && Math.abs(last.yFront - yFront) < TOL && Math.abs(last.xRight - xRight) < TOL;
+    if (same) last.z1 = z + carcass.height;
     else {
       out.push({
         carcassId: carcass.id,
         carcassName: carcass.name,
         yFront,
+        xLeft: x0,
+        xRight,
         z0: bottom,
         z1: z + carcass.height,
       });
@@ -384,7 +382,7 @@ export function runSize(cabinets: Cabinet[]): RunSize {
 function buildScribeParts(
   params: ProjectParams,
   fit: OpeningFit,
-  runHeight: number,
+  run: RunSize,
   ends: Partial<Record<'left' | 'right', RunEnd>>,
   parts: Part[],
   tapers: TaperRequest[],
@@ -407,8 +405,15 @@ function buildScribeParts(
       // Nothing to take up. A square opening the run already fills, against a
       // wall measured dead flat, needs no sacrificial part at all, and
       // inventing one would be a panel and a fixing for a gap that is not there.
-      const gapLow = gapAtHeight(endFit, runHeight, face.z0);
-      const gapHigh = gapAtHeight(endFit, runHeight, face.z1);
+      // The wall is measured against the run as a whole, so a stretch that is
+      // set back or narrower than the widest box has that much further to
+      // reach. Measuring from the run's outer corner instead leaves the strip
+      // hanging in the air beside a narrower box, fixed to nothing.
+      const depthFromBack = run.depth - face.yFront;
+      const gapOf = (z: number): number =>
+        Math.max(0, gapAt(endFit, run, z, depthFromBack) + shortfall(end, endFit.end, face));
+      const gapLow = gapOf(face.z0);
+      const gapHigh = gapOf(face.z1);
       if (gapLow <= TOL && gapHigh <= TOL && opening.wallBow <= TOL) continue;
 
       // Cut to the gap plus the scribe allowance, so a uniform strip of
@@ -425,7 +430,7 @@ function buildScribeParts(
       const filling = widest > opening.scribe.width + opening.wallBow + 1;
       const what = filling ? 'filler panel' : 'scribe strip';
       const outward: Vec3 = endFit.end === 'left' ? { x: -1, y: 0, z: 0 } : { x: 1, y: 0, z: 0 };
-      const x0 = endFit.end === 'left' ? end.x - widest : end.x;
+      const x0 = endFit.end === 'left' ? face.xLeft - widest : face.xRight;
 
       // Named for the carcass it stands against, but only where the stack steps
       // back and there is more than one: a single-carcass cabinet has nothing to
@@ -467,6 +472,18 @@ function buildScribeParts(
       );
     }
   }
+}
+
+/**
+ * How much further than the run's own corner a stretch has to reach.
+ *
+ * The opening is fitted around the run's footprint, which is the widest box in
+ * each stack. A narrower box higher up stops short of that, and the strip
+ * beside it has to make up the difference or it hangs in the air with nothing
+ * to fix it to.
+ */
+function shortfall(end: RunEnd, side: 'left' | 'right', face: FrontFace): number {
+  return side === 'left' ? face.xLeft - end.x : end.x - face.xRight;
 }
 
 const TOL = 1e-6;

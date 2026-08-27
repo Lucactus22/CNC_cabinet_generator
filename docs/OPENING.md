@@ -39,6 +39,54 @@ height measurements is read as a sloping floor rather than a sloping ceiling.
 If yours is the other way round, the arithmetic is the same and only the
 recommendation changes.
 
+## How to measure it
+
+**Measure the room…** in the Opening panel walks through the lot, one
+measurement per page, with a sketch of what to hold the tape across. Nothing is
+written to the project until the last page, so a walkthrough abandoned halfway
+leaves the run exactly as it was.
+
+The reason it exists rather than a panel of six numbers: one of those numbers
+cannot be measured. Nobody owns a protractor that fits a room corner, so asking
+for an angle gets a guess, and a guessed angle is worse than none — the fillers
+are cut to it.
+
+**The corner is a triangle, not an angle.** Mark the floor a measured distance
+out from the corner along each wall, and measure between the marks. A square
+corner gives
+
+```
+diagonal = √(along the back² + along the return²)
+```
+
+which is the 3-4-5 rule with the numbers left in. 600 mm and 800 mm read exactly
+1000 mm when square, and 600 mm is roughly a base cabinet's depth so the mark
+lands where the carcass will actually stand. Any two legs work. The angle comes
+back out by the law of cosines:
+
+```
+cos(corner) = (back² + return² − diagonal²) / (2 × back × return)
+```
+
+Three readings that cannot be a triangle get no angle at all, rather than an
+angle derived from a clamped cosine — the walkthrough says which reading is
+impossible and why. Someone with a digital angle finder can type the angle
+straight in instead; doing so clears the stored triangle, because a set of tape
+readings that no longer describes the angle in use is a lie waiting to be found.
+
+**The bow is a straightedge test.** Hold a batten, a level on its edge, or a
+taut string flat against each wall, slide it about, and measure the widest gap
+you can find behind it. Use the worst of the two walls.
+
+**Everything else is a tape held across the opening**: the width at the back
+wall twice, level with the top of the run and again at the floor; and the height
+from the floor to whatever stops the run, once at each end.
+
+Measure into the corner rather than to the skirting — take the skirting off
+first, or the cabinets stand proud of it. A reading that looks more like a
+dropped digit than a crooked room (a wall 100 mm out over the height of a run, a
+bow no scribe could hide) is questioned rather than silently used.
+
 ## The derivation
 
 **How far a corner drifts.** A return wall meeting the back wall at angle *a*
@@ -83,13 +131,20 @@ inset = max(0, lean) + wall bow + spare / number of walled ends
 where `spare` is the envelope less the run width. That is where the wall's *back*
 line sits.
 
-**The gap each strip covers.** The strip is a flat panel in the plane of the
-cabinet fronts, where the wall stands `lean` nearer than its back line — or
-further, when the corner is obtuse:
+**The gap each strip covers.** A strip is a flat panel standing in one plane,
+where the wall has spent as much of its lean as it has travelled to get there:
 
 ```
-gap(z) = inset + (width(z) − narrowest width) / number of walled ends − lean
+gap(z, d) = inset + (width(z) − narrowest width) / number of walled ends
+            − lean × d / run depth
 ```
+
+`d` is how far forward of the back wall that strip's plane sits. At the front of
+the deepest carcass, `d` is the full run depth and the whole lean has been spent;
+a box set back 200 mm in a 600 mm run is only two thirds of the way along it and
+its strip sees two thirds of the drift. Cutting every strip in a stepped stack
+to the deepest one's gap leaves the set-back filler short of the plaster on an
+acute corner, and planing half of it away on an obtuse one.
 
 One width measurement cannot say which of two walls is doing the leaning, so the
 change with height is split between the walls that are actually there. Set an
@@ -110,13 +165,14 @@ the allowance and the standoff from a bowing wall are all there is to it, and a
 **filler panel** when it is covering a real gap as well. Same part, and a
 woodworker names it by its width.
 
-*Per front plane*, because carcasses at different depths step back from each
-other. A single strip run up the whole stack would stand proud of the shallower
-boxes with nothing behind it and cover the ledge; one per plane follows the
-front the way a filler actually does. Boxes at the same depth share a plane and
-share a strip, because a joint line where the front is continuous is a joint
-line nobody wants. Each runs from the top of the toe kick, or from its own
-floor, to the top of its stretch.
+*Per front plane*, because carcasses step back from each other in depth and can
+differ in width. A single strip run up the whole stack would stand proud of the
+shallower boxes with nothing behind it, and float clear of the narrower ones
+with nothing to fix it to; one per stretch follows the side the way a filler
+actually does, and is cut to the gap at *its* plane. Boxes that agree on both
+depth and width share a stretch and share a strip, because a joint line where
+the side is continuous is a joint line nobody wants. Each runs from the top of
+the toe kick, or from its own floor, to the top of its stretch.
 
 **It is tapered** when the opening's width changes over the height of the run,
 which is the one genuinely new piece of geometry in this: a trapezoid rather

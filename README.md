@@ -56,11 +56,17 @@ LABEL layer, so a pile of panels off the machine sorts itself.
 
 ## Fitting a crooked room
 
-Real walls lean, corners are not 90°, floors slope and plaster bows. Measure the
-opening — width at the top and at the floor, height at each end, the corner
-angle where the run meets a wall, and the worst bow — and the tool works out the
-largest **square** box that will fit, shows you the derivation to check against
-your tape, and generates the parts that take up the difference.
+Real walls lean, corners are not 90°, floors slope and plaster bows. **Measure
+the room…** walks you through it one page at a time — what to hold a tape
+across, where to hold it, and a sketch of each — then works out the largest
+**square** box that will fit, shows you the derivation to check against your
+tape, and generates the parts that take up the difference.
+
+The corner angle is the one number nobody can measure directly, so it is not
+asked for: mark the floor a measured distance out along each wall, read the
+diagonal between the marks, and the angle falls out of it. That is the 3-4-5
+rule, which is how the trade has always done it. Three readings that cannot be a
+triangle get told so rather than turned into a confident wrong angle.
 
 The carcass stays square. Every joint here assumes rectangles, doors and drawer
 slides need parallel sides, and it is not how the trade solves it either: a

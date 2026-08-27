@@ -19,6 +19,7 @@ import {
   type ShelfMode,
 } from '@cabgen/core';
 import { CheckField, Group, Hint, NumberField, SelectField, TextField } from './Controls';
+import { MeasureWizard } from './MeasureWizard';
 import { EffectsPanel } from './EffectsPanel';
 
 const SHELF_MODES: Array<{ value: ShelfMode; label: string }> = [
@@ -604,6 +605,7 @@ function OpeningGroup() {
   const opening = params.opening;
   const run = runSize(params.cabinets);
   const fit = fitOpening(opening, run);
+  const [measuring, setMeasuring] = useState(false);
 
   const patch = (fn: (o: OpeningSpec) => void): void =>
     update((p) => {
@@ -612,6 +614,13 @@ function OpeningGroup() {
 
   return (
     <Group title="Opening" open={opening.enabled}>
+      {measuring && <MeasureWizard onClose={() => setMeasuring(false)} />}
+      <button onClick={() => setMeasuring(true)} title="Six measurements, about ten minutes.">
+        Measure the room…
+      </button>
+      <Hint>
+        Walks you through what to hold a tape across, and works the corner angles out from it.
+      </Hint>
       <CheckField
         label="Fit to a measured opening"
         value={opening.enabled}
@@ -665,8 +674,16 @@ function OpeningGroup() {
               step={0.5}
               min={45}
               max={135}
-              onChange={(v) => patch((o) => void (o.cornerAngleLeft = v))}
-              title="Between the back wall and the return wall, in plan. 90 is square; less closes in towards the front."
+              onChange={(v) =>
+                patch((o) => {
+                  o.cornerAngleLeft = v;
+                  // The stored triangle records what was measured. Once the
+                  // angle is typed it no longer does, so it goes rather than
+                  // sitting there disagreeing with the number in use.
+                  o.cornerTriangleLeft = undefined;
+                })
+              }
+              title="Between the back wall and the return wall, in plan. 90 is square; less closes in towards the front. Easier measured than guessed: use 'Measure the room…'."
             />
           )}
           <SelectField
@@ -686,7 +703,12 @@ function OpeningGroup() {
               step={0.5}
               min={45}
               max={135}
-              onChange={(v) => patch((o) => void (o.cornerAngleRight = v))}
+              onChange={(v) =>
+                patch((o) => {
+                  o.cornerAngleRight = v;
+                  o.cornerTriangleRight = undefined;
+                })
+              }
             />
           )}
           <NumberField

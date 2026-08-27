@@ -98,7 +98,10 @@ workshop rather than the furniture: one spindle, one stack of sheets, one set of
 grooves that all have to fit each other.
 
 `model/opening.ts` holds the one thing above the cabinet list that is not the
-workshop: the **opening**, meaning the room. It is project-wide because a run
+workshop: the **opening**, meaning the room. `model/measure.ts` sits beside it
+and turns tape readings into those fields — the corner angle is derived from a
+triangle rather than asked for, because nobody can measure a room corner with a
+protractor and a guessed angle is one the fillers get cut to. It is project-wide because a run
 fits into one opening, and it is the only input that produces parts belonging to
 the run rather than to a cabinet — the scribe strips at either end. The carcass
 itself never changes shape for it; see [OPENING.md](OPENING.md) for why.

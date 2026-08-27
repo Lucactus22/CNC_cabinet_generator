@@ -329,6 +329,29 @@ the default stepped unit its top 1100 mm floated 200 mm proud of the upper doors
 the bounding box, which on a tapered blank is a corner with no material under
 it, so the label would have been cut across whatever was nested alongside.
 
+**Added after the item was worked: a guided walkthrough.** The measurements were
+a panel of six numbers, one of which — the corner angle — nobody can actually
+measure. Asking
+for it gets a guess, and a guessed angle is worse than none, because the fillers
+are cut to it. `model/measure.ts` and a guided walkthrough in the app now take
+three tape readings across a corner and derive the angle by the law of cosines,
+which is the 3-4-5 rule the trade already uses; readings that cannot be a
+triangle get told so rather than clamped into a confident wrong answer. The raw
+readings are stored alongside the angle, because they are the primary record,
+and a reading that looks more like a dropped digit than a crooked room is
+questioned.
+
+A second review round on the walkthrough found four more, three of them in the
+geometry it feeds: a strip was placed at the run's outer corner rather than
+against the box beside it, so a narrower carcass higher in a stack got a filler
+hanging in the air with nothing to fix it to; every strip in a stepped stack was
+cut to the gap at the *deepest* carcass's plane, though a set-back box has only
+travelled part way along the wall's lean and its filler could not reach the
+plaster; the walkthrough opened on a square corner rather than on the angle
+already in effect, so it said "dead square" about a corner the project was being
+cut to 85° for; and a bow warning told the user to skim a wall in a
+configuration where no strip is scribed to anything.
+
 The reasoning, the arithmetic and the honest limits are in
 [OPENING.md](OPENING.md).
 

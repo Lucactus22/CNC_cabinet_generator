@@ -26,6 +26,24 @@ export interface ScribeSpec {
   materialId: string;
 }
 
+/**
+ * Three tape readings across a corner: two marks stepped out along each wall,
+ * and the distance between them.
+ *
+ * Kept alongside the derived angle because these are the primary record — they
+ * are what a person actually held a tape across, and they are what someone
+ * re-opening the project needs to see to know whether to trust the number.
+ * `model/measure.ts` turns them into the angle.
+ */
+export interface CornerTriangle {
+  /** Marked out from the corner along the back wall. */
+  alongBack: number;
+  /** Marked out from the corner along the return wall. */
+  alongReturn: number;
+  /** Between the two marks. */
+  diagonal: number;
+}
+
 export interface OpeningSpec {
   /** Off means no room was measured, and nothing about the run changes. */
   enabled: boolean;
@@ -48,6 +66,13 @@ export interface OpeningSpec {
    */
   cornerAngleLeft: number;
   cornerAngleRight: number;
+  /**
+   * What was measured to arrive at those angles, where they were measured by
+   * triangle rather than typed in. Cleared when the angle is edited by hand, so
+   * a stored triangle never quietly disagrees with the angle in use.
+   */
+  cornerTriangleLeft?: CornerTriangle;
+  cornerTriangleRight?: CornerTriangle;
   /**
    * Worst deviation of a return wall from flat, measured against a straightedge.
    *
@@ -95,7 +120,17 @@ export interface OutOfTrue {
 /** What the interface part at one end of the run has to cover. */
 export interface EndFit {
   end: 'left' | 'right';
-  /** Gap between the carcass end and the wall, in the plane of the run's front face. */
+  /**
+   * Where the wall's back line sits, measured out from the run's own end, at
+   * the top of the run and at the floor.
+   */
+  backAtTop: number;
+  backAtBottom: number;
+  /**
+   * The gap in the plane of the *deepest* carcass's front face. A carcass set
+   * back from that has travelled less far along the wall's lean and sees only
+   * that fraction of it; `gapAt` works it out for one.
+   */
   gapAtTop: number;
   gapAtBottom: number;
   /**
@@ -208,13 +243,19 @@ export function fitOpening(opening: OpeningSpec, run: RunSize): OpeningFit {
     const bow = end === 'left' ? bowLeft : bowRight;
     // Where the wall's back line sits, measured out from the run's own end.
     const inset = Math.max(0, lean) + bow + spare / share;
+    const backAtTop = inset + extra(opening.widthAtTop);
+    const backAtBottom = inset + extra(opening.widthAtBottom);
     // The filler lives in the plane of the fronts, where the wall stands
     // `lean` nearer than its back line — or further, when the corner is obtuse.
-    const gap = (width: number): number => Math.max(0, inset + extra(width) - lean);
+    // Not clamped at zero: a negative gap is the true statement that the run
+    // overlaps the wall there, which the diagnostics report as an error and the
+    // 3D view draws honestly. Only the part that gets cut clamps it.
     return {
       end,
-      gapAtTop: gap(opening.widthAtTop),
-      gapAtBottom: gap(opening.widthAtBottom),
+      backAtTop,
+      backAtBottom,
+      gapAtTop: backAtTop - lean,
+      gapAtBottom: backAtBottom - lean,
       lean,
     };
   });
@@ -271,7 +312,7 @@ function outOfTrue(
     if (Math.abs(lean) <= TOL) continue;
     out.push({
       amount: Math.abs(lean),
-      detail: `${mm(Math.abs(lean))} mm ${lean > 0 ? 'tighter' : 'wider'} at the front than at the back on the ${end}, where the corner measures ${angle}°`,
+      detail: `${mm(Math.abs(lean))} mm ${lean > 0 ? 'tighter' : 'wider'} at the front than at the back on the ${end}, where the corner measures ${angle.toFixed(1)}°`,
       takenUpBy: 'taper',
       // Measured at its own end, so it is cut in exactly and nothing is left.
       scribeNeeds: 0,
@@ -381,11 +422,10 @@ export function openingWireframe(opening: OpeningSpec, fit: OpeningFit, run: Run
   const wallX = (end: 'left' | 'right', z: number, atBack: boolean): number => {
     const fitEnd = fit.ends.find((e) => e.end === end);
     if (!fitEnd) return end === 'left' ? 0 : run.width;
-    const f = run.height <= TOL ? 1 : z / run.height;
-    const gap = fitEnd.gapAtBottom + (fitEnd.gapAtTop - fitEnd.gapAtBottom) * f;
-    // A wall that closes in towards the front stands that much further out at
-    // the back, which is what draws the corner as the angle it was measured at.
-    const out = gap + (atBack ? fitEnd.lean : 0);
+    // At the back wall none of the lean has been spent, so the wall sits on its
+    // back line; at the front of the run, all of it has. That is what draws the
+    // corner as the angle it was measured at.
+    const out = gapAt(fitEnd, run, z, atBack ? 0 : run.depth);
     return end === 'left' ? -out : run.width + out;
   };
 
@@ -424,14 +464,20 @@ export function openingWireframe(opening: OpeningSpec, fit: OpeningFit, run: Run
 }
 
 /**
- * The gap one end's strip has to cover at a given height.
+ * The gap one end's strip has to cover, at a given height and a given distance
+ * forward of the back wall.
  *
- * Quoted at the floor and at the top of the run, so anything in between is a
- * straight interpolation. A stack of carcasses at different depths gets one
- * strip each, and each asks for the gap over its own slice of the height.
+ * Height is a straight interpolation between the two width measurements. Depth
+ * matters because the wall's lean is spent over the run's full depth: a carcass
+ * set back 200 mm in a 600 mm run has only travelled two thirds of the way
+ * along it, so its strip sees two thirds of the drift. Cutting every strip in a
+ * stepped stack to the deepest one's gap leaves the set-back filler short of
+ * the plaster on an acute corner, and planing away half of it on an obtuse one.
  */
-export function gapAtHeight(end: EndFit, runHeight: number, z: number): number {
-  if (runHeight <= TOL) return end.gapAtBottom;
-  const f = Math.min(1, Math.max(0, z / runHeight));
-  return end.gapAtBottom + (end.gapAtTop - end.gapAtBottom) * f;
+export function gapAt(end: EndFit, run: RunSize, z: number, depthFromBack: number): number {
+  const clamp = (n: number): number => Math.min(1, Math.max(0, n));
+  const up = run.height <= TOL ? 1 : clamp(z / run.height);
+  const back = end.backAtBottom + (end.backAtTop - end.backAtBottom) * up;
+  const reach = run.depth <= TOL ? 1 : clamp(depthFromBack / run.depth);
+  return back - end.lean * reach;
 }

@@ -34,7 +34,9 @@ export function normaliseParams(raw: unknown): ProjectParams {
     },
     cabinets: readCabinets(input),
     // A file written before R-05 has no measured room at all, and must open as
-    // a project that simply has not been measured yet.
+    // a project that simply has not been measured yet. The corner triangles are
+    // spread through as-is: absent means the angle was typed rather than
+    // measured, which is a real distinction and not a missing default.
     opening: {
       ...base.opening,
       ...(input.opening as object),
