@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { base, upper } from './carcasses.js';
 import {
   blankSize,
   buildProject,
@@ -15,21 +16,21 @@ import {
   drillLayer,
   sanitiseLayer,
 } from '../src/index.js';
-import type { CabinetParams } from '../src/model/types.js';
+import type { ProjectParams } from '../src/model/types.js';
 
 /** Sheets cut to the machine's own size: the setup that avoids tiling. */
-function machineSized(): CabinetParams {
+function machineSized(): ProjectParams {
   const p = defaultParams();
   for (const m of p.materials) {
     m.sheetLength = 1000;
     m.sheetWidth = 1000;
   }
-  p.base.width = 700;
-  p.base.height = 800;
-  p.base.depth = 500;
-  p.top.width = 700;
-  p.top.height = 700;
-  p.top.depth = 320;
+  base(p).width = 700;
+  base(p).height = 800;
+  base(p).depth = 500;
+  upper(p).width = 700;
+  upper(p).height = 700;
+  upper(p).depth = 320;
   return p;
 }
 
@@ -132,7 +133,7 @@ describe('nesting', () => {
 
   it('holds a grain-locked side panel to one orientation', () => {
     const params = defaultParams();
-    const side = project.parts.find((p) => p.id === 'B-SIDE-L')!;
+    const side = project.parts.find((p) => p.id === 'C1-B-SIDE-L')!;
     const material = params.materials.find((m) => m.id === side.materialId)!;
     expect(material.hasGrain).toBe(true);
     expect(side.grainAxis).toBe('v');
@@ -143,7 +144,7 @@ describe('nesting', () => {
   });
 
   it('lets a hidden back panel turn for a better yield', () => {
-    const back = project.parts.find((p) => p.id === 'B-BACK')!;
+    const back = project.parts.find((p) => p.id === 'C1-B-BACK')!;
     expect(back.grainAxis).toBe('free');
   });
 });
@@ -183,9 +184,9 @@ describe('machine diagnostics', () => {
 
   it('warns about a shelf long enough to sag', () => {
     const p = defaultParams();
-    p.base.dividerCount = 0;
-    p.base.width = 1400;
-    p.base.bays = [{ shelves: 'fixed', shelfCount: 2 }];
+    base(p).dividerCount = 0;
+    base(p).width = 1400;
+    base(p).bays = [{ shelves: 'fixed', shelfCount: 2 }];
     const project = buildProject(p);
     expect(project.diagnostics.some((d) => d.message.includes('sag'))).toBe(true);
   });

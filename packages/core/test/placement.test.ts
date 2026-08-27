@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { base, upper } from './carcasses.js';
 import {
   buildProject,
   defaultParams,
@@ -51,8 +52,8 @@ describe('part placement', () => {
     const p = defaultParams();
     p.joinery.carcassJoint = 'tabslot';
     const { parts } = buildProject(p);
-    const bottom = parts.find((x) => x.id === 'B-BOTTOM')!;
-    const side = parts.find((x) => x.id === 'B-SIDE-L')!;
+    const bottom = parts.find((x) => x.id === 'C1-B-BOTTOM')!;
+    const side = parts.find((x) => x.id === 'C1-B-SIDE-L')!;
     const e = outlineExtent(bottom);
     expect(bottom.box.min.x - e.lo.x).toBeCloseTo(side.thickness, 6);
     expect(e.hi.x - bottom.box.max.x).toBeCloseTo(side.thickness, 6);
@@ -64,8 +65,8 @@ describe('part placement', () => {
   it('keeps the frame fixed while joinery grows the box', () => {
     const params = defaultParams();
     const { parts } = buildProject(params);
-    const bottom = parts.find((x) => x.id === 'B-BOTTOM')!;
-    const side = parts.find((x) => x.id === 'B-SIDE-L')!;
+    const bottom = parts.find((x) => x.id === 'C1-B-BOTTOM')!;
+    const side = parts.find((x) => x.id === 'C1-B-SIDE-L')!;
     // The clear opening starts at the side panel's measured thickness, not its
     // nominal one; every dimension here comes off the calipers.
     const clearOpening = side.thickness;
@@ -79,9 +80,9 @@ describe('part placement', () => {
   it('places shelves symmetrically in their bay', () => {
     const params = defaultParams();
     const { parts } = buildProject(params);
-    const shelf = parts.find((x) => x.id === 'B-SHELF-2-1')!;
-    const divider = parts.find((x) => x.id === 'B-DIV-1')!;
-    const right = parts.find((x) => x.id === 'B-SIDE-R')!;
+    const shelf = parts.find((x) => x.id === 'C1-B-SHELF-2-1')!;
+    const divider = parts.find((x) => x.id === 'C1-B-DIV-1')!;
+    const right = parts.find((x) => x.id === 'C1-B-SIDE-R')!;
     const e = outlineExtent(shelf);
     const depth = params.joinery.dadoDepth;
     // One dado depth into the divider on the left, and into the side on the right.
@@ -91,8 +92,8 @@ describe('part placement', () => {
 
   it('leaves no gap between a panel and the one it houses into', () => {
     const { parts } = buildProject(defaultParams());
-    const left = parts.find((x) => x.id === 'B-SIDE-L')!;
-    const bottom = parts.find((x) => x.id === 'B-BOTTOM')!;
+    const left = parts.find((x) => x.id === 'C1-B-SIDE-L')!;
+    const bottom = parts.find((x) => x.id === 'C1-B-BOTTOM')!;
     const e = outlineExtent(bottom);
     // The bottom must reach inside the side panel, not stop short of it.
     expect(e.lo.x).toBeLessThan(left.box.max.x);
@@ -103,8 +104,8 @@ describe('part placement', () => {
 describe('screw holes', () => {
   const params = defaultParams();
   const { parts } = buildProject(params);
-  const side = parts.find((p) => p.id === 'B-SIDE-R')!;
-  const shelf = parts.find((p) => p.id === 'B-SHELF-2-1')!;
+  const side = parts.find((p) => p.id === 'C1-B-SIDE-R')!;
+  const shelf = parts.find((p) => p.id === 'C1-B-SHELF-2-1')!;
   const screws = side.features.filter((f) => f.kind === 'drill' && f.purpose === 'screw');
 
   it('drills them through the panel that receives the groove', () => {
@@ -134,7 +135,7 @@ describe('screw holes', () => {
   it('can be switched off', () => {
     const p = defaultParams();
     p.joinery.screwHoles = false;
-    const off = buildProject(p).parts.find((x) => x.id === 'B-SIDE-R')!;
+    const off = buildProject(p).parts.find((x) => x.id === 'C1-B-SIDE-R')!;
     expect(off.features.filter((f) => f.kind === 'drill' && f.purpose === 'screw')).toHaveLength(0);
   });
 });
@@ -161,15 +162,15 @@ describe('opening older project files', () => {
 
 describe('upper carcass with no bottom panel', () => {
   const params = defaultParams();
-  params.top.floor = 'base-top';
+  upper(params).floor = 'below';
   const project = buildProject(params);
   const parts = project.parts;
-  const baseTop = parts.find((p) => p.id === 'B-TOP')!;
-  const side = parts.find((p) => p.id === 'T-SIDE-L')!;
+  const baseTop = parts.find((p) => p.id === 'C1-B-TOP')!;
+  const side = parts.find((p) => p.id === 'C1-T-SIDE-L')!;
   const depth = params.joinery.stackDadoDepth;
 
   it('leaves the bottom panel out', () => {
-    expect(parts.find((p) => p.id === 'T-BOTTOM')).toBeUndefined();
+    expect(parts.find((p) => p.id === 'C1-T-BOTTOM')).toBeUndefined();
     expect(parts.length).toBe(buildProject(defaultParams()).parts.length - 1);
   });
 
@@ -196,15 +197,15 @@ describe('upper carcass with no bottom panel', () => {
   });
 
   it('lands the divider and back on the base top as well', () => {
-    const divider = parts.find((p) => p.id === 'T-DIV-1')!;
-    const back = parts.find((p) => p.id === 'T-BACK')!;
+    const divider = parts.find((p) => p.id === 'C1-T-DIV-1')!;
+    const back = parts.find((p) => p.id === 'C1-T-BACK')!;
     expect(divider.box.min.z).toBeCloseTo(baseTop.box.max.z - depth, 6);
     expect(back.box.min.z).toBeCloseTo(baseTop.box.max.z - depth, 6);
   });
 
   it('says the base top now needs turning over', () => {
     const flip = project.diagnostics.find((d) => d.message.includes('turned over'));
-    expect(flip?.message).toContain('B-TOP');
+    expect(flip?.message).toContain('C1-B-TOP');
     expect(project.notes.some((n) => n.includes('no bottom panel'))).toBe(true);
   });
 
@@ -215,7 +216,7 @@ describe('upper carcass with no bottom panel', () => {
 
   it('catches a locating dado deep enough to break through', () => {
     const p = defaultParams();
-    p.top.floor = 'base-top';
+    upper(p).floor = 'below';
     p.joinery.stackDadoDepth = 9;
     p.joinery.dadoDepth = 9;
     const errs = buildProject(p).diagnostics.filter(
@@ -234,7 +235,7 @@ describe('capped top panel', () => {
   const capped = buildProject(defaultParams());
   const inset = (() => {
     const p = defaultParams();
-    p.base.topStyle = 'inset';
+    base(p).topStyle = 'inset';
     return buildProject(p);
   })();
 
@@ -243,52 +244,52 @@ describe('capped top panel', () => {
     proj.diagnostics.find((d) => d.message.includes('turned over on the bed'))?.partIds ?? [];
 
   it('laps the top over the full width of the carcass', () => {
-    const top = partOf(capped, 'B-TOP');
+    const top = partOf(capped, 'C1-B-TOP');
     expect(top.box.min.x).toBeCloseTo(0, 6);
-    expect(top.box.max.x).toBeCloseTo(capped.params.base.width, 6);
+    expect(top.box.max.x).toBeCloseTo(base(capped.params).width, 6);
   });
 
   it('stops the sides under the top so no edge shows from above', () => {
     // The whole point: from above you see one unbroken panel.
-    const top = partOf(capped, 'B-TOP');
-    const side = partOf(capped, 'B-SIDE-L');
+    const top = partOf(capped, 'C1-B-TOP');
+    const side = partOf(capped, 'C1-B-SIDE-L');
     expect(side.box.max.z).toBeLessThan(top.box.max.z);
     expect(side.box.max.z).toBeGreaterThan(top.box.min.z); // still up into the dado
 
     // Inset, by contrast, leaves the side's top edge flush with the surface,
     // which is exactly the seam this option removes.
-    const insetSide = partOf(inset, 'B-SIDE-L');
-    expect(insetSide.box.max.z).toBeCloseTo(partOf(inset, 'B-TOP').box.max.z, 6);
+    const insetSide = partOf(inset, 'C1-B-SIDE-L');
+    expect(insetSide.box.max.z).toBeCloseTo(partOf(inset, 'C1-B-TOP').box.max.z, 6);
   });
 
   it('runs the sides up into the top rather than merely butting them', () => {
     const depth = capped.params.joinery.stackDadoDepth;
-    const top = partOf(capped, 'B-TOP');
-    expect(partOf(capped, 'B-SIDE-L').box.max.z).toBeCloseTo(top.box.min.z + depth, 6);
+    const top = partOf(capped, 'C1-B-TOP');
+    expect(partOf(capped, 'C1-B-SIDE-L').box.max.z).toBeCloseTo(top.box.min.z + depth, 6);
   });
 
   it('costs no extra setup, because the underside is already the machined face', () => {
-    const top = partOf(capped, 'B-TOP');
+    const top = partOf(capped, 'C1-B-TOP');
     const pockets = top.features.filter((f) => f.kind === 'pocket');
     expect(pockets.length).toBeGreaterThanOrEqual(4);
     for (const f of pockets) if (f.kind === 'pocket') expect(f.side).toBe('A');
-    expect(flipIds(capped)).not.toContain('B-TOP');
+    expect(flipIds(capped)).not.toContain('C1-B-TOP');
   });
 
   it('hides the locating dado at the visible front edge', () => {
     // The side gains a notch at its front top corner to clear the stop.
-    expect(partOf(capped, 'B-SIDE-L').outline.pts.length).toBeGreaterThan(
-      partOf(inset, 'B-SIDE-L').outline.pts.length,
+    expect(partOf(capped, 'C1-B-SIDE-L').outline.pts.length).toBeGreaterThan(
+      partOf(inset, 'C1-B-SIDE-L').outline.pts.length,
     );
   });
 
   it('warns when an upper carcass would stand on an inset top', () => {
     const p = defaultParams();
-    p.base.topStyle = 'inset';
-    p.top.floor = 'base-top';
-    expect(
-      buildProject(p).notes.some((n) => n.includes('does not reach under the upper sides')),
-    ).toBe(true);
+    base(p).topStyle = 'inset';
+    upper(p).floor = 'below';
+    expect(buildProject(p).notes.some((n) => n.includes('does not reach under its sides'))).toBe(
+      true,
+    );
   });
 
   it('still nests and lists cleanly', () => {

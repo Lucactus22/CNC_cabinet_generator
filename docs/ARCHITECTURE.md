@@ -21,7 +21,7 @@ to it without a very good reason.
 One pure, synchronous function turns parameters into everything else:
 
 ```
-CabinetParams
+ProjectParams
     │
     ├─ buildParts()          build/builder.ts
     │    parameters → placed panels + a list of what meets what
@@ -62,6 +62,38 @@ never disagree with the parameters. **Keep it pure.** No I/O, no randomness, no
 Nesting is deterministic: the same parameters always give the same layout. This
 matters more than it sounds, because the sheet preview must not reshuffle itself
 while a slider is being dragged. If you touch the packer, keep it deterministic.
+
+## The project model
+
+```
+ProjectParams          materials, tooling, machine, joinery — the workshop
+   └─ Cabinet[]        one unit each, in the order they stand along the wall
+        └─ Carcass[]   one box each, stacked from the floor up
+             └─ BaySpec[]
+```
+
+Cabinets are laid along +X **in list order**, each starting where the one before
+it ends and taking the width of the widest carcass in its stack. There is no
+stored position: derived placement is what makes reordering the list mean
+something, and makes it impossible to leave two units overlapping. `Cabinet.id`
+and `Carcass.id` are the first two fields of every part ID it produces, so
+`C1-B-SIDE-L` reads as *first cabinet, base carcass, left side*.
+
+Within a cabinet, carcasses are flush at the rear — the depth of the one on the
+floor is the datum — so a shallower box on top steps back at the front. Each one
+either has its own bottom panel or stands in the top of the carcass below it,
+and only the one actually on the floor can have a toe kick.
+
+Everything above the cabinet list is project-wide, because it describes the
+workshop rather than the furniture: one spindle, one stack of sheets, one set of
+grooves that all have to fit each other.
+
+**Nothing in the pipeline may reach across cabinets.** A decision made from the
+whole assembly rather than from one cabinet is a bug that only shows up once
+there are two of them, and it shows up as plywood machined on the wrong face.
+`applyEffects` computes a centroid **per cabinet** for exactly this reason.
+`cabinets.test.ts` pins the invariant: two identical cabinets in a run come off
+the machine as identical blanks.
 
 ## The part model
 
@@ -135,9 +167,9 @@ Joints get a `JointRequest` from the builder and decorate both panels. Reuse
 `applyDado` where you can: it already handles growing the male panel into the
 female, stopping the groove short of a visible edge, and notching the male to
 clear both the stop and the radius the cutter leaves. Several features that look
-nothing like a dado — the upper carcass standing on the base, the capped top
-lapping the sides — are implemented as ordinary dado joints with a depth
-override, and get all of that behaviour for free.
+nothing like a dado — a carcass standing in the top of the one below it, the
+capped top lapping the sides — are implemented as ordinary dado joints with a
+depth override, and get all of that behaviour for free.
 
 ## Geometry
 
@@ -190,6 +222,13 @@ written as sentences a woodworker would say, not as error codes.
 
 Tests live in `packages/core/test`. The web app has none yet — see the roadmap.
 
+`test/golden/default-0.1/` holds the sheet DXF the 0.1 default project exported,
+before R-03 turned two hardcoded carcasses into a run of cabinets. `golden.test.ts`
+regenerates and compares it byte for byte, so a refactor that quietly moves a
+dimension cannot pass. Update those files only when a change to the geometry is
+the point, and say so in the commit. **R-15** generalises this to more
+configurations.
+
 The philosophy is to pin **behaviour that would be expensive to get wrong in
 plywood**, not implementation details:
 
@@ -207,9 +246,8 @@ person will delete.
 
 Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
-- `CabinetParams.units` is dead: millimetres are the only unit and the field is
-  never read. **R-02** deletes it
-- one cabinet type only; `CabinetParams` *is* the project (**R-03**)
+- one cabinet *type* only: every cabinet in a run starts from the same shape
+  and is edited into a wall or tall unit by hand (**R-04**)
 - everything is a rectangle. Out-of-square rooms need one tapered part shape
   (**R-05**), which `buildOutline` cannot yet make
 - frameless only; no face frames (**R-07**)

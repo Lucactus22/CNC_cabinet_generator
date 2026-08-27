@@ -1,6 +1,6 @@
 import { frameOf } from '../model/frame.js';
 import { forcesFace } from '../joinery/index.js';
-import type { CabinetParams, LocalRect, Part, SurfaceTarget } from '../model/types.js';
+import type { ProjectParams, LocalRect, Part, SurfaceTarget } from '../model/types.js';
 import { applyFrame } from './frame.js';
 import { applyGrooves } from './grooves.js';
 import type { EffectContext, EffectRegistry } from './types.js';
@@ -26,11 +26,15 @@ export interface EffectResult {
  * which part of it is still on show. They only ever add features, never change
  * an outline, which is what keeps them independent of the joint strategies.
  */
-export function applyEffects(params: CabinetParams, parts: Part[]): EffectResult {
+export function applyEffects(params: ProjectParams, parts: Part[]): EffectResult {
   const warnings: string[] = [];
   if (!params.surfaceEffects?.length) return { warnings };
 
-  const centroid = assemblyCentroid(parts);
+  // One centroid per cabinet, not one for the whole run. 'Inside' means facing
+  // into the box the panel belongs to; measured against the middle of a run of
+  // several cabinets, the outer side of the unit at one end looks inward and
+  // gets its panelling machined on the wrong face.
+  const centroids = cabinetCentroids(parts);
 
   for (const spec of params.surfaceEffects) {
     if (!spec.enabled) continue;
@@ -42,7 +46,7 @@ export function applyEffects(params: CabinetParams, parts: Part[]): EffectResult
 
     for (const part of targets) {
       const frame = frameOf(part);
-      const side = faceSideFor(part, centroid, spec.face);
+      const side = faceSideFor(part, centroids.get(part.cabinetId) ?? ORIGIN, spec.face);
 
       // Anything already on the other face means this panel has to be turned
       // over, which is worth saying out loud rather than discovering at the
@@ -83,14 +87,17 @@ export function applyEffects(params: CabinetParams, parts: Part[]): EffectResult
 export function resolveTarget(parts: Part[], target: SurfaceTarget): Part[] {
   if (target.select === 'part') return parts.filter((p) => p.id === target.partId);
   return parts.filter(
-    (p) => p.role === target.role && (target.carcass === 'both' || p.carcass === target.carcass),
+    (p) =>
+      p.role === target.role &&
+      (!target.cabinetId || p.cabinetId === target.cabinetId) &&
+      (!target.carcassId || p.carcassId === target.carcassId),
   );
 }
 
 export function describeTarget(target: SurfaceTarget): string {
   if (target.select === 'part') return target.partId;
-  const where = target.carcass === 'both' ? 'both carcasses' : `${target.carcass} carcass`;
-  return `${target.role} in ${where}`;
+  const where = [target.cabinetId, target.carcassId].filter(Boolean).join(' ');
+  return where ? `${target.role} in ${where}` : `${target.role}, everywhere`;
 }
 
 /**
@@ -118,17 +125,22 @@ export function faceSideFor(
   return face === 'inside' ? inside : inside === 'A' ? 'B' : 'A';
 }
 
-function assemblyCentroid(parts: Part[]): { x: number; y: number; z: number } {
-  if (parts.length === 0) return { x: 0, y: 0, z: 0 };
-  let x = 0;
-  let y = 0;
-  let z = 0;
+const ORIGIN = { x: 0, y: 0, z: 0 };
+
+/** The middle of each cabinet, which is what 'inside' is measured against. */
+export function cabinetCentroids(parts: Part[]): Map<string, { x: number; y: number; z: number }> {
+  const sums = new Map<string, { x: number; y: number; z: number; n: number }>();
   for (const p of parts) {
-    x += (p.box.min.x + p.box.max.x) / 2;
-    y += (p.box.min.y + p.box.max.y) / 2;
-    z += (p.box.min.z + p.box.max.z) / 2;
+    const acc = sums.get(p.cabinetId) ?? { x: 0, y: 0, z: 0, n: 0 };
+    acc.x += (p.box.min.x + p.box.max.x) / 2;
+    acc.y += (p.box.min.y + p.box.max.y) / 2;
+    acc.z += (p.box.min.z + p.box.max.z) / 2;
+    acc.n++;
+    sums.set(p.cabinetId, acc);
   }
-  return { x: x / parts.length, y: y / parts.length, z: z / parts.length };
+  const out = new Map<string, { x: number; y: number; z: number }>();
+  for (const [id, a] of sums) out.set(id, { x: a.x / a.n, y: a.y / a.n, z: a.z / a.n });
+  return out;
 }
 
 export function insetRegion(r: LocalRect, margin: number): LocalRect {

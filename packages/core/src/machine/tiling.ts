@@ -1,4 +1,4 @@
-import type { CabinetParams, MachineSpec } from '../model/types.js';
+import type { ProjectParams, MachineSpec } from '../model/types.js';
 
 export interface Tile {
   index: number;
@@ -68,7 +68,7 @@ export function planTiles(
   };
 }
 
-export function tileCountFor(params: CabinetParams, sheetLength: number): number {
+export function tileCountFor(params: ProjectParams, sheetLength: number): number {
   const m = params.machine;
   if (m.tilingAxis === 'none') return 1;
   const step = feedStep(m);

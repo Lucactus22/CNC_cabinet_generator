@@ -1,5 +1,5 @@
 import { bboxOf } from '../geom/index.js';
-import type { CabinetParams, Part, PocketFeature } from '../model/types.js';
+import type { ProjectParams, Part, PocketFeature } from '../model/types.js';
 import type { NestResult } from '../nest/index.js';
 import { blankSize } from '../nest/index.js';
 import { tileCountFor } from './tiling.js';
@@ -24,7 +24,7 @@ export interface Diagnostic {
  * warning means it can but something will bite, and info is just useful.
  */
 export function checkManufacturability(
-  params: CabinetParams,
+  params: ProjectParams,
   parts: Part[],
   nest: NestResult,
   joineryWarnings: string[],
@@ -32,6 +32,28 @@ export function checkManufacturability(
 ): Diagnostic[] {
   const out: Diagnostic[] = [];
   const m = params.machine;
+
+  // --- The run itself ----------------------------------------------------
+  if (params.cabinets.length === 0) {
+    out.push({
+      severity: 'warning',
+      topic: 'project',
+      message: 'This project has no cabinets in it, so there is nothing to cut.',
+      hint: 'Add a cabinet to the run.',
+    });
+  }
+  for (const [id, ids] of duplicateIds(parts)) {
+    // Part IDs are how the nester, the cut list and the engraved label all
+    // refer to a panel. Two panels sharing one means the sheet layout silently
+    // drops a part and two different blanks get the same label at the machine.
+    out.push({
+      severity: 'error',
+      topic: 'project',
+      message: `${ids.length} different panels are all called ${id}. Two cabinets or two carcasses are sharing an id.`,
+      partIds: [id],
+      hint: 'Give each cabinet, and each carcass within a cabinet, its own id.',
+    });
+  }
   const feedsAlongX = m.tilingAxis === 'x';
   const fixedTravel = m.tilingAxis === 'none' ? m.travelY : feedsAlongX ? m.travelY : m.travelX;
   const feedTravel = feedsAlongX ? m.travelX : m.travelY;
@@ -209,6 +231,14 @@ export function checkManufacturability(
   }
 
   return out;
+}
+
+/** Part IDs claimed by more than one panel. */
+function duplicateIds(parts: Part[]): Map<string, Part[]> {
+  const byId = new Map<string, Part[]>();
+  for (const p of parts) byId.set(p.id, [...(byId.get(p.id) ?? []), p]);
+  for (const [id, list] of byId) if (list.length < 2) byId.delete(id);
+  return byId;
 }
 
 /** Material left where a pocket on one face crosses a pocket on the other. */

@@ -1,11 +1,13 @@
 import { bboxOf, pathLength } from '../geom/index.js';
-import type { CabinetParams, Part } from '../model/types.js';
+import type { ProjectParams, Part } from '../model/types.js';
 import { blankSize } from '../nest/index.js';
 import type { NestResult } from '../nest/index.js';
 
 export interface CutListRow {
   id: string;
   label: string;
+  /** Which unit in the run, so a kitchen's worth of panels can be sorted back into piles. */
+  cabinet: string;
   carcass: string;
   role: string;
   material: string;
@@ -23,9 +25,14 @@ export interface CutListRow {
 }
 
 /** One row per part, in the order they appear on the sheets. */
-export function buildCutList(params: CabinetParams, parts: Part[], nest: NestResult): CutListRow[] {
+export function buildCutList(params: ProjectParams, parts: Part[], nest: NestResult): CutListRow[] {
   const sheetOf = new Map<string, number>();
   for (const s of nest.sheets) for (const p of s.parts) sheetOf.set(p.partId, s.index + 1);
+
+  const cabinetName = new Map(params.cabinets.map((c) => [c.id, c.name]));
+  const carcassName = new Map(
+    params.cabinets.flatMap((c) => c.carcasses.map((k) => [`${c.id}/${k.id}`, k.name] as const)),
+  );
 
   return parts.map((part) => {
     const material = params.materials.find((m) => m.id === part.materialId);
@@ -48,7 +55,8 @@ export function buildCutList(params: CabinetParams, parts: Part[], nest: NestRes
     return {
       id: part.id,
       label: part.label,
-      carcass: part.carcass === 'base' ? 'Base' : 'Upper',
+      cabinet: cabinetName.get(part.cabinetId) ?? part.cabinetId,
+      carcass: carcassName.get(`${part.cabinetId}/${part.carcassId}`) ?? part.carcassId,
       role: part.role,
       material: material?.name ?? part.materialId,
       thickness: round(part.thickness),
@@ -68,6 +76,7 @@ export function cutListCsv(rows: CutListRow[]): string {
   const headers = [
     'Part ID',
     'Description',
+    'Cabinet',
     'Carcass',
     'Role',
     'Material',
@@ -87,6 +96,7 @@ export function cutListCsv(rows: CutListRow[]): string {
       [
         r.id,
         r.label,
+        r.cabinet,
         r.carcass,
         r.role,
         r.material,
@@ -109,7 +119,7 @@ export function cutListCsv(rows: CutListRow[]): string {
 
 /** Summary by material, for ordering sheets. */
 export function materialSummary(
-  params: CabinetParams,
+  params: ProjectParams,
   parts: Part[],
   nest: NestResult,
 ): Array<{ material: string; sheets: number; parts: number; area: number }> {

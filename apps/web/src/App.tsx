@@ -4,6 +4,7 @@ import { SheetView } from './components/SheetView';
 import { PartView } from './components/PartView';
 import { Diagnostics } from './components/Diagnostics';
 import { ExportBar } from './components/ExportBar';
+import { cabinetPositions } from '@cabgen/core';
 import { useStore, type ViewTab } from './store';
 
 const TABS: Array<{ id: ViewTab; label: string }> = [
@@ -18,14 +19,20 @@ export function App() {
   const project = useStore((s) => s.project);
 
   const sheets = project.nest.sheets.length;
-  const height = project.params.base.height + project.params.top.height;
+  const cabinets = project.params.cabinets;
+  // The run end to end, and the tallest stack in it: the two numbers someone
+  // checks against the wall before they cut anything.
+  const runWidth = cabinetPositions(cabinets).reduce((a, c) => a + c.w, 0);
+  const height = Math.max(0, ...cabinets.map((c) => c.carcasses.reduce((a, k) => a + k.height, 0)));
 
   return (
     <div className="app">
       <header className="topbar">
         <h1>Cabinet CNC Generator</h1>
         <span className="badge">
-          {project.params.base.width} × {height} mm · {project.parts.length} parts · {sheets} sheets
+          {cabinets.length > 1 ? `${cabinets.length} cabinets · ` : ''}
+          {runWidth.toFixed(0)} × {height.toFixed(0)} mm · {project.parts.length} parts · {sheets}{' '}
+          sheets
         </span>
         <span className="spacer" />
         <ExportBar />

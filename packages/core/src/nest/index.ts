@@ -1,5 +1,5 @@
 import { bboxOf } from '../geom/index.js';
-import type { CabinetParams, Material, Part } from '../model/types.js';
+import type { ProjectParams, Material, Part } from '../model/types.js';
 import { feedStep } from '../machine/tiling.js';
 import { MaxRectsBin, type BandConstraint, type Placement } from './maxrects.js';
 
@@ -47,7 +47,7 @@ export interface NestResult {
  * profile pass never runs into its neighbour, and grain-locked parts keep their
  * orientation even when turning them would pack better.
  */
-export function nestParts(params: CabinetParams, parts: Part[]): NestResult {
+export function nestParts(params: ProjectParams, parts: Part[]): NestResult {
   const spacing = params.tool.diameter + params.nesting.partGap;
   const margin = params.nesting.sheetMargin;
   const sheets: NestedSheet[] = [];
@@ -112,7 +112,7 @@ export function nestParts(params: CabinetParams, parts: Part[]): NestResult {
  * Whether a part may be turned on the sheet: only when the material has no
  * directional grain, or the part does not care which way its grain runs.
  */
-export function mayRotate(part: Part, material: Material, params: CabinetParams): boolean {
+export function mayRotate(part: Part, material: Material, params: ProjectParams): boolean {
   if (!params.nesting.allowRotation) return false;
   if (!material.hasGrain) return true;
   return part.grainAxis === 'free';
@@ -136,7 +136,7 @@ function place(
   binL: number,
   binW: number,
   spacing: number,
-  params: CabinetParams,
+  params: ProjectParams,
   margin: number,
   bands: BandConstraint | undefined,
 ): true | false | 'new-bin' {
@@ -175,7 +175,7 @@ function place(
  * while the bin starts one margin in, hence the phase. Returns undefined when
  * the strategy is to chase yield instead, or when nothing would tile anyway.
  */
-export function bandsFor(params: CabinetParams): BandConstraint | undefined {
+export function bandsFor(params: ProjectParams): BandConstraint | undefined {
   if (params.nesting.strategy !== 'tiling') return undefined;
   const step = feedStep(params.machine);
   if (step === null) return undefined;

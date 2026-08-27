@@ -10,9 +10,9 @@ import {
   tileCountFor,
   type BandConstraint,
 } from '../src/index.js';
-import type { CabinetParams, NestStrategy } from '../src/model/types.js';
+import type { ProjectParams, NestStrategy } from '../src/model/types.js';
 
-const withStrategy = (strategy: NestStrategy): CabinetParams => {
+const withStrategy = (strategy: NestStrategy): ProjectParams => {
   const p = defaultParams();
   p.nesting.strategy = strategy;
   return p;
