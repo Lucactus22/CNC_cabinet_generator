@@ -1,4 +1,7 @@
 import { bboxOf } from '../geom/index.js';
+import { checkMeasurements } from '../model/measure.js';
+import { describeFit, fitOpening } from '../model/opening.js';
+import { runSize } from '../build/builder.js';
 import type { ProjectParams, Part, PocketFeature } from '../model/types.js';
 import type { NestResult } from '../nest/index.js';
 import { blankSize } from '../nest/index.js';
@@ -54,6 +57,8 @@ export function checkManufacturability(
       hint: 'Give each cabinet, and each carcass within a cabinet, its own id.',
     });
   }
+  out.push(...openingDiagnostics(params, parts));
+
   const feedsAlongX = m.tilingAxis === 'x';
   const fixedTravel = m.tilingAxis === 'none' ? m.travelY : feedsAlongX ? m.travelY : m.travelX;
   const feedTravel = feedsAlongX ? m.travelX : m.travelY;
@@ -227,6 +232,92 @@ export function checkManufacturability(
       severity: 'info',
       topic: 'machine',
       message: `Every part fits within the ${fixedTravel} mm of travel across the feed direction.`,
+    });
+  }
+
+  return out;
+}
+
+/**
+ * How the square run measures up against the crooked room it has to go into.
+ *
+ * The derivation is shown whether or not anything is wrong, because it is the
+ * number the user will want to check against their tape before they cut: the
+ * envelope, the clearance it leaves, and what each sacrificial part is covering.
+ */
+function openingDiagnostics(params: ProjectParams, parts: Part[]): Diagnostic[] {
+  const opening = params.opening;
+  if (!opening.enabled) return [];
+
+  const out: Diagnostic[] = [];
+  const run = runSize(params.cabinets);
+  const fit = fitOpening(opening, run);
+  const scribeIds = parts.filter((p) => p.role === 'scribe').map((p) => p.id);
+
+  for (const sentence of describeFit(opening, fit, run)) {
+    out.push({ severity: 'info', topic: 'opening', message: sentence });
+  }
+
+  // A reading that looks like a slip of the tape rather than a crooked room.
+  // Said here as well as in the walkthrough, because the fields can be typed
+  // straight into the panel without ever opening it.
+  for (const problem of checkMeasurements(opening)) {
+    out.push({ ...problem, topic: 'opening' });
+  }
+
+  if (!params.materials.some((m) => m.id === opening.scribe.materialId)) {
+    // The strips are silently absent otherwise: a run fitted to a wall with
+    // nothing to fit it with.
+    out.push({
+      severity: 'warning',
+      topic: 'opening',
+      message: `No scribe strips were made: their material '${opening.scribe.materialId}' is not in the materials list.`,
+      hint: 'Pick a scribe material that exists in the project.',
+    });
+  }
+
+  if (fit.clearance.width < 0) {
+    out.push({
+      severity: 'error',
+      topic: 'opening',
+      message: `The run is ${run.width.toFixed(0)} mm wide but the opening will only take ${fit.envelope.width.toFixed(0)} mm of square box: it is ${(-fit.clearance.width).toFixed(0)} mm too wide to go in.`,
+      hint: 'Narrow a cabinet, or check the opening width, the corner angles and the wall bow.',
+    });
+  }
+  if (fit.clearance.height < 0) {
+    out.push({
+      severity: 'error',
+      topic: 'opening',
+      message: `The run stands ${run.height.toFixed(0)} mm tall and the opening is only ${fit.envelope.height.toFixed(0)} mm at its lowest: it is ${(-fit.clearance.height).toFixed(0)} mm too tall to stand up in.`,
+      hint: 'Reduce a carcass height, or check the opening height at each end.',
+    });
+  }
+
+  // A scribe can only plane away as much material as is left on. What the
+  // taper already follows is not the allowance's problem, so the check is
+  // against what is left after it: warning about a lean the blank is cut to
+  // would be a false alarm, and a warning that cries wolf is worse than none.
+  for (const entry of fit.outOfTrue) {
+    if (fit.ends.length === 0) continue;
+    if (entry.scribeNeeds <= opening.scribe.width) continue;
+    out.push({
+      severity: 'warning',
+      topic: 'opening',
+      message: `The opening is ${entry.detail}, and the ${entry.scribeNeeds.toFixed(0)} mm of it left after the taper is more than the ${opening.scribe.width} mm scribe allowance can plane away: it runs out ${(entry.scribeNeeds - opening.scribe.width).toFixed(0)} mm short.`,
+      partIds: scribeIds,
+      hint: `Widen the scribe allowance, or re-check: ${entry.hint}`,
+    });
+  }
+
+  if (fit.ends.length === 0) {
+    // Worth saying plainly: with no wall at either end the measurements still
+    // answer whether the run fits, but nothing gets scribed to anything.
+    out.push({
+      severity: 'info',
+      topic: 'opening',
+      message:
+        'Both ends of the run are open, so no scribe strips were made: the measurements only say whether it fits.',
+      hint: 'Set an end to "Against a wall" if it has to be scribed to one.',
     });
   }
 

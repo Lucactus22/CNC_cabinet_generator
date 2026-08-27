@@ -1,5 +1,6 @@
 import type { Path } from '../geom/index.js';
 import type { ReliefStyle } from '../geom/relief.js';
+import type { OpeningSpec } from './opening.js';
 
 export type Axis = 'x' | 'y' | 'z';
 export type Sign = '+' | '-';
@@ -364,6 +365,8 @@ export interface ProjectParams {
   hinge: HingeSpec;
   /** In the order they stand along the run, left to right. */
   cabinets: Cabinet[];
+  /** The measured room the run has to fit into. See model/opening.ts. */
+  opening: OpeningSpec;
   nesting: NestingSettings;
   /** Decorative machining applied to chosen faces. */
   surfaceEffects: SurfaceEffectSpec[];
@@ -385,7 +388,9 @@ export type PartRole =
   | 'back'
   | 'toe-rail'
   | 'hanging-rail'
-  | 'stretcher';
+  | 'stretcher'
+  /** Scribe strip or filler panel taking up the gap between the run and a wall. */
+  | 'scribe';
 
 export type FaceSide = 'A' | 'B';
 

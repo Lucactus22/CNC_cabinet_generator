@@ -2,7 +2,7 @@ import type { AABB, Axis, LocalRect, Part, Vec3 } from '../model/types.js';
 
 export type { LocalRect };
 import { frameOf, intersectBoxes, localRectOf, type LocalFrame } from '../model/frame.js';
-import type { Corner, CornerNotch, Edge, EdgeTab } from '../geom/outline.js';
+import type { Corner, CornerNotch, Edge, EdgeTab, Taper } from '../geom/outline.js';
 
 /** Mutable working copy of a part while joinery is being applied. */
 export interface PartDraft {
@@ -17,6 +17,8 @@ export interface PartDraft {
   exposed: LocalRect;
   notches: CornerNotch[];
   tabs: EdgeTab[];
+  /** Set when the blank is a trapezoid rather than a rectangle. */
+  taper?: Taper;
 }
 
 const AXIS_VEC: Record<Axis, Vec3> = {
@@ -126,7 +128,7 @@ export function cornerBetween(a: Edge, b: Edge): Corner | null {
   return null;
 }
 
-export const isVerticalEdge = (e: Edge): boolean => e === 'left' || e === 'right';
+export const isVerticalEdge = (e: Edge): e is 'left' | 'right' => e === 'left' || e === 'right';
 
 /** Assembly-space direction pointing from the male panel toward the female. */
 export function dirToFemale(c: Contact): Vec3 {

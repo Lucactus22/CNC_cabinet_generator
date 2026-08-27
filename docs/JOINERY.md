@@ -277,3 +277,12 @@ is turned over left to right. Cut everything else first, flip, then cut the
 
 The cutter diameter is not cosmetic. It sets every relief size, the notch
 lengths, and the spacing between nested parts.
+
+## Not a joint: the scribe strip
+
+The strip or filler that fits a run to a crooked wall carries **no machined
+fixings at all**, and that is on purpose. Where it finally lands is decided
+against the plaster with a pencil and a block, not on the screen, so a hole
+drilled for it here would be a hole in the wrong place. Screw it through the
+cabinet side, or pocket-screw it from behind, once it is scribed. See
+[OPENING.md](OPENING.md).

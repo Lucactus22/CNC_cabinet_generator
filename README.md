@@ -54,6 +54,36 @@ Every part carries an ID naming where it came from — `C1-B-SIDE-L` is the left
 side of the base carcass of the first cabinet — and that ID is engraved on the
 LABEL layer, so a pile of panels off the machine sorts itself.
 
+## Fitting a crooked room
+
+Real walls lean, corners are not 90°, floors slope and plaster bows. **Measure
+the room…** walks you through it one page at a time — what to hold a tape
+across, where to hold it, and a sketch of each — then works out the largest
+**square** box that will fit, shows you the derivation to check against your
+tape, and generates the parts that take up the difference.
+
+The corner angle is the one number nobody can measure directly, so it is not
+asked for: mark the floor a measured distance out along each wall, read the
+diagonal between the marks, and the angle falls out of it. That is the 3-4-5
+rule, which is how the trade has always done it. Three readings that cannot be a
+triangle get told so rather than turned into a confident wrong angle.
+
+The carcass stays square. Every joint here assumes rectangles, doors and drawer
+slides need parallel sides, and it is not how the trade solves it either: a
+cabinetmaker builds square and scribes the *interface* to the wall. So the
+crookedness comes out as a **scribe strip** or **filler panel** at each end,
+**tapered** where the wall leans, with a uniform allowance left on to plane back
+to the plaster. A stack that steps back gets one per front plane, so nothing
+stands proud of the box behind it. A sloping floor is reported as a levelling
+allowance with a recommendation, not silently built into the toe kick.
+
+> The opening is 12 mm narrower at the bottom than at the top. The strips follow
+> 6 mm of that; a 20 mm scribe allowance covers the remaining 6 mm with 14 mm to
+> spare.
+
+A square opening the run already fills produces nothing at all. See
+[docs/OPENING.md](docs/OPENING.md).
+
 ## Doors
 
 Doors are switched on per bay: single hinged left or right, or a pair. Hardware
@@ -222,6 +252,7 @@ testable on its own and reusable from a CLI or a different front end.
 | [ROADMAP](docs/ROADMAP.md) | What 1.0 means and the work orders to get there |
 | [JOINERY](docs/JOINERY.md) | Every joint, with the geometry and the reasoning |
 | [DOORS](docs/DOORS.md) | Doors, UTRUSTA hinge boring, face designs |
+| [OPENING](docs/OPENING.md) | Measuring a crooked room and scribing a square run to it |
 | [EFFECTS](docs/EFFECTS.md) | Surface decoration and how to add a new kind |
 | [DXF](docs/DXF.md) | Output format, layer convention, tiling workflow |
 | [CLAUDE.md](CLAUDE.md) | Conventions and definition of done for contributors |
@@ -229,8 +260,7 @@ testable on its own and reusable from a CLI or a different front end.
 ## Known gaps
 
 Honest list, all tracked in the roadmap: no drawers, hardware catalogue, edge
-banding or face frames; everything is a rectangle, so an out-of-square room
-cannot yet be scribed to (R-05); the web app has no automated tests.
+banding or face frames; the web app has no automated tests.
 
 Millimetres only, deliberately.
 

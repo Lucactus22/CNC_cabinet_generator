@@ -26,6 +26,7 @@ ProjectParams
     ├─ buildParts()          build/builder.ts
     │    parameters → placed panels + a list of what meets what
     │    Decides WHAT joins to WHAT. Never decides how it is machined.
+    │    Also emits the scribe strips that fit the run to a measured room.
     │
     ├─ applyJoinery()        joinery/index.ts
     │    joints → pockets, through cuts, notches, tabs, drilling
@@ -67,6 +68,7 @@ while a slider is being dragged. If you touch the packer, keep it deterministic.
 
 ```
 ProjectParams          materials, tooling, machine, joinery — the workshop
+   ├─ OpeningSpec      the measured room the whole run has to fit into
    └─ Cabinet[]        one unit each, in the order they stand along the wall
         └─ Carcass[]   one box each, stacked from the floor up
              └─ BaySpec[]
@@ -94,6 +96,15 @@ preset, never by teaching `build/builder.ts` a new case.
 Everything above the cabinet list is project-wide, because it describes the
 workshop rather than the furniture: one spindle, one stack of sheets, one set of
 grooves that all have to fit each other.
+
+`model/opening.ts` holds the one thing above the cabinet list that is not the
+workshop: the **opening**, meaning the room. `model/measure.ts` sits beside it
+and turns tape readings into those fields — the corner angle is derived from a
+triangle rather than asked for, because nobody can measure a room corner with a
+protractor and a guessed angle is one the fillers get cut to. It is project-wide because a run
+fits into one opening, and it is the only input that produces parts belonging to
+the run rather than to a cabinet — the scribe strips at either end. The carcass
+itself never changes shape for it; see [OPENING.md](OPENING.md) for why.
 
 **Nothing in the pipeline may reach across cabinets.** A decision made from the
 whole assembly rather than from one cabinet is a bug that only shows up once
@@ -195,6 +206,11 @@ DXF polylines with no lossy conversion at export.
   directly rather than running boolean operations. Everything this generator
   makes is a rectangle with local modifications, so this is both simpler and
   more robust.
+- The one exception is the **taper**: one vertical edge cut back at one end, so
+  a filler follows a wall that leans. It is deliberately that narrow rather
+  than a general polygon, and every notch and tab asks for its x through the
+  same helper, so a feature on a sloping edge lands on the slope. Widening it
+  is what turns a robust composition into a boolean engine nobody asked for.
 
 ## Coordinates at export
 
@@ -253,8 +269,6 @@ person will delete.
 
 Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
-- everything is a rectangle. Out-of-square rooms need one tapered part shape
-  (**R-05**), which `buildOutline` cannot yet make
 - frameless only; no face frames (**R-07**)
 - no drawers, no hardware catalogue, no edge banding
 - the web app has no automated tests

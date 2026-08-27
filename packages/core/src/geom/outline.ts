@@ -22,6 +22,23 @@ export interface EdgeTab {
   depth: number;
 }
 
+/**
+ * One vertical edge cut back at one end, making the blank a trapezoid.
+ *
+ * The only thing that needs it is a filler scribed to a wall that leans, so the
+ * extension is deliberately this narrow rather than a general polygon: exactly
+ * one of the four corners moves, and everything else about the blank is still a
+ * rectangle. Widening it is what turns a robust composition into a boolean
+ * engine nobody asked for.
+ */
+export interface Taper {
+  edge: 'left' | 'right';
+  /** The end of that edge where the blank is narrower. */
+  at: 'top' | 'bottom';
+  /** How much narrower, measured along the horizontal axis. */
+  by: number;
+}
+
 export interface OutlineSpec {
   x0: number;
   y0: number;
@@ -29,6 +46,7 @@ export interface OutlineSpec {
   h: number;
   notches?: CornerNotch[];
   tabs?: EdgeTab[];
+  taper?: Taper;
 }
 
 /**
@@ -40,11 +58,26 @@ export interface OutlineSpec {
  * running general boolean operations over paths.
  */
 export function buildOutline(spec: OutlineSpec): Path {
-  const { x0, y0, w, h } = spec;
+  const { x0, y0, w, h, taper } = spec;
   const notches = spec.notches ?? [];
   const tabs = spec.tabs ?? [];
   const x1 = x0 + w;
   const y1 = y0 + h;
+
+  /**
+   * Where a vertical edge sits at a given height.
+   *
+   * Everything that touches the left or the right edge asks through here, so a
+   * notch or a tab on a sloping edge lands on the slope rather than on the
+   * rectangle the slope replaced.
+   */
+  const xOn = (side: 'left' | 'right', y: number): number => {
+    const base = side === 'left' ? x0 : x1;
+    if (!taper || taper.edge !== side || h <= 1e-9) return base;
+    const f = (y - y0) / h;
+    const cut = taper.by * (taper.at === 'top' ? f : 1 - f);
+    return side === 'left' ? base + cut : base - cut;
+  };
 
   const notchOf = (c: Corner): CornerNotch | undefined => notches.find((n) => n.corner === c);
   const pts: Vertex[] = [];
@@ -74,31 +107,31 @@ export function buildOutline(spec: OutlineSpec): Path {
   function emitCorner(c: Corner): void {
     const n = notchOf(c);
     if (!n) {
-      if (c === 'll') push(x0, y0);
-      else if (c === 'lr') push(x1, y0);
-      else if (c === 'ur') push(x1, y1);
-      else push(x0, y1);
+      if (c === 'll') push(xOn('left', y0), y0);
+      else if (c === 'lr') push(xOn('right', y0), y0);
+      else if (c === 'ur') push(xOn('right', y1), y1);
+      else push(xOn('left', y1), y1);
       return;
     }
     const { dx, dy } = n;
     // Each notch is entered along the incoming edge and left along the outgoing
     // one, so it contributes three points in walking order.
     if (c === 'll') {
-      push(x0, y0 + dy);
-      push(x0 + dx, y0 + dy);
-      push(x0 + dx, y0);
+      push(xOn('left', y0 + dy), y0 + dy);
+      push(xOn('left', y0 + dy) + dx, y0 + dy);
+      push(xOn('left', y0) + dx, y0);
     } else if (c === 'lr') {
-      push(x1 - dx, y0);
-      push(x1 - dx, y0 + dy);
-      push(x1, y0 + dy);
+      push(xOn('right', y0) - dx, y0);
+      push(xOn('right', y0 + dy) - dx, y0 + dy);
+      push(xOn('right', y0 + dy), y0 + dy);
     } else if (c === 'ur') {
-      push(x1, y1 - dy);
-      push(x1 - dx, y1 - dy);
-      push(x1 - dx, y1);
+      push(xOn('right', y1 - dy), y1 - dy);
+      push(xOn('right', y1 - dy) - dx, y1 - dy);
+      push(xOn('right', y1) - dx, y1);
     } else {
-      push(x0 + dx, y1);
-      push(x0 + dx, y1 - dy);
-      push(x0, y1 - dy);
+      push(xOn('left', y1) + dx, y1);
+      push(xOn('left', y1 - dy) + dx, y1 - dy);
+      push(xOn('left', y1 - dy), y1 - dy);
     }
   }
 
@@ -118,20 +151,20 @@ export function buildOutline(spec: OutlineSpec): Path {
         push(b, y0 - t.depth);
         push(b, y0);
       } else if (e === 'right') {
-        push(x1, a);
-        push(x1 + t.depth, a);
-        push(x1 + t.depth, b);
-        push(x1, b);
+        push(xOn('right', a), a);
+        push(xOn('right', a) + t.depth, a);
+        push(xOn('right', b) + t.depth, b);
+        push(xOn('right', b), b);
       } else if (e === 'top') {
         push(b, y1);
         push(b, y1 + t.depth);
         push(a, y1 + t.depth);
         push(a, y1);
       } else {
-        push(x0, b);
-        push(x0 - t.depth, b);
-        push(x0 - t.depth, a);
-        push(x0, a);
+        push(xOn('left', b), b);
+        push(xOn('left', b) - t.depth, b);
+        push(xOn('left', a) - t.depth, a);
+        push(xOn('left', a), a);
       }
     }
   }

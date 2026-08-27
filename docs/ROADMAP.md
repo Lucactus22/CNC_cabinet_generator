@@ -263,17 +263,45 @@ For the floor, prefer a **levelling plinth**: the toe kick is cut to the worst
 case and packed down, or the cabinet stands on adjustable feet with the toe kick
 scribed separately. Recommend one, do not silently assume it.
 
+**Revised while working it.** Four things the item as written did not settle:
+
+- *"Scribe strips and filler panels"* reads as two kinds of part. It is one:
+  a strip at each walled end, cut to the gap plus the scribe allowance. It is
+  **called** a scribe strip when there is no gap and the allowance is all there
+  is to it, and a filler panel when it is covering a real gap as well — which is
+  how a woodworker names it too. Two parts side by side at one end is not
+  something anyone would build.
+- *"A perfectly square opening produces no scribe parts"* is true only when the
+  run also fills that opening. A square opening the run leaves 40 mm short still
+  needs a filler, and refusing to make one would be the silent-wrong-cabinet
+  failure this repo exists to avoid. The criterion below now says both halves.
+  Nothing at all is produced when there is nothing to take up: no gap, no lean,
+  and a wall measured dead flat.
+- *"A levelling allowance for a sloping floor"* is reported and recommended, not
+  built. The item's own design note says to recommend a plinth rather than
+  assume one, and a toe kick quietly cut 14 mm taller than the number on screen
+  is exactly the surprise that ruins a sheet.
+- The item's worked example — *"a 20 mm scribe strip each side covers it with 8
+  mm to spare"* — was written for a **rectangular** strip planed to the wall. A
+  **tapered** one, which the item also asks for, cuts the lean in and leaves the
+  allowance whole, so the two cannot both describe the same part. The taper wins,
+  and the allowance is measured against what the blank is *not* cut to: all of a
+  wall bow, half of a width lean where two walls could each be the one leaning,
+  and none of a corner angle, which is measured at its own end. Warning about
+  crookedness the blank already follows is a false alarm, and a warning that
+  cries wolf is worse than no warning.
+
 **Acceptance criteria.**
-- [ ] Opening measurements are part of the model and saved with the project
-- [ ] The derived square envelope, and the clearance it leaves, are shown
-- [ ] Scribe strips and filler panels are generated as real parts, tapered when
+- [x] Opening measurements are part of the model and saved with the project
+- [x] The derived square envelope, and the clearance it leaves, are shown
+- [x] Scribe strips and filler panels are generated as real parts, tapered when
       the wall leans
-- [ ] The 3D view shows the crooked opening around the square cabinet, so the
+- [x] The 3D view shows the crooked opening around the square cabinet, so the
       user can see what is being taken up where
-- [ ] A warning when the crookedness exceeds the scribe allowance, naming the
+- [x] A warning when the crookedness exceeds the scribe allowance, naming the
       measurement that is out and by how much
-- [ ] A perfectly square opening produces no scribe parts and geometry
-      identical to today's
+- [x] A perfectly square opening the run fills produces no scribe parts and
+      geometry identical to today's
 
 **Tests.** The envelope derivation against hand-worked examples, including a
 wall leaning each way; taper direction correct for a wall that leans in versus
@@ -281,6 +309,51 @@ out; a square opening changes nothing; the too-crooked warning fires.
 
 **Risks.** Scope creep towards full room modelling. This item is about *one
 opening a cabinet has to fit*, not a floor plan. Resist the second wall.
+
+**What it cost, for the items that follow.** `ProjectParams` gained `opening`;
+`normaliseParams` fills it in, so pre-R-05 project files still open, switched
+off. `PartRole` gained `'scribe'`, and `BuildResult` gained `tapers`, resolved
+against each part's own frame in the joinery stage exactly as toe notches and
+pin rows are. `buildOutline` gained one narrow extension — a single vertical
+edge cut back at one end — and every notch and tab now asks for its x through
+one helper so a feature on a sloping edge lands on the slope rather than on the
+rectangle it replaced. `isVerticalEdge` became a type guard on the way.
+
+Three defects were found by review before this landed, each of them the silent
+kind this repo cares about. The run was centred in the opening as it appears at
+the **front**, which put the back corner of an end cabinet into a wall that
+leaned away and still reported it as fitting; it is now centred in the band that
+is clear over the whole depth. A single strip was run up the whole stack, so on
+the default stepped unit its top 1100 mm floated 200 mm proud of the upper doors
+— it is now one strip per front plane. And the engraved part ID was anchored to
+the bounding box, which on a tapered blank is a corner with no material under
+it, so the label would have been cut across whatever was nested alongside.
+
+**Added after the item was worked: a guided walkthrough.** The measurements were
+a panel of six numbers, one of which — the corner angle — nobody can actually
+measure. Asking
+for it gets a guess, and a guessed angle is worse than none, because the fillers
+are cut to it. `model/measure.ts` and a guided walkthrough in the app now take
+three tape readings across a corner and derive the angle by the law of cosines,
+which is the 3-4-5 rule the trade already uses; readings that cannot be a
+triangle get told so rather than clamped into a confident wrong answer. The raw
+readings are stored alongside the angle, because they are the primary record,
+and a reading that looks more like a dropped digit than a crooked room is
+questioned.
+
+A second review round on the walkthrough found four more, three of them in the
+geometry it feeds: a strip was placed at the run's outer corner rather than
+against the box beside it, so a narrower carcass higher in a stack got a filler
+hanging in the air with nothing to fix it to; every strip in a stepped stack was
+cut to the gap at the *deepest* carcass's plane, though a set-back box has only
+travelled part way along the wall's lean and its filler could not reach the
+plaster; the walkthrough opened on a square corner rather than on the angle
+already in effect, so it said "dead square" about a corner the project was being
+cut to 85° for; and a bow warning told the user to skim a wall in a
+configuration where no strip is scribed to anything.
+
+The reasoning, the arithmetic and the honest limits are in
+[OPENING.md](OPENING.md).
 
 ---
 
