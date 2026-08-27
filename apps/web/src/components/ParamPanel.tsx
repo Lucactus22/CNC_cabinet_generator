@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { useStore } from '../store';
 import {
+  CABINET_TYPES,
   cabinetPositions,
   duplicateCabinet,
-  newCabinet,
+  newCabinetOfType,
   newCarcass,
   resolveWidths,
   type BaySpec,
   type Cabinet,
+  type CabinetType,
   type Carcass,
   type DoorStyle,
   type ShelfMode,
@@ -595,6 +598,7 @@ function CabinetList() {
   const selectedId = useStore((s) => s.selectedCabinetId);
   const selectCabinet = useStore((s) => s.selectCabinet);
   const positions = cabinetPositions(params.cabinets);
+  const [typeToAdd, setTypeToAdd] = useState<CabinetType>('base');
 
   const move = (index: number, by: number): void => {
     const to = index + by;
@@ -607,7 +611,7 @@ function CabinetList() {
 
   const add = (): void =>
     update((p) => {
-      const cabinet = newCabinet(p.cabinets);
+      const cabinet = newCabinetOfType(typeToAdd, p.cabinets);
       p.cabinets.push(cabinet);
       selectCabinet(cabinet.id);
     });
@@ -708,6 +712,13 @@ function CabinetList() {
           </div>
         );
       })}
+      <SelectField
+        label="Type to add"
+        value={typeToAdd}
+        options={CABINET_TYPES.map((t) => ({ value: t.id, label: t.label }))}
+        onChange={setTypeToAdd}
+        title={CABINET_TYPES.find((t) => t.id === typeToAdd)?.description}
+      />
       <button onClick={add}>Add cabinet</button>
       {params.cabinets.length > 1 && (
         <Hint>The run measures {total.toFixed(0)} mm end to end.</Hint>
@@ -936,6 +947,39 @@ function CarcassGroup({
           )}
         </div>
       )}
+
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
+        <CheckField
+          label="Hanging rail"
+          value={spec.hangingRail.enabled}
+          onChange={(v) => patch((c) => (c.hangingRail.enabled = v))}
+          title="A solid rail behind the top, to screw a wall cabinet to the wall through. The back panel alone is too thin to trust with the weight."
+        />
+        {spec.hangingRail.enabled && (
+          <>
+            <NumberField
+              label="Height"
+              value={spec.hangingRail.height}
+              min={20}
+              onChange={(v) => patch((c) => (c.hangingRail.height = v))}
+            />
+            <NumberField
+              label="Screw clearance"
+              value={spec.hangingRail.screwDiameter}
+              min={1}
+              onChange={(v) => patch((c) => (c.hangingRail.screwDiameter = v))}
+              title="Sized to clear the screw's shank, not grip it."
+            />
+            <NumberField
+              label="Screw spacing"
+              value={spec.hangingRail.screwSpacing}
+              min={50}
+              onChange={(v) => patch((c) => (c.hangingRail.screwSpacing = v))}
+              title="Kept under about one stud spacing (16 in = 406 mm) so the rail always lands on at least two."
+            />
+          </>
+        )}
+      </div>
 
       {Array.from({ length: bayCount }, (_, i) => {
         const bay = spec.bays[i] ?? {

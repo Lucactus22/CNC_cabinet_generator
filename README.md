@@ -29,6 +29,11 @@ shallower shelved upper on it, the unit in the reference photographs. Add
 cabinets to the run, stack more carcasses, reorder them, and every part is
 nested, listed and checked across the lot.
 
+New cabinets start from a **type**: base (toe kick, capped top, doors), wall
+(shallower, no toe kick, a hanging rail to screw it up by), tall/pantry (floor
+to near ceiling, fixed shelves behind double doors), or the stacked pair above.
+A type is only a starting point — every field stays editable afterwards.
+
 Each carcass is fully parametric: integral toe kick on the one standing on the
 floor, vertical dividers, and per-bay shelves that are either dadoed in place or
 sit on a 32 mm shelf pin ladder.
@@ -223,11 +228,9 @@ testable on its own and reusable from a CLI or a different front end.
 
 ## Known gaps
 
-Honest list, all tracked in the roadmap: there is one cabinet *type*, so every
-cabinet in a run starts from the same shape and is edited into a wall or tall
-unit by hand (R-04); no drawers, hardware catalogue, edge banding or face
-frames; everything is a rectangle, so an out-of-square room cannot yet be
-scribed to (R-05); the web app has no automated tests.
+Honest list, all tracked in the roadmap: no drawers, hardware catalogue, edge
+banding or face frames; everything is a rectangle, so an out-of-square room
+cannot yet be scribed to (R-05); the web app has no automated tests.
 
 Millimetres only, deliberately.
 

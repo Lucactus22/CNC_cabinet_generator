@@ -91,6 +91,30 @@ export function pinHeights(
 const sum = (xs: number[]): number => xs.reduce((a, b) => a + b, 0);
 
 /**
+ * Screw positions along a hanging rail.
+ *
+ * Held in from both ends so a screw is never driven at the rail's tip, at
+ * least two so the cabinet always has something to hang from even if a stud
+ * is missed, and never more than `spacing` apart — kept under a stud's typical
+ * 16 in (406 mm) spacing so a run of any width still crosses at least two.
+ */
+export function wallMountXs(x0: number, x1: number, spacing: number): number[] {
+  const inset = Math.min(60, (x1 - x0) / 4);
+  const usable = x1 - x0 - 2 * inset;
+  if (usable <= 0) return [(x0 + x1) / 2];
+  // A non-positive spacing is a bad value, not an instruction to hang the
+  // cabinet on one screw: fall back to the minimum instead of letting it
+  // defeat the "at least two" guarantee below.
+  const pitch = spacing > 0 ? spacing : usable;
+  // Ceiling, not rounding: rounding down would let one gap land past the
+  // spacing limit the caller asked to stay under.
+  const count = Math.max(2, Math.ceil(usable / pitch) + 1);
+  const out: number[] = [];
+  for (let i = 0; i < count; i++) out.push(x0 + inset + (usable * i) / (count - 1));
+  return out;
+}
+
+/**
  * Cup centre heights for a door.
  *
  * Two hinges hold a door up to about 900 mm; past that the trade rule is one

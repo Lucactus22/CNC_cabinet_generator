@@ -201,9 +201,9 @@ Wall units need a hanging rail, which is a new part role and a new joint. That
 is the only genuinely new geometry here.
 
 **Acceptance criteria.**
-- [ ] Four types available from a picker, each producing a sensible cabinet
-- [ ] No `if (type === ...)` branches in `build/builder.ts`
-- [ ] Wall units carry a hanging rail, joined and drilled
+- [x] Four types available from a picker, each producing a sensible cabinet
+- [x] No `if (type === ...)` branches in `build/builder.ts`
+- [x] Wall units carry a hanging rail, joined and drilled
 
 ---
 

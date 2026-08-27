@@ -200,6 +200,26 @@ export interface ToeKickSpec {
 }
 
 /**
+ * A solid rail captured between the sides near the top back, for a wall
+ * cabinet to be screwed to the wall through.
+ *
+ * A wall cabinet's own back panel is thin (12 mm by default) and cannot be
+ * trusted to carry the cabinet's weight and contents on its own screws. Ripping
+ * a strip of full carcass-thickness material in behind it — the same fix
+ * cabinetmaking guides use — gives the screw something to bite into. See
+ * JOINERY.md.
+ */
+export interface HangingRailSpec {
+  enabled: boolean;
+  /** Solid material top to bottom. Guides rip these to about 4 in (100 mm). */
+  height: number;
+  /** Clearance hole for the screw driven through the rail into the wall. */
+  screwDiameter: number;
+  /** Centre-to-centre pitch, kept under about one stud spacing (16 in = 406 mm) so the run always lands on at least two. */
+  screwSpacing: number;
+}
+
+/**
  * One box, in a stack of them.
  *
  * A cabinet is a column of these standing on each other, so everything that
@@ -227,6 +247,8 @@ export interface Carcass extends CarcassSpec {
    * exactly where the notch would be cut.
    */
   toeKick: ToeKickSpec;
+  /** A mounting rail for hanging this carcass on a wall. See HangingRailSpec. */
+  hangingRail: HangingRailSpec;
 }
 
 /**
@@ -354,7 +376,16 @@ export interface ProjectParams {
 // ---------------------------------------------------------------------------
 
 export type PartRole =
-  'door' | 'side' | 'bottom' | 'top' | 'divider' | 'shelf' | 'back' | 'toe-rail' | 'stretcher';
+  | 'door'
+  | 'side'
+  | 'bottom'
+  | 'top'
+  | 'divider'
+  | 'shelf'
+  | 'back'
+  | 'toe-rail'
+  | 'hanging-rail'
+  | 'stretcher';
 
 export type FaceSide = 'A' | 'B';
 
