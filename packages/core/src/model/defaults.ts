@@ -1,4 +1,5 @@
 import type { Cabinet, Carcass, HangingRailSpec, ProjectParams, Material } from './types.js';
+import { defaultOpening } from './opening.js';
 
 export const MATERIAL_CARCASS = 'ply18';
 export const MATERIAL_BACK = 'ply12';
@@ -243,6 +244,9 @@ export function defaultParams(): ProjectParams {
       plateFrontOffset: 37,
     },
     cabinets: [defaultCabinet()],
+    // Off until someone measures a room: with no opening the run is built
+    // exactly as it was before there was one in the model.
+    opening: defaultOpening(MATERIAL_CARCASS),
     nesting: {
       // Fewer setups beats a few percent of yield on a machine that has to
       // feed its stock through. It makes no difference when nothing tiles.

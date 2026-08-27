@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { frameOf, tessellate, type Part, type ProjectResult } from '@cabgen/core';
+import {
+  fitOpening,
+  frameOf,
+  openingWireframe,
+  runSize,
+  tessellate,
+  type Part,
+  type ProjectResult,
+} from '@cabgen/core';
 import { useStore } from '../store';
 
 const COLOURS = {
@@ -10,6 +18,7 @@ const COLOURS = {
   panelFaded: 0x6f6357,
   edge: 0x3a3128,
   feature: 0x3d2f1c,
+  room: 0x6f93bb,
 };
 
 /** How much of the cabinet is left showing around an isolated part. */
@@ -154,6 +163,11 @@ function createEngine(
 
   const root = new THREE.Group();
   scene.add(root);
+  // The measured opening, drawn around the square run so it is obvious what is
+  // being taken up where. Kept in its own group so it never joins the pick
+  // list or fades with a selected panel.
+  const room = new THREE.Group();
+  scene.add(room);
   const grid = new THREE.GridHelper(6000, 30, 0x2f353f, 0x22262e);
   grid.position.y = -1;
   scene.add(grid);
@@ -234,6 +248,7 @@ function createEngine(
   return {
     setScene(project) {
       disposeGroup(root);
+      disposeGroup(room);
       meshes = [];
       const bounds = new THREE.Box3();
 
@@ -245,6 +260,12 @@ function createEngine(
         bounds.expandByObject(built.group);
       }
 
+      const view = bounds.clone();
+      for (const loop of drawRoom(project)) {
+        room.add(loop);
+        view.expandByObject(loop);
+      }
+
       // Explode outwards from the middle of the unit.
       const centre = bounds.getCenter(new THREE.Vector3());
       for (const m of meshes) {
@@ -253,9 +274,9 @@ function createEngine(
         m.away.copy(m.home).add(dir.normalize().multiplyScalar(180));
       }
 
-      if (!framed && !bounds.isEmpty()) {
+      if (!framed && !view.isEmpty()) {
         framed = true;
-        const size = bounds.getSize(new THREE.Vector3());
+        const size = view.getSize(new THREE.Vector3());
         const radius = Math.max(size.x, size.y, size.z);
         controls.target.copy(centre);
         camera.position
@@ -283,6 +304,7 @@ function createEngine(
       renderer.domElement.removeEventListener('click', onClick);
       controls.dispose();
       disposeGroup(root);
+      disposeGroup(room);
       renderer.dispose();
       renderer.domElement.remove();
     },
@@ -328,6 +350,29 @@ function createEngine(
       });
     }
   }
+}
+
+/**
+ * The measured opening as line loops: the two return walls, the head, and the
+ * floor sloping under the run.
+ *
+ * The geometry comes from the core, off the very numbers the scribe parts are
+ * cut from, so what is on screen cannot drift from what is machined.
+ */
+function drawRoom(project: ProjectResult): THREE.LineLoop[] {
+  const { opening, cabinets } = project.params;
+  if (!opening.enabled) return [];
+  const run = runSize(cabinets);
+  const loops = openingWireframe(opening, fitOpening(opening, run), run);
+  if (loops.length === 0) return [];
+
+  const material = new THREE.LineBasicMaterial({ color: COLOURS.room });
+  return loops.map((loop) => {
+    const geom = new THREE.BufferGeometry().setFromPoints(
+      loop.map((p) => new THREE.Vector3(p.x, p.z, -p.y)),
+    );
+    return new THREE.LineLoop(geom, material);
+  });
 }
 
 interface BuiltPart {

@@ -12,6 +12,7 @@ Parametric cabinet designer that outputs CNC-ready DXF. Read this first, then
 | Understand a joint | [docs/JOINERY.md](docs/JOINERY.md) |
 | Understand the output format | [docs/DXF.md](docs/DXF.md) |
 | Understand doors and hinges | [docs/DOORS.md](docs/DOORS.md) |
+| Fit a run into a crooked room | [docs/OPENING.md](docs/OPENING.md) |
 | Understand surface decoration | [docs/EFFECTS.md](docs/EFFECTS.md) |
 | Know what it does, as a user | [README.md](README.md) |
 
@@ -20,7 +21,7 @@ Parametric cabinet designer that outputs CNC-ready DXF. Read this first, then
 ```bash
 npm install
 npm run dev          # http://localhost:5173
-npm test             # 190 tests, ~2s
+npm test             # 272 tests, ~2s
 npm run typecheck    # both packages
 npm run lint         # ESLint, including the core dependency boundary rule
 npm run format       # Prettier, writes in place

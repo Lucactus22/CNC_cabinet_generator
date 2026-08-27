@@ -3,15 +3,19 @@ import { useStore } from '../store';
 import {
   CABINET_TYPES,
   cabinetPositions,
+  describeFit,
   duplicateCabinet,
+  fitOpening,
   newCabinetOfType,
   newCarcass,
   resolveWidths,
+  runSize,
   type BaySpec,
   type Cabinet,
   type CabinetType,
   type Carcass,
   type DoorStyle,
+  type OpeningSpec,
   type ShelfMode,
 } from '@cabgen/core';
 import { CheckField, Group, Hint, NumberField, SelectField, TextField } from './Controls';
@@ -55,6 +59,7 @@ export function ParamPanel() {
 
       <CabinetList />
       <CarcassGroups />
+      <OpeningGroup />
 
       <Group title="Material">
         {params.materials.map((m, i) => (
@@ -581,6 +586,136 @@ export function ParamPanel() {
         />
       </Group>
     </aside>
+  );
+}
+
+/**
+ * The room, as measured with a tape.
+ *
+ * Everything here is something a person reads off a tape rather than decides,
+ * which is why it is four measurements and two angles rather than a model of a
+ * room. The derivation is shown underneath in full: that is the number someone
+ * checks against the wall before they cut a sheet, and it has to be visible
+ * without opening the diagnostics.
+ */
+function OpeningGroup() {
+  const params = useStore((s) => s.params);
+  const update = useStore((s) => s.update);
+  const opening = params.opening;
+  const run = runSize(params.cabinets);
+  const fit = fitOpening(opening, run);
+
+  const patch = (fn: (o: OpeningSpec) => void): void =>
+    update((p) => {
+      fn(p.opening);
+    });
+
+  return (
+    <Group title="Opening" open={opening.enabled}>
+      <CheckField
+        label="Fit to a measured opening"
+        value={opening.enabled}
+        onChange={(v) => patch((o) => void (o.enabled = v))}
+        title="The carcasses stay square whatever the room does. What comes out of this is the scribe strips and fillers that take up the difference."
+      />
+      {opening.enabled && (
+        <>
+          <NumberField
+            label="Width at the top"
+            value={opening.widthAtTop}
+            min={0}
+            onChange={(v) => patch((o) => void (o.widthAtTop = v))}
+            title="Clear width between the walls, measured level with the top of the run."
+          />
+          <NumberField
+            label="Width at the floor"
+            value={opening.widthAtBottom}
+            min={0}
+            onChange={(v) => patch((o) => void (o.widthAtBottom = v))}
+            title="The same measurement at the floor. A leaning wall makes the two differ."
+          />
+          <NumberField
+            label="Height at the left"
+            value={opening.heightAtLeft}
+            min={0}
+            onChange={(v) => patch((o) => void (o.heightAtLeft = v))}
+            title="Floor to the head of the opening. A difference between the ends is read as a sloping floor."
+          />
+          <NumberField
+            label="Height at the right"
+            value={opening.heightAtRight}
+            min={0}
+            onChange={(v) => patch((o) => void (o.heightAtRight = v))}
+          />
+          <SelectField
+            label="Left end"
+            value={opening.left}
+            options={[
+              { value: 'wall', label: 'Against a wall' },
+              { value: 'open', label: 'Open' },
+            ]}
+            onChange={(v) => patch((o) => void (o.left = v))}
+            title="An open end has nothing to scribe to, so no strip is made for it."
+          />
+          {opening.left === 'wall' && (
+            <NumberField
+              label="Corner angle, left"
+              value={opening.cornerAngleLeft}
+              suffix="°"
+              step={0.5}
+              min={45}
+              max={135}
+              onChange={(v) => patch((o) => void (o.cornerAngleLeft = v))}
+              title="Between the back wall and the return wall, in plan. 90 is square; less closes in towards the front."
+            />
+          )}
+          <SelectField
+            label="Right end"
+            value={opening.right}
+            options={[
+              { value: 'wall', label: 'Against a wall' },
+              { value: 'open', label: 'Open' },
+            ]}
+            onChange={(v) => patch((o) => void (o.right = v))}
+          />
+          {opening.right === 'wall' && (
+            <NumberField
+              label="Corner angle, right"
+              value={opening.cornerAngleRight}
+              suffix="°"
+              step={0.5}
+              min={45}
+              max={135}
+              onChange={(v) => patch((o) => void (o.cornerAngleRight = v))}
+            />
+          )}
+          <NumberField
+            label="Wall bow"
+            value={opening.wallBow}
+            min={0}
+            step={0.5}
+            onChange={(v) => patch((o) => void (o.wallBow = v))}
+            title="Worst gap under a straightedge held against the wall. Two width measurements say nothing about what the wall does between them."
+          />
+          <NumberField
+            label="Scribe allowance"
+            value={opening.scribe.width}
+            min={0}
+            onChange={(v) => patch((o) => void (o.scribe.width = v))}
+            title="Material left on the outer edge to plane back to the plaster. It has to be at least as wide as the bow."
+          />
+          <SelectField
+            label="Scribe material"
+            value={opening.scribe.materialId}
+            options={params.materials.map((m) => ({ value: m.id, label: m.name }))}
+            onChange={(v) => patch((o) => void (o.scribe.materialId = v))}
+          />
+          {describeFit(opening, fit, run).map((sentence, i) => (
+            <Hint key={i}>{sentence}</Hint>
+          ))}
+        </>
+      )}
+    </Group>
   );
 }
 

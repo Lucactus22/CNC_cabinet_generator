@@ -33,6 +33,16 @@ export function normaliseParams(raw: unknown): ProjectParams {
       },
     },
     cabinets: readCabinets(input),
+    // A file written before R-05 has no measured room at all, and must open as
+    // a project that simply has not been measured yet.
+    opening: {
+      ...base.opening,
+      ...(input.opening as object),
+      scribe: {
+        ...base.opening.scribe,
+        ...((input.opening as Record<string, unknown>)?.scribe as object),
+      },
+    },
     materials:
       Array.isArray(input.materials) && input.materials.length > 0
         ? (input.materials as ProjectParams['materials'])
@@ -41,6 +51,13 @@ export function normaliseParams(raw: unknown): ProjectParams {
       ? (input.surfaceEffects as SurfaceEffectSpec[]).map(migrateEffect)
       : [],
   };
+
+  // A hand-edited file can name a scribe material nothing in the list answers
+  // to, which would leave the strips silently absent. Fall back to the carcass
+  // material so the project opens with something that can actually be cut.
+  if (!merged.materials.some((m) => m.id === merged.opening.scribe.materialId)) {
+    merged.opening.scribe.materialId = merged.carcassMaterialId;
+  }
 
   // Older files called the clearance hole a pilot hole.
   const legacy = (input.joinery as Record<string, unknown>)?.screwPilotDiameter;

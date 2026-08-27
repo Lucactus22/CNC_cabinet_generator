@@ -11,7 +11,9 @@ import type {
   ProjectParams,
   Sign,
   ToeKickSpec,
+  Vec3,
 } from '../model/types.js';
+import { fitOpening, gapAtHeight, type OpeningFit, type RunSize } from '../model/opening.js';
 import { localFrame } from '../model/frame.js';
 import { hingeHeights, layoutBays, pinHeights, shelfHeights, wallMountXs } from './layout.js';
 
@@ -40,6 +42,8 @@ export interface JointRequest {
 export interface BuildResult {
   parts: Part[];
   joints: JointRequest[];
+  /** Blanks that are trapezoids rather than rectangles, resolved by the joinery stage. */
+  tapers: TaperRequest[];
   /** Adjustable-shelf pin rows, resolved to concrete holes by the joinery stage. */
   pinRows: PinRowRequest[];
   /** Toe kick cut-outs, resolved against each panel's own frame by the joinery stage. */
@@ -49,6 +53,23 @@ export interface BuildResult {
   /** Screw holes through a hanging rail, for mounting a wall cabinet. */
   wallMounts: WallMountRequest[];
   notes: string[];
+}
+
+/**
+ * One vertical edge of a blank cut back at one end, so the part follows a wall
+ * that leans instead of leaving a tapering gap down it.
+ *
+ * Stated in assembly directions rather than in the part's own local axes,
+ * because which local edge that turns out to be depends on the panel's
+ * handedness — exactly the mistake that hands back a mirrored filler.
+ */
+export interface TaperRequest {
+  partId: string;
+  /** Assembly direction the sloping edge faces: the way the wall lies. */
+  edgeFacing: Vec3;
+  /** Assembly direction of the end where the blank is narrower. */
+  narrowEnd: Vec3;
+  by: number;
 }
 
 /** Clearance holes through a hanging rail, resolved to local coordinates by the joinery stage. */
@@ -147,7 +168,9 @@ export function buildParts(params: ProjectParams): BuildResult {
   const toeNotches: ToeNotchRequest[] = [];
   const hinges: HingeRequest[] = [];
   const wallMounts: WallMountRequest[] = [];
+  const tapers: TaperRequest[] = [];
   const notes: string[] = [];
+  const ends: Partial<Record<'left' | 'right', RunEnd>> = {};
 
   // Cabinets stand side by side along the wall, each starting where the one
   // before it ends. Deriving the position from the order rather than storing an
@@ -241,12 +264,214 @@ export function buildParts(params: ProjectParams): BuildResult {
       z0 += carcass.height;
     });
 
+    // The end cabinets are the ones that meet the room, and only they carry a
+    // scribe. Recorded here rather than re-derived afterwards so the numbers
+    // come from the very placement the panels were built at.
+    const faces = frontFaces(carcasses, yBack);
+    if (ends.left === undefined) ends.left = { cabinetId: cabinet.id, x: xRun, faces };
+    ends.right = {
+      cabinetId: cabinet.id,
+      x: xRun + Math.max(...carcasses.map((c) => c.width)),
+      faces,
+    };
+
     // The widest box in the stack is what the next cabinet has to clear.
     xRun += Math.max(...carcasses.map((c) => c.width));
   }
 
-  return { parts, joints, pinRows, toeNotches, hinges, wallMounts, notes };
+  if (params.opening.enabled) {
+    const run = runSize(params.cabinets);
+    buildScribeParts(
+      params,
+      fitOpening(params.opening, run),
+      run.height,
+      ends,
+      parts,
+      tapers,
+      notes,
+    );
+  }
+
+  return { parts, joints, pinRows, toeNotches, hinges, wallMounts, tapers, notes };
 }
+
+/**
+ * One end of the run, where it meets the room.
+ *
+ * A scribe strip is the one part that is not a property of a single cabinet:
+ * it exists because the run as a whole stops here and a wall carries on. It is
+ * still built from one cabinet's own placement, so nothing about how that
+ * cabinet is machined depends on what else is in the run.
+ */
+interface RunEnd {
+  cabinetId: string;
+  /** Assembly X of the outer face of the run at this end. */
+  x: number;
+  /** One per front plane in the stack, from the floor up. */
+  faces: FrontFace[];
+}
+
+/**
+ * A stretch of the cabinet's front that lies in one plane.
+ *
+ * Carcasses at different depths step back from each other, so a single strip
+ * run up the whole stack would stand proud of the shallower boxes with nothing
+ * behind it. One strip per plane follows the front the way a filler actually
+ * does. Boxes at the same depth share a plane and share a strip: a joint line
+ * where the front is continuous is a joint line nobody wants.
+ */
+interface FrontFace {
+  /** The lowest carcass in this stretch, whose id the strip is filed under. */
+  carcassId: string;
+  /** What that carcass is called, for a label that says which one it stands against. */
+  carcassName: string;
+  yFront: number;
+  z0: number;
+  z1: number;
+}
+
+function frontFaces(carcasses: Carcass[], yBack: number): FrontFace[] {
+  const out: FrontFace[] = [];
+  let z = 0;
+  carcasses.forEach((carcass, k) => {
+    // The toe kick is a recess, so the strip starts above it.
+    const bottom = k === 0 && carcass.toeKick.enabled ? carcass.toeKick.height : z;
+    const yFront = yBack - carcass.depth;
+    const last = out[out.length - 1];
+    if (last && Math.abs(last.yFront - yFront) < TOL) last.z1 = z + carcass.height;
+    else {
+      out.push({
+        carcassId: carcass.id,
+        carcassName: carcass.name,
+        yFront,
+        z0: bottom,
+        z1: z + carcass.height,
+      });
+    }
+    z += carcass.height;
+  });
+  return out.filter((f) => f.z1 - f.z0 > TOL);
+}
+
+/** The overall size of the run: what has to fit inside a measured opening. */
+export function runSize(cabinets: Cabinet[]): RunSize {
+  let width = 0;
+  let height = 0;
+  let depth = 0;
+  for (const cabinet of cabinets) {
+    const carcasses = resolveWidths(cabinet.carcasses);
+    if (carcasses.length === 0) continue;
+    width += Math.max(...carcasses.map((c) => c.width));
+    height = Math.max(
+      height,
+      carcasses.reduce((a, c) => a + c.height, 0),
+    );
+    depth = Math.max(depth, ...carcasses.map((c) => c.depth));
+  }
+  return { width, height, depth };
+}
+
+/**
+ * The sacrificial parts that take up the difference between a square run and a
+ * crooked room.
+ *
+ * The carcass stays square — every joint here assumes axis-aligned rectangles,
+ * and doors and drawer slides need parallel sides to work at all — so the
+ * crookedness is absorbed in one part at each end that meets a wall, scribed to
+ * the plaster on site. That is both the correct answer and how the trade solves
+ * it. See docs/OPENING.md.
+ */
+function buildScribeParts(
+  params: ProjectParams,
+  fit: OpeningFit,
+  runHeight: number,
+  ends: Partial<Record<'left' | 'right', RunEnd>>,
+  parts: Part[],
+  tapers: TaperRequest[],
+  notes: string[],
+): void {
+  const opening = params.opening;
+  const material = params.materials.find((m) => m.id === opening.scribe.materialId);
+  // A missing material is reported by the diagnostics, which is where a missing
+  // part belongs; there is nothing sensible to build from it here.
+  if (!material) return;
+  const t = material.actualThickness;
+
+  for (const endFit of fit.ends) {
+    const end = ends[endFit.end];
+    if (!end) continue;
+    const side = endFit.end === 'left' ? 'L' : 'R';
+    const hand = endFit.end === 'left' ? 'Left' : 'Right';
+
+    for (const face of end.faces) {
+      // Nothing to take up. A square opening the run already fills, against a
+      // wall measured dead flat, needs no sacrificial part at all, and
+      // inventing one would be a panel and a fixing for a gap that is not there.
+      const gapLow = gapAtHeight(endFit, runHeight, face.z0);
+      const gapHigh = gapAtHeight(endFit, runHeight, face.z1);
+      if (gapLow <= TOL && gapHigh <= TOL && opening.wallBow <= TOL) continue;
+
+      // Cut to the gap plus the scribe allowance, so a uniform strip of
+      // material is left to plane off all the way up rather than 20 mm at one
+      // end and nothing at the other.
+      const atTop = gapHigh + opening.scribe.width;
+      const atBottom = gapLow + opening.scribe.width;
+      const widest = Math.max(atTop, atBottom);
+      if (widest <= TOL) continue;
+
+      // A strip that is only the scribe allowance, plus the standoff that keeps
+      // the carcass clear of a bulge in the wall, is a scribe; anything covering
+      // a real gap as well is a filler panel, and a woodworker calls it that.
+      const filling = widest > opening.scribe.width + opening.wallBow + 1;
+      const what = filling ? 'filler panel' : 'scribe strip';
+      const outward: Vec3 = endFit.end === 'left' ? { x: -1, y: 0, z: 0 } : { x: 1, y: 0, z: 0 };
+      const x0 = endFit.end === 'left' ? end.x - widest : end.x;
+
+      // Named for the carcass it stands against, but only where the stack steps
+      // back and there is more than one: a single-carcass cabinet has nothing to
+      // distinguish and reads better without it.
+      const against = end.faces.length > 1 ? `, ${face.carcassName.toLowerCase()}` : '';
+      const id = `${end.cabinetId}-${face.carcassId}-SCRIBE-${side}`;
+      const b = box(x0, x0 + widest, face.yFront - t, face.yFront, face.z0, face.z1);
+      parts.push({
+        id,
+        label: `${hand}-hand ${what}${against}`,
+        role: 'scribe',
+        cabinetId: end.cabinetId,
+        carcassId: face.carcassId,
+        materialId: material.id,
+        thickness: t,
+        box: b,
+        // Face A is the back, as it is on a door, so a surface effect asked for
+        // on the outside lands on the face that shows next to the doors.
+        normalAxis: 'y',
+        faceASign: '+',
+        frame: localFrame(b, 'y', '+'),
+        width: 0,
+        height: 0,
+        exposed: { x: 0, y: 0, w: 0, h: 0 },
+        outline: rect(0, 0, 0, 0),
+        features: [],
+        // Upright, alongside the door it stands next to.
+        grainAxis: 'v',
+      });
+
+      if (atTop < widest - TOL) {
+        tapers.push({ partId: id, edgeFacing: outward, narrowEnd: UP, by: widest - atTop });
+      } else if (atBottom < widest - TOL) {
+        tapers.push({ partId: id, edgeFacing: outward, narrowEnd: DOWN, by: widest - atBottom });
+      }
+
+      notes.push(
+        `${hand}-hand ${what}${against}: ${atBottom.toFixed(0)} mm wide at the bottom and ${atTop.toFixed(0)} mm at the top, with ${opening.scribe.width} mm to plane back to the wall. No fixings are machined for it, because where it finally lands is decided against the plaster.`,
+      );
+    }
+  }
+}
+
+const TOL = 1e-6;
+const UP: Vec3 = { x: 0, y: 0, z: 1 };
+const DOWN: Vec3 = { x: 0, y: 0, z: -1 };
 
 /**
  * Resolve each carcass's width, following the chain of links down the stack.

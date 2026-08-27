@@ -13,6 +13,7 @@ import {
   buildParts,
   type BuildResult,
   type PinRowRequest,
+  type TaperRequest,
   type ToeNotchRequest,
   type WallMountRequest,
 } from '../build/builder.js';
@@ -93,6 +94,11 @@ export function applyJoinery(params: ProjectParams, built: BuildResult): string[
     if (draft) applyWallMountHoles(draft, mount);
   }
 
+  for (const req of built.tapers) {
+    const draft = drafts.get(req.partId);
+    if (draft) applyTaper(draft, req, warnings);
+  }
+
   for (const draft of drafts.values()) materialise(draft, params);
   return warnings;
 }
@@ -155,12 +161,36 @@ function toLocalXY(
 }
 
 /**
+ * Cut one vertical edge of a blank back at one end, so it follows a leaning wall.
+ *
+ * Resolved here, against the part's own frame, rather than in the builder:
+ * which local edge faces the wall depends on the panel's handedness, and
+ * guessing it is how a filler comes back mirrored and tapering the wrong way.
+ */
+function applyTaper(draft: PartDraft, req: TaperRequest, warnings: string[]): void {
+  const edge = edgeFacing(draft.frame, req.edgeFacing);
+  const end = edgeFacing(draft.frame, req.narrowEnd);
+  if (!edge || !end || !isVerticalEdge(edge) || isVerticalEdge(end)) {
+    warnings.push(
+      `${draft.part.label}: the taper does not lie along either axis of the blank, so it was left square.`,
+    );
+    return;
+  }
+  draft.taper = { edge, at: end, by: req.by };
+  // Only the rectangle that fits inside the trapezoid at every height is
+  // really on show, so a groove effect cannot run off the sloping edge at the
+  // narrow end.
+  if (edge === 'left') draft.exposed.x += req.by;
+  draft.exposed.w -= req.by;
+}
+
+/**
  * Build the final outline once every joint has contributed its notches and
  * tabs, then record the blank size the nester and cut list will work from.
  */
 function materialise(draft: PartDraft, params: ProjectParams): void {
   refreshBase(draft);
-  const { base, notches, tabs } = draft;
+  const { base, notches, tabs, taper } = draft;
 
   let outline = buildOutline({
     x0: base.x,
@@ -169,6 +199,7 @@ function materialise(draft: PartDraft, params: ProjectParams): void {
     h: base.h,
     notches,
     tabs,
+    taper,
   });
 
   // A tab leaves an inside corner at its root. Left alone the cutter's radius
@@ -191,10 +222,15 @@ function materialise(draft: PartDraft, params: ProjectParams): void {
     // Put the label on whichever face is already being worked, so it never
     // becomes the reason a panel gets turned over.
     const machined = draft.part.features.find(forcesFace);
+    // A tapered blank has no material at the corner of its bounding box on the
+    // sloping side, so the label is anchored to the rectangle that is inside
+    // the part at every height. Engraved into thin air it would be cut across
+    // the neighbouring part on the sheet.
+    const anchor = taper ? draft.exposed : { x: bb.minX, y: bb.minY };
     const label: EngraveFeature = {
       kind: 'engrave',
-      x: bb.minX + 12,
-      y: bb.minY + 12,
+      x: anchor.x + 12,
+      y: anchor.y + 12,
       text: draft.part.id,
       height: 8,
       side: machined?.side ?? 'A',
