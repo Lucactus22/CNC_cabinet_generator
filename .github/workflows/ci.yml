@@ -15,6 +15,12 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      # @cabgen/core resolves through its package.json to ./dist, which npm ci
+      # does not create. Without this the lint step cannot resolve a single
+      # '@cabgen/core' import from apps/web, and it passes on a developer's
+      # machine only because a previous build left dist/ lying around.
+      - name: Build core
+        run: npm run build -w @cabgen/core
       - name: Lint
         run: npm run lint
       - name: Typecheck core
