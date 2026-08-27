@@ -1,7 +1,12 @@
-import type { Cabinet, Carcass, ProjectParams, Material } from './types.js';
+import type { Cabinet, Carcass, HangingRailSpec, ProjectParams, Material } from './types.js';
 
 export const MATERIAL_CARCASS = 'ply18';
 export const MATERIAL_BACK = 'ply12';
+
+/** Off by default: only a wall cabinet has anything to hang from. */
+export function defaultHangingRail(): HangingRailSpec {
+  return { enabled: false, height: 100, screwDiameter: 6, screwSpacing: 400 };
+}
 
 export function defaultMaterials(): Material[] {
   return [
@@ -43,6 +48,7 @@ export function defaultBaseCarcass(): Carcass {
     linkWidthToBelow: false,
     floor: 'own',
     toeKick: { enabled: true, height: 100, setback: 50 },
+    hangingRail: defaultHangingRail(),
     dividerCount: 1,
     bayWidths: [],
     bays: [
@@ -65,6 +71,7 @@ export function defaultUpperCarcass(): Carcass {
     linkWidthToBelow: true,
     floor: 'own',
     toeKick: { enabled: false, height: 100, setback: 50 },
+    hangingRail: defaultHangingRail(),
     dividerCount: 1,
     bayWidths: [],
     bays: [
@@ -126,6 +133,7 @@ export function newCarcass(existing: Carcass[]): Carcass {
     linkWidthToBelow: existing.length > 0,
     floor: 'own',
     toeKick: { enabled: false, height: 100, setback: 50 },
+    hangingRail: defaultHangingRail(),
     dividerCount: 0,
     bayWidths: [],
     bays: [{ shelves: 'adjustable', shelfCount: 0, doors: 'none' }],
@@ -165,6 +173,7 @@ export function copyCarcass(source: Carcass): Carcass {
     bays: source.bays.map((b) => ({ ...b })),
     back: { ...source.back },
     toeKick: { ...source.toeKick },
+    hangingRail: { ...source.hangingRail },
   };
 }
 

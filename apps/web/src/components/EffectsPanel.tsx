@@ -23,6 +23,7 @@ const ROLE_TARGETS: Array<{ role: PartRole; label: string }> = [
   { role: 'bottom', label: 'Bottom' },
   { role: 'top', label: 'Top' },
   { role: 'toe-rail', label: 'Toe kick rail' },
+  { role: 'hanging-rail', label: 'Hanging rail' },
 ];
 
 /**

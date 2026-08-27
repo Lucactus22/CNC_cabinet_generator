@@ -8,11 +8,13 @@ import type {
   Part,
   PocketFeature,
 } from '../model/types.js';
+import { toLocal } from '../model/frame.js';
 import {
   buildParts,
   type BuildResult,
   type PinRowRequest,
   type ToeNotchRequest,
+  type WallMountRequest,
 } from '../build/builder.js';
 import { applyEffects } from '../effects/index.js';
 import { applyHinges } from '../hardware/hinges.js';
@@ -84,6 +86,11 @@ export function applyJoinery(params: ProjectParams, built: BuildResult): string[
   for (const notch of built.toeNotches) {
     const draft = drafts.get(notch.panelId);
     if (draft) applyToeNotch(draft, notch);
+  }
+
+  for (const mount of built.wallMounts) {
+    const draft = drafts.get(mount.panelId);
+    if (draft) applyWallMountHoles(draft, mount);
   }
 
   for (const draft of drafts.values()) materialise(draft, params);
@@ -213,6 +220,30 @@ function applyToeNotch(draft: PartDraft, req: ToeNotchRequest): void {
     existing.dy = Math.max(existing.dy, dy);
   } else {
     draft.notches.push({ corner, dx, dy });
+  }
+}
+
+/**
+ * Clearance holes through a hanging rail, for the screws that hang the
+ * cabinet on the wall.
+ *
+ * A through hole, drilled the same regardless of which face it is read from,
+ * so unlike a joint's assembly screws this never forces the panel onto a
+ * second face.
+ */
+function applyWallMountHoles(draft: PartDraft, req: WallMountRequest): void {
+  for (const x of req.xs) {
+    const local = toLocal(draft.frame, { x, y: draft.frame.origin.y, z: req.z });
+    const hole: DrillFeature = {
+      kind: 'drill',
+      x: local.x,
+      y: local.y,
+      diameter: req.diameter,
+      depth: 'thru',
+      side: 'A',
+      purpose: 'wall-mount',
+    };
+    draft.part.features.push(hole);
   }
 }
 

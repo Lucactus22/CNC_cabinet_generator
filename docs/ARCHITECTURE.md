@@ -84,6 +84,13 @@ floor is the datum — so a shallower box on top steps back at the front. Each o
 either has its own bottom panel or stands in the top of the carcass below it,
 and only the one actually on the floor can have a toe kick.
 
+`model/types-library.ts` holds `CABINET_TYPES` — base, wall, tall/pantry and
+stacked — as *presets*, not classes: each just seeds an ordinary `Cabinet` with
+the fields every other cabinet uses. The builder has no branch on which type
+produced a cabinet; a wall unit looks different only because its `CarcassSpec`
+turns `toeKick` off and `hangingRail` on. Add a fifth type by writing another
+preset, never by teaching `build/builder.ts` a new case.
+
 Everything above the cabinet list is project-wide, because it describes the
 workshop rather than the furniture: one spindle, one stack of sheets, one set of
 grooves that all have to fit each other.
@@ -246,8 +253,6 @@ person will delete.
 
 Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
-- one cabinet *type* only: every cabinet in a run starts from the same shape
-  and is edited into a wall or tall unit by hand (**R-04**)
 - everything is a rectangle. Out-of-square rooms need one tapered part shape
   (**R-05**), which `buildOutline` cannot yet make
 - frameless only; no face frames (**R-07**)

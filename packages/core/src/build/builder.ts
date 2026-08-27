@@ -13,7 +13,7 @@ import type {
   ToeKickSpec,
 } from '../model/types.js';
 import { localFrame } from '../model/frame.js';
-import { hingeHeights, layoutBays, pinHeights, shelfHeights } from './layout.js';
+import { hingeHeights, layoutBays, pinHeights, shelfHeights, wallMountXs } from './layout.js';
 
 /**
  * A joint the joinery stage has to realise. The builder decides *what* meets
@@ -26,7 +26,7 @@ export interface JointRequest {
   depthOverride?: number;
   /** Carcass joints stop short of this assembly Y so nothing shows on the front edge. */
   stopFrontAtY?: number;
-  purpose: 'carcass' | 'shelf' | 'back' | 'divider' | 'toe-rail';
+  purpose: 'carcass' | 'shelf' | 'back' | 'divider' | 'toe-rail' | 'hanging-rail';
   /** Backs and toe rails always sit in a plain groove, whatever the carcass joint is. */
   forceDado?: boolean;
   /**
@@ -46,7 +46,19 @@ export interface BuildResult {
   toeNotches: ToeNotchRequest[];
   /** Doors needing hinge boring. */
   hinges: HingeRequest[];
+  /** Screw holes through a hanging rail, for mounting a wall cabinet. */
+  wallMounts: WallMountRequest[];
   notes: string[];
+}
+
+/** Clearance holes through a hanging rail, resolved to local coordinates by the joinery stage. */
+export interface WallMountRequest {
+  panelId: string;
+  /** Assembly-space X positions of the screw holes along the rail. */
+  xs: number[];
+  /** Assembly-space Z height all the holes are drilled at: the rail's mid-height. */
+  z: number;
+  diameter: number;
 }
 
 /**
@@ -112,6 +124,18 @@ const box = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: num
   max: { x: x1, y: y1, z: z1 },
 });
 
+/** Whichever panels bound bay `i`: outer sides at the ends, dividers within. */
+const bayBoundingPanels = (
+  i: number,
+  bayCount: number,
+  leftId: string,
+  rightId: string,
+  dividerIds: string[],
+): { leftPanel: string; rightPanel: string } => ({
+  leftPanel: i === 0 ? leftId : dividerIds[i - 1]!,
+  rightPanel: i === bayCount - 1 ? rightId : dividerIds[i]!,
+});
+
 export function buildParts(params: ProjectParams): BuildResult {
   const carcassMat = findMaterial(params, params.carcassMaterialId);
   const shelfMat = findMaterial(params, params.shelfMaterialId);
@@ -122,6 +146,7 @@ export function buildParts(params: ProjectParams): BuildResult {
   const pinRows: PinRowRequest[] = [];
   const toeNotches: ToeNotchRequest[] = [];
   const hinges: HingeRequest[] = [];
+  const wallMounts: WallMountRequest[] = [];
   const notes: string[] = [];
 
   // Cabinets stand side by side along the wall, each starting where the one
@@ -210,6 +235,7 @@ export function buildParts(params: ProjectParams): BuildResult {
         pinRows,
         toeNotches,
         hinges,
+        wallMounts,
         notes,
       );
       z0 += carcass.height;
@@ -219,7 +245,7 @@ export function buildParts(params: ProjectParams): BuildResult {
     xRun += Math.max(...carcasses.map((c) => c.width));
   }
 
-  return { parts, joints, pinRows, toeNotches, hinges, notes };
+  return { parts, joints, pinRows, toeNotches, hinges, wallMounts, notes };
 }
 
 /**
@@ -263,6 +289,7 @@ function buildCarcass(
   pinRows: PinRowRequest[],
   toeNotches: ToeNotchRequest[],
   hinges: HingeRequest[],
+  wallMounts: WallMountRequest[],
   notes: string[],
 ): void {
   const { spec, yFront, z0 } = ctx;
@@ -287,7 +314,11 @@ function buildCarcass(
   // Standing on the panel below means its top face is this carcass's floor.
   const hasOwnBottom = ctx.standsOnId === null;
   const shelfZ0 = hasOwnBottom ? z0 + toeH + t : z0;
-  const shelfZ1 = zTop - t; // underside of the top panel
+  // A hanging rail claims a band under the top the same way a toe kick claims
+  // one at the floor: dividers reach the top regardless (they are jointed to
+  // it), so it is the storage interior that has to give up the room, not the
+  // rail that has to dodge whatever a divider grew into.
+  const shelfZ1 = zTop - t - (spec.hangingRail.enabled ? spec.hangingRail.height : 0);
 
   const add = (
     id: string,
@@ -464,6 +495,12 @@ function buildCarcass(
     }
   }
 
+  if (spec.hangingRail.enabled && shelfZ1 < shelfZ0 - 1e-9) {
+    notes.push(
+      `${human} carcass: the ${spec.hangingRail.height} mm hanging rail leaves no room for the carcass interior. Shorten it or make the carcass taller.`,
+    );
+  }
+
   // --- Dividers ----------------------------------------------------------
   const layout = layoutBays(spec, t);
   // layoutBays works in the carcass's own coordinates, from its left face at
@@ -488,7 +525,14 @@ function buildCarcass(
       'divider',
       carcassMat.id,
       t,
-      box(x, x + t, yFront, innerBackY, shelfZ0, shelfZ1),
+      // Reaches the true underside of the top, not the reduced shelfZ1: a
+      // divider is jointed to the top regardless of a hanging rail, so it
+      // ends up there anyway once the joint grows it. Building it there from
+      // the start, rather than trusting that growth, is what lets a hanging
+      // rail's own dado into this divider find material to cut a pocket in —
+      // under carcassJoint: 'tabslot' the divider-to-top joint is a tab, not
+      // a dado, and does not grow the box the same way.
+      box(x, x + t, yFront, innerBackY, shelfZ0, zTop - t),
       'x',
       '+',
       'v',
@@ -497,6 +541,63 @@ function buildCarcass(
     joints.push({ maleId: id, femaleId: topId, stopFrontAtY: yFront, purpose: 'divider' });
   });
 
+  // --- Hanging rail --------------------------------------------------------
+  // One segment per bay, bounded by whatever stands either side of it — a
+  // divider always reaches the top regardless of shelfZ1 (it is jointed there),
+  // so a rail spanning the full width would cross straight through one. A
+  // shelf already avoids this by stopping at its own bay; the rail reuses the
+  // same bounding-panel logic.
+  if (spec.hangingRail.enabled) {
+    const hr = spec.hangingRail;
+    // Flush with the underside of the top panel, and with the back's inner
+    // face, so it fills the corner a screw driven forward from inside the
+    // cabinet needs to reach the wall behind.
+    const hangZ1 = zTop - t;
+    const hangZ0 = hangZ1 - hr.height;
+    const hangY1 = innerBackY;
+    const hangY0 = hangY1 - t;
+
+    bays.forEach((bay, i) => {
+      const { leftPanel, rightPanel } = bayBoundingPanels(
+        i,
+        bays.length,
+        leftId,
+        rightId,
+        dividerIds,
+      );
+      const hangId = `${prefix}-HANGRAIL-${i + 1}`;
+      add(
+        hangId,
+        `${human} hanging rail, bay ${i + 1}`,
+        'hanging-rail',
+        carcassMat.id,
+        t,
+        box(bay.x0, bay.x1, hangY0, hangY1, hangZ0, hangZ1),
+        'y',
+        '-',
+        'u',
+      );
+      joints.push({
+        maleId: hangId,
+        femaleId: leftPanel,
+        purpose: 'hanging-rail',
+        forceDado: true,
+      });
+      joints.push({
+        maleId: hangId,
+        femaleId: rightPanel,
+        purpose: 'hanging-rail',
+        forceDado: true,
+      });
+      wallMounts.push({
+        panelId: hangId,
+        xs: wallMountXs(bay.x0, bay.x1, hr.screwSpacing),
+        z: (hangZ0 + hangZ1) / 2,
+        diameter: hr.screwDiameter,
+      });
+    });
+  }
+
   // --- Shelves -----------------------------------------------------------
   bays.forEach((bay, i) => {
     const baySpec = spec.bays[i] ??
@@ -504,9 +605,13 @@ function buildCarcass(
         shelves: 'none' as const,
         shelfCount: 0,
       };
-    // Whichever panels bound this bay: outer sides at the ends, dividers within.
-    const leftPanel = i === 0 ? leftId : dividerIds[i - 1]!;
-    const rightPanel = i === bays.length - 1 ? rightId : dividerIds[i]!;
+    const { leftPanel, rightPanel } = bayBoundingPanels(
+      i,
+      bays.length,
+      leftId,
+      rightId,
+      dividerIds,
+    );
 
     if (baySpec.shelves === 'fixed' && baySpec.shelfCount > 0) {
       const zs = shelfHeights(shelfZ0, shelfZ1, baySpec.shelfCount, t);

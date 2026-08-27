@@ -115,6 +115,7 @@ function mergeCarcass(template: Carcass, raw: Record<string, unknown>): Carcass 
     ...(raw as Partial<Carcass>),
     back: { ...template.back, ...(raw.back as object) },
     toeKick: { ...template.toeKick, ...(raw.toeKick as object) },
+    hangingRail: { ...template.hangingRail, ...(raw.hangingRail as object) },
     bays: Array.isArray(raw.bays) ? (raw.bays as Carcass['bays']) : template.bays,
     bayWidths: Array.isArray(raw.bayWidths) ? (raw.bayWidths as number[]) : [],
   };

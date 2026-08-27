@@ -200,6 +200,46 @@ back's face stepped behind the sides and awkward to reach.
 Pick groove to keep the back invisible from behind; pick rabbet when the back
 of the carcass has to meet a wall that is not flat.
 
+## Hanging rail
+
+A wall cabinet's own back panel is thin by default (12 mm) and is not something
+to trust with the cabinet's weight, its contents, and every knock it takes over
+the years. Cabinetmaking guides solve this the same way: rip a strip of full
+carcass-thickness material in behind the top and screw through *that* instead.
+Rockler's own build guide for upper kitchen cabinets rips its mounting cleats
+about 4 in (100 mm) wide, captured between the sides the same way this rail is;
+general cabinet-installation advice is to drive the screw through a ¾ in
+plywood rail into at least two studs.
+
+It is the same housing joint as the toe kick rail, just at the top instead of
+the bottom, and — like a shelf, not like the toe kick rail — **one segment per
+bay** rather than one piece spanning the outer sides:
+
+```
+Each segment spans one bay, captured in a plain dado in whatever bounds it
+A divider always reaches the top regardless of the rail: it is jointed there
+So a rail spanning the full width would run straight through every divider
+Its rear face sits flush against the back panel's own inner face
+Its top face sits flush under the top panel
+The storage interior below gives up hangingRail.height of ceiling height,
+the same way it gives up floor height to a toe kick
+```
+
+Positioning it flush against the back and flush under the top means it never
+has to compete with either for the same space, and a screw driven forward from
+inside the cabinet reaches straight through the rail into the wall behind. The
+rail's own screw holes run **through its face**, not into its edge, so unlike
+every other joint here there is no depth to guess: `depth: 'thru'`.
+
+Screw positions are spread along each segment with both ends held in and never
+more than `screwSpacing` apart (400 mm by default, comfortably under a stud's
+usual 16 in / 406 mm), and never fewer than two per segment — this is the one
+part in the whole generator sized against something the machine cannot see:
+the studs behind the wall.
+
+Only a wall cabinet turns this on; every other type leaves `hangingRail`
+disabled, because nothing else in this generator is hung rather than stood.
+
 ## Shelf pins (32 mm system)
 
 | Setting | Default | Why |
