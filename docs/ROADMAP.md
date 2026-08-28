@@ -612,10 +612,358 @@ regenerates and compares them, and a documented way to update them deliberately.
 
 ---
 
-## Milestone F — Release
+## Milestone F — Design, and the people using it
 
-### R-16 — 1.0 release
-`Milestone F` · `Depends on: everything above` · `Size: S`
+Everything up to here makes the tool *capable*. None of it makes it pleasant,
+and this one is dense: eleven sidebar groups, sixty-odd numeric fields, and a
+vocabulary — dado, overlay, boring distance, dogbone — that a beginner does not
+have yet.
+
+**The idea this milestone is built on:** the tool already contains an exact
+geometry engine. It can draw anything it can cut. So wherever the interface
+currently *describes* a choice in words, it should *show* the result instead —
+rendered from the same code that machines it, so the picture can never disagree
+with the part. Words explain the trade-off; the picture explains the thing.
+
+Work R-16 first. The rest is only as good as the understanding of the journeys
+it comes from.
+
+### R-16 — Name the users, then walk their journeys
+`Milestone F` · `Depends on: nothing` · `Size: M`
+
+**Problem.** Every UX decision so far was made by whoever was writing the
+feature, one control at a time. Nobody has written down who this is for or what
+they are trying to get done, so there is nothing to judge a design against
+except taste.
+
+**Goal.** A short design document — `docs/UX.md` — naming the users, the
+journeys that matter, where each breaks down today, and the interface principles
+the rest of this milestone follows. It is the thing to argue with when a later
+item feels wrong.
+
+**Where.** A new `docs/UX.md`. No code.
+
+**Design notes.** Two or three users, honestly drawn. The obvious one is a
+hobbyist with a small CNC in a garage, cutting one cabinet for their own house,
+who knows woodworking but not CAM and has never heard the phrase "boring
+distance". There is probably a second who builds for other people and cares
+about repeatability and cost. Do not invent a third for symmetry.
+
+Then walk the journeys **in the running app**, with the clock going:
+
+| Journey | The question really being asked |
+|---|---|
+| First cabinet, from nothing | "Where do I even start?" |
+| Fit a design to a real room | "Will this go in my crooked alcove?" |
+| Change my mind about the doors | "Can I try this without breaking it?" |
+| Choose how it goes together | "Which of these joints do I want, and why?" |
+| Take it to the machine | "Is this safe to cut yet?" |
+| Re-cut one part I ruined | "Can I get just that one part again?" |
+
+The last one deserves weight: ruining a part is normal, and the only route today
+is to re-export everything.
+
+Record steps, interaction counts, every place the user has to guess a word's
+meaning, and every place they would reasonably give up. **Friction found by
+walking the flow beats friction imagined at a desk** — an item in this milestone
+that cannot point at an observed failure probably should not exist.
+
+**Acceptance criteria.**
+- [ ] `docs/UX.md` names the users and journeys, with the reasoning
+- [ ] Each journey walked in the running app and written up as it really is,
+      with interaction counts as a baseline to beat
+- [ ] A prioritised friction list, each entry naming the journey it came from
+- [ ] Interface principles written down, including when to show and when to tell
+- [ ] The rest of this milestone reconciled against that list: confirmed,
+      re-scoped, or dropped with a reason
+
+**Risks.** Writing personas that flatter the software already built. If a
+journey comes out fine on the first walk, be suspicious and watch somebody who
+has never seen the tool try it.
+
+---
+
+### R-17 — Every choice a picture, rendered from the geometry itself
+`Milestone F` · `Depends on: R-16` · `Size: L`
+
+**Problem.** The consequential choices in this tool are all dropdowns of
+jargon. "Stopped dado + screws" or "Tab and slot". "Capped over the sides" or
+"Inset between the sides". "In a groove", "In a rabbet". A tooltip explains each
+in a sentence, which helps if you already half know. If you do not, you are
+picking blind — and these are the decisions that determine what the cabinet
+looks like and how hard it is to build.
+
+**Goal.** Every choice that has a visible consequence is made by looking at that
+consequence. A gallery of small rendered pictures, not a `<select>`.
+
+**Where.** A new thumbnail renderer in `apps/web`, `Controls.tsx`, every panel
+that currently uses `SelectField` for a geometric choice.
+
+**Design notes.** **The pictures are generated, not drawn.** Build a tiny sample
+model for each choice — two panels meeting, a top on a side, a door on a
+carcass — run it through `buildProject`, and render the result. A stopped dado
+thumbnail is then literally a stopped dado as this tool cuts it, including the
+notch and the stop. Hand-drawn icons would drift the first time the joinery
+changed; these cannot, and R-01 through R-08 will keep changing the joinery.
+
+This is cheap because the engine is pure, synchronous and fast: a thumbnail is a
+few milliseconds. Render once, cache, invalidate on parameter change.
+
+Some choices read best as a **cutaway**. A capped top versus an inset one is
+invisible from outside — that is the entire point of capping — so the thumbnail
+must be a section through the corner, showing the seam in one and not the other.
+Section rendering is a small, reusable addition and R-19 wants it too.
+
+**Words still matter, but different words.** Under each picture, the trade-off in
+one line, in the user's terms rather than the tool's: *"No fasteners needed.
+Joints show on the outside."* Not a restatement of the option's name.
+
+Then: **hovering a choice previews it in the main 3D view** and reverts on
+leave. Commit on click. Seeing the change on your own cabinet, at your own
+dimensions, beats any thumbnail — the thumbnail is how you know what to hover.
+
+Worth applying to: carcass joint, corner relief style, top style, back style,
+upper floor, door fit, door style, cabinet type, nesting strategy. Roughly a
+dozen dropdowns become galleries.
+
+**Acceptance criteria.**
+- [ ] A thumbnail renderer that builds its samples through the real pipeline
+- [ ] Every geometric choice presented as pictures with a one-line trade-off
+- [ ] Cutaway thumbnails where the difference is internal
+- [ ] Hover previews the choice on the actual design; click commits
+- [ ] Thumbnails cached, and never stale after a joinery change
+- [ ] Text-only fallback for anything genuinely non-visual
+
+**Tests.** Every choice in every gallery builds a sample without error — that
+catches a stale sample after a model change, which is exactly the failure this
+design is meant to prevent.
+
+**Risks.** Rendering a dozen thumbnails on every keystroke. They depend on
+material thickness and tool diameter but not on cabinet size; key the cache on
+what they actually use.
+
+---
+
+### R-18 — Start from something real, and reveal depth on demand
+`Milestone F` · `Depends on: R-16, R-17` · `Size: M`
+
+**Problem.** Opening the app gives you eleven collapsible groups and something
+near sixty numeric fields, every one equally prominent. Somebody who knows
+cabinets but not this tool cannot tell which five numbers matter and which
+fifty-five have good defaults they should not touch. The empty state teaches
+nothing.
+
+**Goal.** You begin by picking a picture of a cabinet close to what you want,
+and the interface shows you a handful of fields, with the rest a click away.
+
+**Where.** A new starter-project module, `ParamPanel.tsx`, `store.ts`.
+
+**Design notes.** **Start from something, not nothing.** Ship real starter
+projects — the reference built-in, a run of base units, a wall cabinet, a
+wardrobe, a bookcase — each loading complete and cuttable. Present them as a
+gallery of renders produced the same way as R-17's thumbnails, so they stay
+honest. Editing something that works is far easier than composing from defaults,
+and each one doubles as proof of what the tool can do.
+
+**Sort the sidebar by the order of the job**, not the order the features were
+built: what am I making → how big → what is inside → how it goes together → my
+machine → what comes out. Today's order is neither.
+
+**Split basic from advanced.** Most groups have two or three fields that matter
+and several that should be left alone. Dado depth is basic; dowel offset is not.
+Show the first few, disclose the rest. Hinge boring should be invisible until
+somebody has a reason to care.
+
+**Acceptance criteria.**
+- [ ] Starter projects chosen from a gallery of live renders, loading complete
+      and generating with no diagnostics
+- [ ] Default sidebar readable at a glance, everything else one disclosure away
+- [ ] Groups ordered by the job, justified in `docs/UX.md`
+- [ ] Somebody who has not used the tool reaches an exportable design without
+      being told what to click
+- [ ] The interaction count for "first cabinet" measurably beats R-16's baseline
+
+**Tests.** Every starter project builds, nests and exports cleanly.
+
+---
+
+### R-19 — Configure the cabinet by touching the cabinet
+`Milestone F` · `Depends on: R-16, R-03` · `Size: L`
+
+**Problem.** The 3D view shows the cabinet and you cannot do anything to it. To
+put a door on the second bay you look away from the model, find the right
+carcass group, count bays in your head, and set "Bay 2". The model is right
+there and it is inert. And the joinery — the part people most want to
+understand — is buried inside the panels where nothing can show it.
+
+**Goal.** Direct manipulation. Click a bay to configure it in place. Click a
+door to restyle it. Drag a divider or a shelf. Cut a section through the cabinet
+to see how it actually goes together.
+
+**Where.** `Viewport3D.tsx`, a new in-viewport inspector, `store.ts`.
+
+**Design notes.** Selection and isolation already work and the raycasting is in
+place, so this is the next step from what exists rather than a rewrite.
+
+Start with **click to configure**, which is most of the value for a fraction of
+the work: select a bay, get its controls in a popover near what you clicked,
+using R-17's galleries. Add **dragging** afterwards, and only where a millimetre
+either way is a real judgement — a divider, a fixed shelf. Dragging is for
+deciding; typing is for committing, so every draggable thing keeps its field.
+Snap to the 32 mm system, to equal bays, to round numbers, and show the live
+dimension. A drag that lands on 437.3 mm is worse than no drag at all.
+
+**The section plane** is the other half. Drag a plane through the model and see
+the dados, the tongues, the hinge cups — the geometry is all there and has never
+been visible. It teaches the joinery better than `JOINERY.md` can, and R-17
+needs the same rendering for its cutaway thumbnails. Build it once.
+
+Bays are not parts and cannot currently be picked. Making them addressable is
+the real design work here; get it right before any dragging.
+
+**Acceptance criteria.**
+- [ ] Clicking a bay opens its controls in the viewport
+- [ ] Clicking a door, shelf or panel offers what applies to it
+- [ ] Dividers and fixed shelves draggable, snapping sensibly, showing the live
+      dimension
+- [ ] A section plane that can be dragged through the assembly
+- [ ] Every change made this way is a normal parameter change: undoable (R-13)
+      and saved with the project
+- [ ] The sidebar keeps only what is genuinely global
+
+**Risks.** Two editors of one value that disagree. The parameters are the single
+source of truth; the viewport is another editor of them, never a second copy.
+
+---
+
+### R-20 — Diagnostics that show you the problem
+`Milestone F` · `Depends on: R-16` · `Size: M`
+
+**Problem.** The diagnostics say what is wrong well and help you fix it badly.
+One flat list at every severity, repeated per sheet, with the fix as prose you
+must translate into a hunt through the sidebar. Worse, the most important
+message — *this part is too big for your machine* — is a sentence about numbers
+when it could be a picture of the part next to the machine's envelope.
+
+**Goal.** Grouped, deduplicated, actionable, and shown rather than described.
+
+**Where.** `Diagnostics.tsx`, `machine/check.ts`.
+
+**Design notes.** The `hint` field already names the parameter that fixes each
+diagnostic, in prose. Where the fix is a single unambiguous parameter change,
+make it a button: **"Set sheets to machine size" already proves the pattern**,
+and the diagnostic recommending it should carry it rather than leaving the user
+to find it in the Material group. That means `Diagnostic` grows an optional
+structured fix — a parameter path and a value — applied through the normal
+update path so it is undoable like anything else. Only where it is genuinely
+unambiguous; a button that guesses is worse than a sentence that explains.
+
+Then **show the failure**. A part that will not fit gets a small diagram of the
+part against the machine envelope with the overhang shaded. A tiling warning
+gets the sheet with its seams drawn. A sagging shelf gets its span. The
+machinery to draw all of these already exists in the sheet view.
+
+Group by topic, collapse repeats with a count, and put a readiness summary at
+the top. "Ready to cut" is currently inferred from the colour of a dot; say it.
+
+**Acceptance criteria.**
+- [ ] Grouped by topic, sorted by severity, repeats collapsed with a count
+- [ ] Unambiguous fixes offered as buttons, applied undoably
+- [ ] Spatial problems shown as a diagram, not only described
+- [ ] A readiness summary answering "can this be cut" in words
+- [ ] Clicking a diagnostic still highlights the part everywhere
+- [ ] Export explains why it is blocked rather than only being disabled
+
+**Tests.** Each structured fix clears the diagnostic that offered it — one test
+each, because a fix that does not fix is worse than none.
+
+---
+
+### R-21 — Confidence at export, and a view for the workshop
+`Milestone F` · `Depends on: R-16, R-10` · `Size: M`
+
+**Problem.** Export hands over a zip and says nothing: you do not know what is
+in it, which file to open first, or whether you have missed something. Then you
+walk to the machine, where the app is on a tablet at arm's length with sawdust
+on your hands, and the interface is a 320 pixel column of small numeric fields.
+
+**Goal.** An export that explains itself, and a workshop mode meant to be used
+standing up.
+
+**Where.** `ExportBar.tsx`, a new workshop view, `styles.css`.
+
+**Design notes.** Before the zip downloads, show what is about to be produced —
+sheet thumbnails, tile count, parts, materials to buy, anything unresolved. This
+is the last moment before real material is committed and it deserves a beat.
+
+The workshop view is a different mode, not a responsive reflow: the cut list and
+assembly steps from R-10, large type, high contrast, one step at a time, with
+progress that survives a reload. Design it for a tablet first, and let each step
+show the parts it needs as pictures rather than part numbers — `B-DOOR-1` means
+nothing with a panel in your hands.
+
+Take "re-cut one part" seriously here: exporting a single part's DXF is small
+and answers a real, frequent problem.
+
+**Acceptance criteria.**
+- [ ] Export preview with sheet thumbnails, tiles and materials before download
+- [ ] A shopping summary: sheets by material, hardware by type and count
+- [ ] Any single part re-exportable on its own
+- [ ] A workshop view legible at arm's length, steps illustrated, progress
+      surviving a reload
+- [ ] The designer usable on a tablet, even if it is not the focus
+
+---
+
+### R-22 — Visual and interaction polish, and accessibility
+`Milestone F` · `Depends on: R-16, R-14` · `Size: M`
+
+**Problem.** The interface is consistent but was never designed: spacing, type
+scale and colour were each decided in passing. It is dark-only, which is poor
+next to a window or under workshop lights. Nothing has been checked with a
+keyboard, and a thrown error blanks the page and loses the design, because there
+is no error boundary.
+
+**Goal.** One deliberate visual system, a light theme, keyboard operability, and
+an interface that does not lose your work when something goes wrong.
+
+**Where.** `styles.css`, the control components, `App.tsx`.
+
+**Design notes.** The existing palette and density are a reasonable starting
+point; this is a pass to make the decisions on purpose, not a redesign for its
+own sake. Set a type scale and a spacing scale, then apply them everywhere.
+
+The light theme is the part that is not optional. This gets used in daylight and
+under bright workshop lights, where the current dark-only interface is genuinely
+hard to read.
+
+Keyboard: tab order following the job, visible focus, arrows to nudge a numeric
+field, escape to close a popover, and a keyboard route to everything the 3D view
+can do by clicking.
+
+Add the React error boundary. For a tool with no server, losing the design to a
+stray exception is the worst failure available.
+
+This delivers the accessibility and error-boundary lines on the release
+checklist; tick them there when it lands.
+
+**Acceptance criteria.**
+- [ ] Type and spacing scales defined once and used throughout
+- [ ] A light theme following the system preference, switchable
+- [ ] Every control reachable and operable from the keyboard, focus visible
+- [ ] An error boundary that keeps the design and offers to save it
+- [ ] Motion respects `prefers-reduced-motion`
+- [ ] Contrast meets WCAG AA in both themes
+
+**Tests.** Keyboard navigation through the main flows on the R-14 harness; an
+automated contrast check over both palettes.
+
+---
+
+## Milestone G — Release
+
+### R-23 — 1.0 release
+`Milestone G` · `Depends on: everything above` · `Size: S`
 
 - [ ] Sample projects that load from the UI
 - [ ] A getting-started guide from parameters to cut parts
@@ -658,3 +1006,17 @@ forcing it through. The roadmap is a plan, not a contract.
   the item for what replaced them and why.
 
 Items were renumbered into a gapless sequence at the same time.
+
+**Second revision.** Added **Milestone F**, seven items on design and ease of
+use, sitting between production quality and release. Everything before it makes
+the tool capable; none of it makes it pleasant, and a tool with this much jargon
+needs the second as much as the first.
+
+The milestone is built on one idea: the tool already contains an exact geometry
+engine, so wherever the interface describes a choice in words it should show the
+result instead — rendered from the same code that cuts it, so the picture cannot
+drift from the part. R-17 carries that idea and most of the rest lean on it.
+
+R-16 comes first deliberately: the others are only worth as much as the
+understanding of the journeys they are built on. The release item moved to R-23
+to keep the numbering in reading order.
