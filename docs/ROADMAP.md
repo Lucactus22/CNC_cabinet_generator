@@ -623,7 +623,7 @@ have yet.
 geometry engine. It can draw anything it can cut. So wherever the interface
 currently *describes* a choice in words, it should *show* the result instead —
 rendered from the same code that machines it, so the picture can never disagree
-with the part. Words explain the trade-off; the picture explains the thing.
+with the part. Words explain the trade-off; the picture explains the thing. Also the UI is not that good to begin with and it could be improved massively by taking the user into account, everyting is allowed to be questioned. right now all the features are crampt in a side bar, maybe that is not optimal? The UI needs to be enabling the users to easily create what they are looking for, they already know what they want the program should facilitate it for them by making it effortless to find and understand all the functions and change the cabinet how they feel like. If you get feature ideas based upon this research write them down in a new feature_suggestions.md in docs. 
 
 Work R-16 first. The rest is only as good as the understanding of the journeys
 it comes from.
