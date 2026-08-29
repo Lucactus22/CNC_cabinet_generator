@@ -86,12 +86,13 @@ A square opening the run already fills produces nothing at all. See
 
 ## Doors
 
-Doors are switched on per bay: single hinged left or right, or a pair. Hardware
-is **IKEA UTRUSTA** (Blum's pattern): a 35 mm cup with two 8 mm press-fit dowels
-45 mm apart, sitting 9.5 mm behind the cup's centre line, plus mounting plate
-holes on the 32 mm system in the carcass. Hinge count follows door height, and
-the cup centre is derived from the boring distance plus the cup radius — the
-number that ruins doors when it is guessed.
+Doors are switched on per bay: single hinged left or right, or a pair. The
+hinge comes from a **catalogue** — IKEA UTRUSTA, Blum CLIP top BLUMOTION or
+Hettich Sensys — and every dimension of the boring comes with it: a 35 mm cup
+with two 8 mm press-fit dowels 45 mm apart, sitting 9.5 mm behind the cup's
+centre line, plus mounting plate holes on the 32 mm system in the carcass. Hinge
+count follows door height, and the cup centre is derived from the boring
+distance plus the cup radius — the number that ruins doors when it is guessed.
 
 Overlay or inset fit, with an even reveal throughout the run.
 
@@ -99,6 +100,10 @@ Door faces take any surface effect: a **frame** groove for the shaker look in
 the reference photographs, beadboard grooves, or plain. Hinge boring on the back
 and a design on the front means a door is machined on both faces — the one part
 where that is expected rather than avoided. See [docs/DOORS.md](docs/DOORS.md).
+
+Handles are bored on request: a bar or a knob on the door's opening edge, as
+clearance holes right through, so they never add a flip. Nothing is drilled
+until one is chosen. See [docs/HARDWARE.md](docs/HARDWARE.md).
 
 Drawers are not built yet. The part model and the joinery interface are shaped
 to take them without a rewrite.
@@ -138,8 +143,9 @@ the outer panel and jacking the joint apart instead of pulling it together.
 gets a dogbone or T-bone relief, and so does every tab root — without that, the
 cutter's radius holds the shoulder off the mating face.
 
-Plus back panels in a groove or rabbet, and 32 mm shelf pin ladders (5 mm holes,
-12 mm deep, 32 mm pitch, rows 37 mm in from each edge).
+Plus back panels in a groove or rabbet, and 32 mm shelf pin ladders — 5 mm or
+1/4 in holes, whichever pin the project is cut to, with the rows 37 mm in from
+each edge.
 
 Dowels and Confirmat are deliberately absent: they need boring into a panel's
 edge, which a 3-axis flat-bed router cannot do. See
@@ -251,7 +257,8 @@ testable on its own and reusable from a CLI or a different front end.
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | How the pipeline fits together, the invariants, where to add things |
 | [ROADMAP](docs/ROADMAP.md) | What 1.0 means and the work orders to get there |
 | [JOINERY](docs/JOINERY.md) | Every joint, with the geometry and the reasoning |
-| [DOORS](docs/DOORS.md) | Doors, UTRUSTA hinge boring, face designs |
+| [DOORS](docs/DOORS.md) | Doors, hinge boring, handles, face designs |
+| [HARDWARE](docs/HARDWARE.md) | The catalogue: hinges, shelf pins, handles, and your own |
 | [OPENING](docs/OPENING.md) | Measuring a crooked room and scribing a square run to it |
 | [EFFECTS](docs/EFFECTS.md) | Surface decoration and how to add a new kind |
 | [DXF](docs/DXF.md) | Output format, layer convention, tiling workflow |
@@ -259,8 +266,8 @@ testable on its own and reusable from a CLI or a different front end.
 
 ## Known gaps
 
-Honest list, all tracked in the roadmap: no drawers, hardware catalogue, edge
-banding or face frames; the web app has no automated tests.
+Honest list, all tracked in the roadmap: no drawers, drawer slides, edge banding
+or face frames; the web app has no automated tests.
 
 Millimetres only, deliberately.
 

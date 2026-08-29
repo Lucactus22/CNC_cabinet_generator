@@ -381,11 +381,107 @@ door at least 16 mm thick"* rather than the code assuming it.
 Follow the effects registry pattern — it is the right shape and it already
 works.
 
+**Revised while working it.** Three things the item as written could not have:
+
+- *A `fits(part, context)` predicate* and *entries saved with the project*
+  cannot both be true. A function does not survive being written to a file and
+  read back, so a user's own entry would be the one kind that could not be
+  checked — exactly backwards, since a user's own entry is the one nobody has
+  proof-read. A fitting rule is therefore **data**: a measure from a short
+  closed list, a minimum, a maximum, and the sentence saying what goes wrong.
+  A built-in entry and one somebody typed are checked by the same code.
+- Those rules turned out to be two different things wearing one name, and the
+  diagnostic contract already distinguishes them. A **requirement** is what the
+  maker publishes — *16 to 26 mm doors* — and breaking it is a warning: the
+  holes cut fine and the hinge will not work. A **derived** check is arithmetic
+  on the entry's own boring — a 13 mm cup in an 11.9 mm door — and breaking it
+  is an error: the panel is ruined.
+- *Drawer slides* are named in the goal and are **not** here. A slide's numbers
+  only mean something once there is a drawer box to size from them, and a slide
+  picker that machined nothing would be precisely the defect R-01 opened this
+  roadmap by removing. R-08 adds the kind and its entries alongside the boxes
+  that consume them; for the catalogue that is one more entry type and no new
+  machinery. Handles, which are also named, *are* here, because a handle is two
+  through holes and the catalogue would otherwise be a rename of one field.
+
 **Acceptance criteria.**
-- [ ] Hardware selected by id from a catalogue, with the current UTRUSTA
+- [x] Hardware selected by id from a catalogue, with the current UTRUSTA
       behaviour unchanged as the default
-- [ ] Users can add a custom entry and it is saved with the project
-- [ ] Every hardware item's constraints are checked and reported
+- [x] Users can add a custom entry and it is saved with the project
+- [x] Every hardware item's constraints are checked and reported
+
+**What it cost, for the items that follow.** `ProjectParams.hinge` is gone, and
+so is the hardware half of `joinery.shelfPin`; both are now catalogue ids under
+`params.hardware`, with `normaliseParams` turning a pre-R-06 file's numbers into
+an entry of the project's own when they differ from a built-in, so a hinge
+somebody had dialled in is not snapped back to the default. `HingeSpec` moved to
+`hardware/catalogue.ts`, where a make of hardware is described. `PartRole` did
+not change: a handle is boring, not a part.
+
+`buildCarcass` took eight same-typed arrays positionally and now takes one
+`BuildSink`; adding a ninth to that row was an argument order waiting to be got
+wrong. `applyHinges` no longer takes the whole project, only its entry, and no
+longer emits spec warnings — every hardware message is now in `hardware/fit.ts`
+with a part id and a hint, under a `hardware` topic, which is where
+`checkManufacturability` can see them.
+
+The golden 0.1 DXF is unchanged, because the UTRUSTA entry reproduces the
+numbers the generator shipped with exactly. `hardware.test.ts` pins them by name
+as well, so that comparison failing would not be the only warning, and pins the
+stronger promise too: a pre-R-06 file with the shipped numbers exports byte for
+byte what it always did.
+
+**What review found.** Ten things, every one of them verified by running code
+rather than by reading. Four were the silent kind this repo exists to avoid:
+
+- A fitting rule whose measure named something its kind is never bored into was
+  **dropped without a word** — and the rule editor offered all four measures for
+  every kind, so it was three clicks away. Someone writes *door thickness at
+  least 16 mm* on a shelf pin, believes the project is guarded, and nothing on
+  screen distinguishes a rule that passed from one that never ran. The picker
+  now offers only the measures a kind is fitted to, and a rule from a file that
+  names another one is reported, as is a rule with neither limit — which used
+  to print *"undefined mm or less"*.
+- `findEntry` matched an id before its kind, so a custom **handle** sharing a
+  built-in hinge's id shadowed that hinge, sent it to a fallback, and produced a
+  warning saying the id was in neither list. Both halves of that sentence were
+  untrue and the doors were bored 1 mm shallower than the hinge in the box.
+- The migration aliased the shipped entries' rule objects into the project it
+  migrated. Editing a migrated hinge's rule rewrote `HINGE_UTRUSTA`'s for every
+  project opened after it in the same process, and the warning that would go
+  missing is the one saying the cup bottoms out. The web app happened to escape
+  it, because the store deep-clones before every edit — luck, not design, and
+  the core is meant to be usable from a CLI.
+- An unknown **handle** id fell back to a default and drilled the doors. A hinge
+  and a pin must fall back — there is no cabinet without them — but a handle
+  falling back puts holes through the front of a finished door for hardware
+  nobody chose. It now bores nothing and says so.
+
+Three more were checks that cried wolf or stayed silent: the boring-distance
+warning fired at a project with no doors in it; the shadowed-id warning claimed
+an entry was "the one being cut" when a different one was; and a bar handle with
+no fixing centres drilled one of its two holes with no check noticing, because
+the overhang test steps over the single-hole case.
+
+One was a crash: a custom entry from a hand-edited file with no `boring` block
+threw out of `buildProject`, which the app surfaces as *"could not open that
+project file"*. `normaliseParams` validated every other block and passed this
+one straight through. An entry missing numbers its boring is made of is now
+dropped — guessing a cup depth is not something to do — while an entry missing
+only its rules is repaired.
+
+The last two were the standard this repo sets for numbers. The **generic 35 mm
+hinge** had a cup depth, a dowel depth and a thickness range that were nobody's:
+it is now **Hettich Sensys 8645i**, whose sheet publishes all three, and which
+usefully ships the same hinge in the 48 × 6 and 52 × 5.5 patterns that make the
+case for the pattern being data. And a handle's **overall length** was invented,
+which mattered because it is the only number the overhang warning is measured
+against: a 128 mm bar is sold at 136, 178 and 192 mm overall, so there is no
+standard to cite. The entries now carry a typical figure, say in their source
+that it is one, and the docs tell you to set it to the handle in your hand.
+
+The reasoning, the sources and the honest limits are in
+[HARDWARE.md](HARDWARE.md).
 
 ---
 
@@ -465,6 +561,11 @@ reference photographs are drawers.
 **Goal.** A bay can hold a stack of drawers. Each produces a box (two sides, a
 front, a back, a bottom) and a drawer front, with the boring for undermount
 slides.
+
+**Note from R-06.** The catalogue deliberately ships no slide entries, because
+nothing machines from them yet. Add a `slide` entry kind there — data, with its
+fitting rules — at the same time as the boxes that consume it, and take the
+width formula below from the entry rather than from constants in the builder.
 
 **Where.** `build/builder.ts`, a new `hardware/slides.ts`, the bay model.
 

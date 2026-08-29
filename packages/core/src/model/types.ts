@@ -1,6 +1,7 @@
 import type { Path } from '../geom/index.js';
 import type { ReliefStyle } from '../geom/relief.js';
 import type { OpeningSpec } from './opening.js';
+import type { HardwareSelection } from '../hardware/catalogue.js';
 
 export type Axis = 'x' | 'y' | 'z';
 export type Sign = '+' | '-';
@@ -71,11 +72,15 @@ export type CarcassFloor = 'own' | 'below';
 export type TopStyle = 'capped' | 'inset';
 export type ShelfMode = 'none' | 'fixed' | 'adjustable';
 
+/**
+ * Where the shelf pin rows go.
+ *
+ * The pin itself — its diameter, how deep its hole is, what pitch it indexes on
+ * — is a catalogue entry, because that is decided by which pins are in the
+ * drawer. This is the half that is a layout choice and stays the same whichever
+ * pin you buy.
+ */
 export interface ShelfPinSpec {
-  diameter: number;
-  depth: number;
-  /** 32 mm under the European system. */
-  pitch: number;
   /** Distance from the front edge to the front row of holes: 37 mm is standard. */
   frontOffset: number;
   backOffset: number;
@@ -143,34 +148,6 @@ export interface DoorSpec {
   reveal: number;
   /** Clearance all round an inset door. */
   insetGap: number;
-}
-
-/**
- * Boring for a 35 mm cup concealed hinge.
- *
- * Defaults are the IKEA UTRUSTA pattern, which is Blum's: a 35 mm cup with two
- * 8 mm press-fit dowels 45 mm apart, sitting 9.5 mm behind the cup's centre
- * line. Blum's own published boring distance is 3-6 mm from the door edge to
- * the *edge* of the cup, so the centre lands 17.5 mm further in.
- */
-export interface HingeSpec {
-  cupDiameter: number;
-  cupDepth: number;
-  /** Door edge to the near edge of the cup. Blum publishes 3-6 mm. */
-  boringDistance: number;
-  dowelDiameter: number;
-  /** Centre to centre, along the door edge. */
-  dowelSpacing: number;
-  /** How far the dowels sit behind the cup's centre line, away from the edge. */
-  dowelOffset: number;
-  dowelDepth: number;
-  /** Cup centre to the end of the door, top and bottom. 76.2 mm is 3 inches. */
-  endOffset: number;
-  /** Mounting plate holes in the carcass: 32 mm system, 37 mm from the front. */
-  plateHoleDiameter: number;
-  plateHoleDepth: number;
-  plateHoleSpacing: number;
-  plateFrontOffset: number;
 }
 
 export interface BackSpec {
@@ -362,7 +339,8 @@ export interface ProjectParams {
   machine: MachineSpec;
   joinery: JoinerySettings;
   doors: DoorSpec;
-  hinge: HingeSpec;
+  /** Which catalogue entries this project is cut to. See hardware/catalogue.ts. */
+  hardware: HardwareSelection;
   /** In the order they stand along the run, left to right. */
   cabinets: Cabinet[];
   /** The measured room the run has to fit into. See model/opening.ts. */

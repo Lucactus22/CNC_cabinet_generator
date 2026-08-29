@@ -63,15 +63,18 @@ export function SelectField<T extends string>({
   options,
   onChange,
   title,
+  wide = false,
 }: {
   label: string;
   value: T;
   options: Array<{ value: T; label: string }>;
   onChange: (v: T) => void;
   title?: string;
+  /** Stack the label above the control, for options whose names are the point. */
+  wide?: boolean;
 }) {
   return (
-    <div className="field" title={title}>
+    <div className={wide ? 'field wide' : 'field'} title={title}>
       <label>{label}</label>
       <select value={value} onChange={(e) => onChange(e.target.value as T)}>
         {options.map((o) => (

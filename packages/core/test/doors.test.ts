@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { base } from './carcasses.js';
-import { bboxOf, buildProject, defaultParams, hingeHeights } from '../src/index.js';
+import { bboxOf, buildProject, defaultParams, hingeHeights, HINGE_UTRUSTA } from '../src/index.js';
 import type { ProjectParams, DrillFeature, Part, PocketFeature } from '../src/model/types.js';
 
 const doorsOn = (patch: (p: ProjectParams) => void = () => {}): ProjectParams => {
@@ -115,7 +115,9 @@ describe('door layout', () => {
 describe('UTRUSTA hinge boring', () => {
   const params = doorsOn();
   const project = buildProject(params);
-  const h = params.hinge;
+  // The default project selects UTRUSTA by id, so the numbers under test are
+  // the catalogue entry's rather than anything the project carries itself.
+  const h = HINGE_UTRUSTA.boring;
   const door = find(project.parts, 'C1-B-DOOR-2'); // hinged on its right, low local x
 
   it('bores a 35 mm cup to the right depth on the back face', () => {
@@ -206,13 +208,38 @@ describe('UTRUSTA hinge boring', () => {
     expect(p.diagnostics.some((d) => d.message.includes('straight through'))).toBe(true);
   });
 
-  it('warns when the boring distance is outside what the hardware allows', () => {
+  it('warns when a custom hinge is bored outside its own published range', () => {
+    // Nobody can set this on a built-in any more, which is the point: a boring
+    // distance the hinge cannot reach its plate from is now only reachable by
+    // someone describing their own hardware, and it is still caught.
     const p = buildProject(
       doorsOn((x) => {
-        x.hinge.boringDistance = 15;
+        x.hardware.custom = [
+          {
+            ...HINGE_UTRUSTA,
+            id: 'mine',
+            name: 'My hinge',
+            custom: true,
+            boring: { ...HINGE_UTRUSTA.boring, boringDistance: 15 },
+          },
+        ];
+        x.hardware.hingeId = 'mine';
       }),
     );
-    expect(p.diagnostics.some((d) => d.message.includes('3-8 mm'))).toBe(true);
+    expect(p.diagnostics.some((d) => d.message.includes('outside the 3-6 mm'))).toBe(true);
+  });
+
+  it('says so, and cuts the default, when the project names a hinge nobody has', () => {
+    const p = buildProject(
+      doorsOn((x) => {
+        x.hardware.hingeId = 'a-hinge-from-a-colleague';
+      }),
+    );
+    const said = p.diagnostics.find((d) => d.message.includes('a-hinge-from-a-colleague'));
+    expect(said?.severity).toBe('warning');
+    expect(said?.message).toContain(HINGE_UTRUSTA.name);
+    // Falling back has to be visible, but it must still produce a cuttable door.
+    expect(cups(find(p.parts, 'C1-B-DOOR-2'))).toHaveLength(2);
   });
 });
 

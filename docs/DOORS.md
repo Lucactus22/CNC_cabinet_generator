@@ -1,8 +1,10 @@
 # Doors and hinges
 
 Doors are switched on per bay: none, a single leaf hinged left or right, or a
-pair. Hardware is **IKEA UTRUSTA**, which is Blum's pattern, so anything else in
-the 35 mm cup family fits the same boring.
+pair. The hinge is chosen from the catalogue by id; the default is **IKEA
+UTRUSTA**, which is Blum's pattern, so anything else in the 35 mm cup family
+fits the same boring. The numbers below are that entry's — see
+[HARDWARE.md](HARDWARE.md) for the others and for how to describe your own.
 
 ## Fit
 
@@ -71,9 +73,34 @@ move the design to the back:
 Back-face geometry lands on `_FLIP` layers, mirrored across the sheet so it is
 correct once the sheet is turned. See [DXF.md](DXF.md).
 
+## Handles
+
+Off unless one is chosen, because a handle bores holes right through the front
+of a finished door. Fixing centres are multiples of the 32 mm system (96, 128,
+160, 320 mm) and the screws are M4, so the clearance hole is 4.5 mm. A handle id
+that names nothing bores nothing — it is the one piece of hardware that does not
+fall back to a default, because falling back would drill the door.
+
+A vertical bar is referenced to the door's **opening** edge, the one away from
+the hinges, so a door hinged left and one hinged right both get their handle
+where a hand reaches for it. The holes go right through, so they can be cut from
+whichever face the door is already on the bed for: a handle never adds a flip.
+
+Where along that edge it sits is taste, not specification, so it is a setting
+with a conventional default and the diagnostics read the result back in
+millimetres. See [HARDWARE.md](HARDWARE.md).
+
 ## Checks
 
-- A cup deeper than the door material is an error; less than 3 mm left behind it
-  is a warning.
-- A boring distance outside 3–8 mm is flagged, since the hardware will not sit.
-- Plate holes deeper than the carcass panel are flagged.
+- A cup deeper than the door material is an **error**; less than 3 mm left
+  behind it is a warning.
+- A boring distance outside the range the chosen hinge publishes is flagged,
+  since the arm cannot reach its own mounting plate — 3–6 mm for UTRUSTA,
+  3–7 mm for Blum CLIP top. Only when hinges are actually being bored: a
+  project with no doors hears nothing about them.
+- A door outside the thickness the hinge is published for is flagged, naming the
+  hinge and the limit.
+- Plate holes deeper than the carcass panel are an **error**: they come out of
+  the outside of the cabinet.
+- A handle whose fixing holes fall off the blank is an error; one whose body
+  overhangs the end of the door is a warning.

@@ -1,5 +1,21 @@
 import { defaultCabinet, defaultParams } from './defaults.js';
-import type { Cabinet, Carcass, ProjectParams, SurfaceEffectSpec, SurfaceTarget } from './types.js';
+import {
+  HINGE_UTRUSTA,
+  PIN_5MM,
+  readEntry,
+  type HardwareEntry,
+  type HardwareSelection,
+  type HingeSpec,
+  type ShelfPinBoring,
+} from '../hardware/catalogue.js';
+import type {
+  Cabinet,
+  Carcass,
+  ProjectParams,
+  ShelfPinSpec,
+  SurfaceEffectSpec,
+  SurfaceTarget,
+} from './types.js';
 
 /**
  * Fill in anything a project file is missing.
@@ -23,14 +39,11 @@ export function normaliseParams(raw: unknown): ProjectParams {
     machine: { ...base.machine, ...(input.machine as object) },
     nesting: { ...base.nesting, ...(input.nesting as object) },
     doors: { ...base.doors, ...(input.doors as object) },
-    hinge: { ...base.hinge, ...(input.hinge as object) },
+    hardware: readHardware(input, base),
     joinery: {
       ...base.joinery,
       ...(input.joinery as object),
-      shelfPin: {
-        ...base.joinery.shelfPin,
-        ...((input.joinery as Record<string, unknown>)?.shelfPin as object),
-      },
+      shelfPin: readPinLayout(input, base.joinery.shelfPin),
     },
     cabinets: readCabinets(input),
     // A file written before R-05 has no measured room at all, and must open as
@@ -66,6 +79,97 @@ export function normaliseParams(raw: unknown): ProjectParams {
   if (typeof legacy === 'number' && legacy > 0) merged.joinery.screwClearanceDiameter = legacy;
 
   return dedupeIds(merged);
+}
+
+/**
+ * Which hardware a project is cut to.
+ *
+ * Before the catalogue, the hinge's dimensions and the shelf pin's were fields
+ * on the project itself. A file written then has to keep cutting the same
+ * holes, so numbers that match a built-in select that entry, and numbers that
+ * do not become an entry of the project's own. Quietly snapping a hinge
+ * somebody had dialled in back to the default would ruin their doors.
+ */
+function readHardware(input: Record<string, unknown>, base: ProjectParams): HardwareSelection {
+  const raw = input.hardware as Partial<HardwareSelection> | undefined;
+  const selection: HardwareSelection = {
+    ...base.hardware,
+    ...(raw ?? {}),
+    // Read rather than trusted: an entry with a hole in it would otherwise
+    // reach the boring code and take the whole pipeline down with it.
+    custom: Array.isArray(raw?.custom)
+      ? raw.custom.map(readEntry).filter((e): e is HardwareEntry => e !== null)
+      : [],
+    handlePlacement: {
+      ...base.hardware.handlePlacement,
+      ...((raw?.handlePlacement ?? {}) as object),
+    },
+  };
+  // A file that already names its hardware says everything there is to say.
+  if (raw) return selection;
+
+  const legacyHinge = input.hinge as Partial<HingeSpec> | undefined;
+  if (legacyHinge) {
+    const boring: HingeSpec = { ...HINGE_UTRUSTA.boring, ...legacyHinge };
+    if (!same(boring, HINGE_UTRUSTA.boring)) {
+      selection.hingeId = 'project-hinge';
+      selection.custom.push({
+        kind: 'hinge',
+        id: 'project-hinge',
+        name: 'Hinge from this project',
+        source: 'Carried over from a project saved before hardware was a catalogue.',
+        boring,
+        // The old code accepted 3-8 mm whatever the hinge was, so that is the
+        // range this project was working to and the one it keeps.
+        boringDistanceRange: { min: 3, max: 8 },
+        // Copied, not shared: this entry is editable, and a shared rule object
+        // would let editing it rewrite the shipped hinge for every project
+        // opened afterwards in the same process.
+        requires: HINGE_UTRUSTA.requires.map((r) => ({ ...r })),
+        custom: true,
+      });
+    }
+  }
+
+  const legacyPin = (input.joinery as Record<string, unknown>)?.shelfPin as
+    Partial<ShelfPinBoring> | undefined;
+  if (legacyPin) {
+    const boring: ShelfPinBoring = {
+      diameter: legacyPin.diameter ?? PIN_5MM.boring.diameter,
+      depth: legacyPin.depth ?? PIN_5MM.boring.depth,
+      pitch: legacyPin.pitch ?? PIN_5MM.boring.pitch,
+    };
+    if (!same(boring, PIN_5MM.boring)) {
+      selection.shelfPinId = 'project-shelf-pin';
+      selection.custom.push({
+        kind: 'shelf-pin',
+        id: 'project-shelf-pin',
+        name: 'Shelf pin from this project',
+        source: 'Carried over from a project saved before hardware was a catalogue.',
+        boring,
+        requires: PIN_5MM.requires.map((r) => ({ ...r })),
+        custom: true,
+      });
+    }
+  }
+
+  return selection;
+}
+
+/** Only the layout half of the old shelf pin block is still a joinery setting. */
+function readPinLayout(input: Record<string, unknown>, base: ShelfPinSpec): ShelfPinSpec {
+  const raw = ((input.joinery as Record<string, unknown>)?.shelfPin ?? {}) as Partial<ShelfPinSpec>;
+  return {
+    frontOffset: raw.frontOffset ?? base.frontOffset,
+    backOffset: raw.backOffset ?? base.backOffset,
+    startAbove: raw.startAbove ?? base.startAbove,
+    endBelow: raw.endBelow ?? base.endBelow,
+  };
+}
+
+/** Whether a legacy block holds exactly the numbers a built-in entry does. */
+function same<T extends object>(a: T, b: T): boolean {
+  return (Object.keys(b) as Array<keyof T>).every((k) => a[k] === b[k]);
 }
 
 /** The cabinet list, or the pre-R-03 pair of carcasses turned into one. */
