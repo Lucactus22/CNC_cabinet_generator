@@ -91,6 +91,26 @@ export function pinHeights(
 const sum = (xs: number[]): number => xs.reduce((a, b) => a + b, 0);
 
 /**
+ * Resolve a drawer stack's explicit front heights against the opening they
+ * have to fill, falling back to an even split the same way `layoutBays` does
+ * for bay widths that do not add up: better a stack of equal, cuttable
+ * drawers than one sized to numbers that do not actually reach.
+ */
+export function drawerHeights(
+  available: number,
+  explicit: number[],
+  reveal: number,
+): { heights: number[]; fellBackToEven: boolean } {
+  const n = explicit.length;
+  if (n === 0) return { heights: [], fellBackToEven: false };
+  const required = sum(explicit) + (n - 1) * reveal;
+  if (Math.abs(required - available) < 0.5)
+    return { heights: explicit.slice(), fellBackToEven: false };
+  const each = Math.max(0, (available - (n - 1) * reveal) / n);
+  return { heights: new Array(n).fill(each), fellBackToEven: true };
+}
+
+/**
  * Screw positions along a hanging rail.
  *
  * Held in from both ends so a screw is never driven at the rail's tip, at

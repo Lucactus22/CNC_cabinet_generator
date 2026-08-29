@@ -13,6 +13,7 @@ import {
   type HingeEntry,
   type Requirement,
   type ShelfPinEntry,
+  type SlideEntry,
 } from '@cabgen/core';
 import { Group, Hint, NumberField, SelectField, TextField } from './Controls';
 
@@ -21,6 +22,8 @@ const MEASURE_LABELS: Record<HardwareMeasure, string> = {
   'door width': 'Door width',
   'door height': 'Door height',
   'carcass panel thickness': 'Carcass panel thickness',
+  'drawer side thickness': 'Drawer side thickness',
+  'drawer box width': 'Drawer box width',
 };
 
 /**
@@ -50,6 +53,7 @@ export function HardwarePanel() {
     update((p) => {
       if (kind === 'hinge') p.hardware.hingeId = id;
       else if (kind === 'shelf-pin') p.hardware.shelfPinId = id;
+      else if (kind === 'slide') p.hardware.slideId = id;
       else p.hardware.handleId = id;
     });
 
@@ -59,6 +63,7 @@ export function HardwarePanel() {
       p.hardware.custom.push(made);
       if (made.kind === 'hinge') p.hardware.hingeId = made.id;
       else if (made.kind === 'shelf-pin') p.hardware.shelfPinId = made.id;
+      else if (made.kind === 'slide') p.hardware.slideId = made.id;
       else p.hardware.handleId = made.id;
     });
 
@@ -67,6 +72,7 @@ export function HardwarePanel() {
       p.hardware.custom = p.hardware.custom.filter((e) => e.id !== entry.id);
       if (entry.kind === 'hinge') p.hardware.hingeId = fallbackId;
       else if (entry.kind === 'shelf-pin') p.hardware.shelfPinId = fallbackId;
+      else if (entry.kind === 'slide') p.hardware.slideId = fallbackId;
       else p.hardware.handleId = '';
     });
 
@@ -86,6 +92,7 @@ export function HardwarePanel() {
   const hinge = bored.hinge;
   const pin = bored.shelfPin;
   const handle = bored.handle;
+  const slide = bored.slide;
 
   return (
     <Group title="Hardware">
@@ -251,6 +258,93 @@ export function HardwarePanel() {
             title="32 mm under the European system, and on the imperial jigs too."
           />
           <Rules entry={pin} onEdit={(fn) => edit<ShelfPinEntry>(pin.id, fn)} />
+        </Group>
+      )}
+
+      <SelectField
+        label="Drawer slides"
+        value={hw.slideId}
+        options={options('slide')}
+        wide
+        onChange={(v) => pick('slide', v)}
+        title="Every drawer box is sized to this runner: its width deduction, its running lengths, and the band of side thickness it is made for."
+      />
+      <About
+        entry={slide}
+        onCopy={() => copy(slide)}
+        onRemove={() => remove(slide, 'blum-tandem-563h')}
+      />
+      {slide.custom && (
+        <Group title={`Editing ${slide.name}`} open>
+          <Named
+            entry={slide}
+            onName={(v) => edit<SlideEntry>(slide.id, (e) => void (e.name = v))}
+          />
+          <NumberField
+            label="Width deduction"
+            value={slide.boring.widthDeduction}
+            step={0.5}
+            min={0}
+            onChange={(v) => edit<SlideEntry>(slide.id, (e) => void (e.boring.widthDeduction = v))}
+            title="Bay clear opening width minus this is the drawer box's own outside width."
+          />
+          <Hint>
+            Running lengths, in mm. The builder picks the longest one that fits the carcass depth.
+          </Hint>
+          <TextField
+            label="Running lengths"
+            value={slide.boring.nominalLengths.join(', ')}
+            onChange={(v) =>
+              edit<SlideEntry>(slide.id, (e) => {
+                const lengths = v
+                  .split(',')
+                  .map((s) => Number(s.trim()))
+                  .filter((n) => Number.isFinite(n) && n > 0)
+                  .sort((a, b) => a - b);
+                if (lengths.length > 0) e.boring.nominalLengths = lengths;
+              })
+            }
+          />
+          <NumberField
+            label="Length clearance"
+            value={slide.boring.lengthClearance}
+            min={0}
+            onChange={(v) => edit<SlideEntry>(slide.id, (e) => void (e.boring.lengthClearance = v))}
+            title="Cabinet depth a runner needs beyond its own length, for the rear mounting bracket."
+          />
+          <NumberField
+            label="Bottom recess"
+            value={slide.boring.bottomRecess}
+            step={0.5}
+            min={0}
+            onChange={(v) => edit<SlideEntry>(slide.id, (e) => void (e.boring.bottomRecess = v))}
+            title="How far the box bottom sits up from the underside of the sides — also how far the back stops short of the floor of the box."
+          />
+          <NumberField
+            label="Rear notch width"
+            value={slide.boring.bottomNotchWidth}
+            step={0.5}
+            min={0}
+            onChange={(v) =>
+              edit<SlideEntry>(slide.id, (e) => void (e.boring.bottomNotchWidth = v))
+            }
+            title="Cut into each rear corner of the box bottom, clearing the locking device."
+          />
+          <NumberField
+            label="Mounting screw clearance"
+            value={slide.boring.screwDiameter}
+            step={0.5}
+            min={1}
+            onChange={(v) => edit<SlideEntry>(slide.id, (e) => void (e.boring.screwDiameter = v))}
+          />
+          <NumberField
+            label="Mounting hole inset"
+            value={slide.boring.mountInset}
+            min={0}
+            onChange={(v) => edit<SlideEntry>(slide.id, (e) => void (e.boring.mountInset = v))}
+            title="How far in from each end of the runner the mounting holes sit, on the box side and the cabinet side alike."
+          />
+          <Rules entry={slide} onEdit={(fn) => edit<SlideEntry>(slide.id, fn)} />
         </Group>
       )}
 

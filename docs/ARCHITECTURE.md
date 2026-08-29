@@ -103,7 +103,11 @@ granularity as `topStyle` or `back` — a stack can mix a face-framed base with
 a frameless upper. `build/faceframe.ts` builds the stiles and rails and their
 half-lap joints (see [JOINERY.md](JOINERY.md)); either construction style
 produces a `FrontOpening` (`build/doors.ts`) that door layout consumes
-without ever asking which one built it. See [DOORS.md](DOORS.md).
+without ever asking which one built it. See [DOORS.md](DOORS.md). A bay's
+drawer stack (`build/drawers.ts`) consumes the same opening, sliced into one
+smaller opening per drawer, so a drawer face is fitted and overlaid exactly
+as a door would be — face-framed carcass included. See
+[DRAWERS.md](DRAWERS.md).
 
 Everything above the cabinet list is project-wide, because it describes the
 workshop rather than the furniture: one spindle, one stack of sheets, one set of
@@ -290,5 +294,5 @@ person will delete.
 
 Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
-- no drawers and no drawer slides (**R-08**), no edge banding (**R-09**)
+- no edge banding (**R-09**)
 - the web app has no automated tests

@@ -17,6 +17,7 @@ way the file and the hardware agree.
 | Hinge | IKEA UTRUSTA 110°, Blum CLIP top BLUMOTION 110°, Hettich Sensys 8645i | Cup, dowels, mounting plate holes |
 | Shelf pin | 5 mm, 1/4 in | The 32 mm ladder in each bay side |
 | Handle | 96 / 128 / 160 / 320 mm bar, knob | Clearance holes through the door |
+| Drawer slide | Blum TANDEM plus BLUMOTION 563H, 563F | Sizes the drawer box; mounting holes on the box sides and the cabinet sides |
 
 `hardware/catalogue.ts` holds all of it. Add a make by writing an entry and
 listing it in `CATALOGUE` — nothing else changes.
@@ -179,13 +180,6 @@ doors a couple of millimetres from where the ones already hanging in their
 kitchen are.
 
 ## Deliberately not here
-
-**Drawer slides.** They belong to the item that builds drawers, and a slide's
-numbers only mean anything once there is a drawer box to size from them. A slide
-picker that machined nothing would be exactly the defect this project's first
-roadmap item existed to remove: an option in the UI that does nothing. Roadmap
-item R-08 adds the kind and its entries alongside the boxes that consume them,
-which for the catalogue is one more entry type and no new machinery.
 
 **A separate face-frame hinge entry.** R-07 brought the frame a hinge bores
 into, and it turned out not to need one: a face-frame stile takes the same

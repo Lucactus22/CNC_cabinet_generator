@@ -91,8 +91,8 @@ export function defaultBaseCarcass(): Carcass {
     dividerCount: 1,
     bayWidths: [],
     bays: [
-      { shelves: 'none', shelfCount: 0, doors: 'left' },
-      { shelves: 'fixed', shelfCount: 1, doors: 'right' },
+      { shelves: 'none', shelfCount: 0, doors: 'left', drawerFrontHeights: [] },
+      { shelves: 'fixed', shelfCount: 1, doors: 'right', drawerFrontHeights: [] },
     ],
     back: { style: 'groove', materialId: MATERIAL_BACK, inset: 12 },
     construction: 'frameless',
@@ -116,8 +116,8 @@ export function defaultUpperCarcass(): Carcass {
     dividerCount: 1,
     bayWidths: [],
     bays: [
-      { shelves: 'fixed', shelfCount: 4, doors: 'none' },
-      { shelves: 'adjustable', shelfCount: 0, doors: 'none' },
+      { shelves: 'fixed', shelfCount: 4, doors: 'none', drawerFrontHeights: [] },
+      { shelves: 'adjustable', shelfCount: 0, doors: 'none', drawerFrontHeights: [] },
     ],
     back: { style: 'groove', materialId: MATERIAL_BACK, inset: 12 },
     construction: 'frameless',
@@ -179,7 +179,7 @@ export function newCarcass(existing: Carcass[]): Carcass {
     hangingRail: defaultHangingRail(),
     dividerCount: 0,
     bayWidths: [],
-    bays: [{ shelves: 'adjustable', shelfCount: 0, doors: 'none' }],
+    bays: [{ shelves: 'adjustable', shelfCount: 0, doors: 'none', drawerFrontHeights: [] }],
     back: { style: 'groove', materialId: MATERIAL_BACK, inset: 12 },
     construction: 'frameless',
     faceFrame: defaultFaceFrame(MATERIAL_STOCK),
@@ -234,6 +234,9 @@ export function defaultParams(): ProjectParams {
     stockMaterials: defaultStockMaterials(),
     carcassMaterialId: MATERIAL_CARCASS,
     shelfMaterialId: MATERIAL_CARCASS,
+    // 12 mm ply, the thinnest of the two shipped sheet materials, sits right
+    // at the bottom of the default slide's 12-16 mm supported side thickness.
+    drawerBoxMaterialId: MATERIAL_BACK,
     tool: {
       diameter: 6,
       drillDiameter: 5,

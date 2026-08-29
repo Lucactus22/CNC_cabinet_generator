@@ -105,8 +105,18 @@ Handles are bored on request: a bar or a knob on the door's opening edge, as
 clearance holes right through, so they never add a flip. Nothing is drilled
 until one is chosen. See [docs/HARDWARE.md](docs/HARDWARE.md).
 
-Drawers are not built yet. The part model and the joinery interface are shaped
-to take them without a rewrite.
+## Drawers
+
+Turn a bay into a stack of drawers instead of doors and shelves — one or the
+other, never both — with each drawer's own front height. The box (two sides,
+a sub-front, a back and a bottom) is sized from the bay's opening and the
+chosen **slide**: Blum TANDEM plus BLUMOTION 563H or 563F, picked from the
+same catalogue a hinge is. The width formula, the running length, the notch
+for the locking device and the fitting checks are all the runner's own
+published numbers. See [docs/DRAWERS.md](docs/DRAWERS.md).
+
+The drawer front is built exactly like a door — same opening, same overlay
+or inset fit, same reveal — and takes any surface effect a door can.
 
 ## Surface effects
 
@@ -259,7 +269,8 @@ testable on its own and reusable from a CLI or a different front end.
 | [FEATURE SUGGESTIONS](docs/feature_suggestions.md) | Ideas considered but not committed to |
 | [JOINERY](docs/JOINERY.md) | Every joint, with the geometry and the reasoning |
 | [DOORS](docs/DOORS.md) | Doors, hinge boring, handles, face designs |
-| [HARDWARE](docs/HARDWARE.md) | The catalogue: hinges, shelf pins, handles, and your own |
+| [DRAWERS](docs/DRAWERS.md) | Drawer boxes, undermount slides, the rear notch |
+| [HARDWARE](docs/HARDWARE.md) | The catalogue: hinges, shelf pins, handles, slides, and your own |
 | [OPENING](docs/OPENING.md) | Measuring a crooked room and scribing a square run to it |
 | [EFFECTS](docs/EFFECTS.md) | Surface decoration and how to add a new kind |
 | [DXF](docs/DXF.md) | Output format, layer convention, tiling workflow |
@@ -267,8 +278,8 @@ testable on its own and reusable from a CLI or a different front end.
 
 ## Known gaps
 
-Honest list, all tracked in the roadmap: no drawers, drawer slides, edge banding
-or face frames; the web app has no automated tests.
+Honest list, all tracked in the roadmap: no edge banding; the web app has no
+automated tests.
 
 Millimetres only, deliberately.
 

@@ -24,7 +24,7 @@ const ALL_AXES: Axis[] = ['x', 'y', 'z'];
 export function applyTabSlot(
   male: PartDraft,
   female: PartDraft,
-  _req: JointRequest,
+  req: JointRequest,
   params: ProjectParams,
 ): JointOutcome {
   const warnings: string[] = [];
@@ -84,7 +84,12 @@ export function applyTabSlot(
       style: j.reliefStyle,
       corners: 'convex',
     });
-    const feature: ThroughFeature = { kind: 'through', path: relieved, purpose: 'tab-slot' };
+    // Carries the joint's own purpose (e.g. 'carcass', 'drawer-box') rather
+    // than a generic label: hardware/fit.ts finds a slide's or a hinge's
+    // carriers by matching a joint's purpose on the feature it left, and a
+    // feature that always said 'tab-slot' would be invisible to that lookup
+    // whenever a project's carcass joint is set to tab-and-slot.
+    const feature: ThroughFeature = { kind: 'through', path: relieved, purpose: req.purpose };
     female.part.features.push(feature);
 
     // --- Tab on the male ----------------------------------------------

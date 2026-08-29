@@ -870,7 +870,7 @@ function CarcassGroup({
   const setBay = (i: number, patchBay: Partial<BaySpec>): void =>
     patch((target) => {
       while (target.bays.length <= i) {
-        target.bays.push({ shelves: 'none', shelfCount: 0, doors: 'none' });
+        target.bays.push({ shelves: 'none', shelfCount: 0, doors: 'none', drawerFrontHeights: [] });
       }
       target.bays[i] = { ...target.bays[i]!, ...patchBay };
     });
@@ -1109,36 +1109,83 @@ function CarcassGroup({
           shelves: 'none' as ShelfMode,
           shelfCount: 0,
           doors: 'none' as DoorStyle,
+          drawerFrontHeights: [],
         };
+        const drawers = bay.drawerFrontHeights ?? [];
+        const isDrawers = drawers.length > 0;
         return (
           <div key={i} style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
-            <SelectField
-              label={`Bay ${i + 1}`}
-              value={bay.shelves}
-              options={SHELF_MODES}
-              onChange={(v) => setBay(i, { shelves: v })}
+            <CheckField
+              label={`Bay ${i + 1}: drawers`}
+              value={isDrawers}
+              onChange={(v) => setBay(i, { drawerFrontHeights: v ? [200] : [] })}
+              title="A stack of drawers instead of doors and shelves. A bay is one or the other."
             />
-            {bay.shelves === 'fixed' && (
-              <NumberField
-                label="Shelves"
-                value={bay.shelfCount}
-                suffix=""
-                min={0}
-                max={20}
-                onChange={(v) => setBay(i, { shelfCount: Math.max(0, Math.round(v)) })}
-              />
+            {isDrawers ? (
+              <>
+                {drawers.map((h, k) => (
+                  <NumberField
+                    key={k}
+                    label={`Drawer ${k + 1} front`}
+                    value={h}
+                    min={20}
+                    onChange={(v) =>
+                      setBay(i, { drawerFrontHeights: drawers.map((x, j) => (j === k ? v : x)) })
+                    }
+                  />
+                ))}
+                <div className="row">
+                  <button onClick={() => setBay(i, { drawerFrontHeights: [...drawers, 200] })}>
+                    Add a drawer
+                  </button>
+                  <button
+                    onClick={() => setBay(i, { drawerFrontHeights: drawers.slice(0, -1) })}
+                    disabled={drawers.length <= 1}
+                    title={
+                      drawers.length <= 1
+                        ? 'A drawer stack needs at least one drawer; switch the checkbox off instead.'
+                        : 'Remove the bottom drawer'
+                    }
+                  >
+                    Remove a drawer
+                  </button>
+                </div>
+                <Hint>
+                  Front heights that do not add up to the opening, with a reveal between each, are
+                  split evenly instead.
+                </Hint>
+              </>
+            ) : (
+              <>
+                <SelectField
+                  label={`Bay ${i + 1}`}
+                  value={bay.shelves}
+                  options={SHELF_MODES}
+                  onChange={(v) => setBay(i, { shelves: v })}
+                />
+                {bay.shelves === 'fixed' && (
+                  <NumberField
+                    label="Shelves"
+                    value={bay.shelfCount}
+                    suffix=""
+                    min={0}
+                    max={20}
+                    onChange={(v) => setBay(i, { shelfCount: Math.max(0, Math.round(v)) })}
+                  />
+                )}
+                <SelectField
+                  label="Door"
+                  value={bay.doors ?? 'none'}
+                  options={[
+                    { value: 'none', label: 'Open, no door' },
+                    { value: 'left', label: 'Single, hinged left' },
+                    { value: 'right', label: 'Single, hinged right' },
+                    { value: 'double', label: 'Pair of doors' },
+                  ]}
+                  onChange={(v) => setBay(i, { doors: v })}
+                />
+              </>
             )}
-            <SelectField
-              label="Door"
-              value={bay.doors ?? 'none'}
-              options={[
-                { value: 'none', label: 'Open, no door' },
-                { value: 'left', label: 'Single, hinged left' },
-                { value: 'right', label: 'Single, hinged right' },
-                { value: 'double', label: 'Pair of doors' },
-              ]}
-              onChange={(v) => setBay(i, { doors: v })}
-            />
           </div>
         );
       })}

@@ -61,3 +61,46 @@ export function doorLeafRect(
     z1: o.clearZ1 - insetGap,
   };
 }
+
+/**
+ * Slice one opening into a vertical stack of smaller openings, top to bottom
+ * — what a stack of drawer fronts asks of a bay a single door would
+ * otherwise fill whole, each slice then run through `doorLeafRect` exactly
+ * as a door's own opening would be.
+ *
+ * Only the Z-span `fit` actually reads is sliced by the given heights; the
+ * other one is split evenly between the same slices. `doorLeafRect` never
+ * reads it for that fit, and there is no fixed offset between a frameless
+ * opening's clear and overlay spans to derive one span's slices from the
+ * other's — overlay runs the full height between the toe kick and the
+ * underside of the top, clear only the bay's own interior.
+ */
+export function splitOpeningVertically(
+  o: FrontOpening,
+  heights: number[],
+  fit: DoorFit,
+): FrontOpening[] {
+  const n = heights.length;
+  const evenClear = (o.clearZ1 - o.clearZ0) / n;
+  const evenOverlay = (o.overlayZ1 - o.overlayZ0) / n;
+  const out: FrontOpening[] = [];
+  let clearTop = o.clearZ1;
+  let overlayTop = o.overlayZ1;
+  for (const h of heights) {
+    const clearBottom = fit === 'inset' ? clearTop - h : clearTop - evenClear;
+    const overlayBottom = fit === 'overlay' ? overlayTop - h : overlayTop - evenOverlay;
+    out.push({
+      clearX0: o.clearX0,
+      clearX1: o.clearX1,
+      clearZ0: clearBottom,
+      clearZ1: clearTop,
+      overlayX0: o.overlayX0,
+      overlayX1: o.overlayX1,
+      overlayZ0: overlayBottom,
+      overlayZ1: overlayTop,
+    });
+    clearTop = clearBottom;
+    overlayTop = overlayBottom;
+  }
+  return out;
+}

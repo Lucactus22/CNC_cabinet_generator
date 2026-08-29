@@ -12,6 +12,7 @@ import { toLocal } from '../model/frame.js';
 import {
   buildParts,
   type BuildResult,
+  type DrawerBottomNotchRequest,
   type PinRowRequest,
   type TaperRequest,
   type ToeNotchRequest,
@@ -21,6 +22,7 @@ import { applyEffects } from '../effects/index.js';
 import { resolveHardware, type ShelfPinBoring } from '../hardware/catalogue.js';
 import { applyHandles } from '../hardware/handles.js';
 import { applyHinges } from '../hardware/hinges.js';
+import { applySlides } from '../hardware/slides.js';
 import { applyDado } from './dado.js';
 import { applyHalfLap } from './halflap.js';
 import { applyTabSlot } from './tabslot.js';
@@ -30,9 +32,12 @@ import {
   edgeFacing,
   FRONT_DIR,
   isVerticalEdge,
+  LEFT_DIR,
   makeDraft,
   mapAxis,
+  REAR_DIR,
   refreshBase,
+  RIGHT_DIR,
   type PartDraft,
 } from './helpers.js';
 
@@ -98,10 +103,16 @@ export function applyJoinery(params: ProjectParams, built: BuildResult): string[
   if (hw.handle) {
     warnings.push(...applyHandles(hw.handle, hw.placement, built.parts, built.handles).warnings);
   }
+  warnings.push(...applySlides(hw.slide, built.parts, built.slides).warnings);
 
   for (const notch of built.toeNotches) {
     const draft = drafts.get(notch.panelId);
     if (draft) applyToeNotch(draft, notch);
+  }
+
+  for (const notch of built.drawerNotches) {
+    const draft = drafts.get(notch.panelId);
+    if (draft) applyDrawerBottomNotch(draft, notch);
   }
 
   for (const mount of built.wallMounts) {
@@ -259,6 +270,33 @@ function applyToeNotch(draft: PartDraft, req: ToeNotchRequest): void {
     existing.dy = Math.max(existing.dy, dy);
   } else {
     draft.notches.push({ corner, dx, dy });
+  }
+}
+
+/**
+ * Notch each rear corner of a drawer box's bottom, clearing the slide's
+ * locking device — the same corner-notch machinery a toe kick uses, just at
+ * the two rear corners of a horizontal panel instead of the two front-bottom
+ * corners of a vertical one.
+ */
+function applyDrawerBottomNotch(draft: PartDraft, req: DrawerBottomNotchRequest): void {
+  const rear = edgeFacing(draft.frame, REAR_DIR);
+  if (!rear) return;
+  for (const sideDir of [LEFT_DIR, RIGHT_DIR]) {
+    const side = edgeFacing(draft.frame, sideDir);
+    if (!side || isVerticalEdge(rear) === isVerticalEdge(side)) continue;
+    const corner = cornerBetween(rear, side);
+    if (!corner) continue;
+
+    const dx = isVerticalEdge(rear) ? req.depth : req.width;
+    const dy = isVerticalEdge(rear) ? req.width : req.depth;
+    const existing = draft.notches.find((n) => n.corner === corner);
+    if (existing) {
+      existing.dx = Math.max(existing.dx, dx);
+      existing.dy = Math.max(existing.dy, dy);
+    } else {
+      draft.notches.push({ corner, dx, dy });
+    }
   }
 }
 

@@ -18,6 +18,8 @@ import {
   PIN_5MM,
   PIN_QUARTER_INCH,
   resolveHardware,
+  SLIDE_BLUM_TANDEM_F,
+  SLIDE_BLUM_TANDEM_H,
   type Diagnostic,
   type HingeEntry,
   type ShelfPinEntry,
@@ -114,6 +116,27 @@ describe('the catalogue entries themselves', () => {
     // cuts plywood from these.
     for (const entry of [HINGE_UTRUSTA, HINGE_BLUM_CLIP_TOP, PIN_5MM, HANDLE_BAR_128]) {
       expect(entry.source.length).toBeGreaterThan(20);
+    }
+  });
+
+  it('carries what Blum publish for the TANDEM 563H and 563F width formula', () => {
+    // Both sheets, in so many words: "Inside drawer width must equal opening
+    // width minus 42 [or 49] for TANDEM to align and function properly."
+    expect(SLIDE_BLUM_TANDEM_H.boring.widthDeduction).toBe(42);
+    expect(SLIDE_BLUM_TANDEM_F.boring.widthDeduction).toBe(49);
+    const sidesH = SLIDE_BLUM_TANDEM_H.requires.find((r) => r.measure === 'drawer side thickness');
+    const sidesF = SLIDE_BLUM_TANDEM_F.requires.find((r) => r.measure === 'drawer side thickness');
+    expect(sidesH).toMatchObject({ min: 12, max: 16 });
+    expect(sidesF).toMatchObject({ min: 16, max: 19 });
+  });
+
+  it('shares the same runner-length table, bottom recess and rear notch between the two Blum entries', () => {
+    // Both sheets: 229-533 mm runner lengths, 13 mm bottom recess, 35 mm
+    // minimum rear notch for the locking device.
+    for (const s of [SLIDE_BLUM_TANDEM_H, SLIDE_BLUM_TANDEM_F]) {
+      expect(s.boring.nominalLengths).toEqual([229, 305, 381, 457, 533]);
+      expect(s.boring.bottomRecess).toBe(13);
+      expect(s.boring.bottomNotchWidth).toBe(35);
     }
   });
 });
@@ -358,7 +381,7 @@ describe('a project file with something wrong in it', () => {
       {
         ...JSON.parse(JSON.stringify(PIN_5MM)),
         id: 'from-the-future',
-        requires: [{ measure: 'drawer box width', min: 100, why: 'a later version knew' }],
+        requires: [{ measure: 'runner rail colour', min: 100, why: 'a later version knew' }],
       },
     ];
     raw.hardware.shelfPinId = 'from-the-future';
