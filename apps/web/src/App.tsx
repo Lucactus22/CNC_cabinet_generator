@@ -19,6 +19,7 @@ export function App() {
   const project = useStore((s) => s.project);
 
   const sheets = project.nest.sheets.length;
+  const boards = project.stockNest.sheets.length;
   const cabinets = project.params.cabinets;
   // The run end to end, and the tallest stack in it: the two numbers someone
   // checks against the wall before they cut anything.
@@ -32,7 +33,7 @@ export function App() {
         <span className="badge">
           {cabinets.length > 1 ? `${cabinets.length} cabinets · ` : ''}
           {runWidth.toFixed(0)} × {height.toFixed(0)} mm · {project.parts.length} parts · {sheets}{' '}
-          sheets
+          sheets{boards > 0 ? ` · ${boards} board${boards === 1 ? '' : 's'}` : ''}
         </span>
         <span className="spacer" />
         <ExportBar />

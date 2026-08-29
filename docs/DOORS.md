@@ -19,6 +19,37 @@ above the toe kick.
 A pair splits its bay down the middle with a reveal between, hinged on the
 outside edges.
 
+## Frameless or face frame
+
+A carcass is frameless by default: a door fronts the carcass opening
+directly, and an overlay door covers a side or divider edge to edge because
+there is nothing else there to cover. Set `construction` to face frame
+(R-07) and a frame of solid stock — two outer stiles, one more per divider,
+a rail top and bottom, see [JOINERY.md](JOINERY.md) for how they are jointed
+— stands proud of the carcass front, and every door in that carcass fronts
+*it* instead.
+
+Door layout never asks which one it is looking at. Both produce the same
+shape, an **opening** — a clear rectangle, plus how far each edge may be
+overlaid — and one function turns an opening plus a fit into a door's box.
+What changes between them is only how far overlay reaches:
+
+- **Frameless.** An outer edge overlays the full thickness of the side panel
+  behind it; a shared edge overlays half the divider. There is nothing
+  between "covers it" and "does not," because the panel behind is only as
+  thick as the carcass material.
+- **Face frame.** A stile or rail is typically 40-60 mm wide, wide enough
+  that covering it edge to edge would hide the frame the style exists to
+  show. `FaceFrameSpec.overlay` sets a consistent reveal onto every member
+  instead — the standard overlay-hinge convention, and what "partial
+  overlay" means in practice. Set wider than the member it lands on, it is
+  held to that member's own outer edge and the project says so, rather than
+  hanging a door edge out over the carcass side with nothing under it.
+
+Inset works the same way against either: the door sits inside the clear
+opening plus its own gap, whether that opening is bounded by the carcass
+sides or by the stiles and rails standing in front of them.
+
 ## Hinge boring
 
 | | Value | Where it comes from |
@@ -46,6 +77,21 @@ assumes. Assign a drill operation to it instead if you would rather bore it.
 The mounting plates get two Ø5 mm holes on the 32 mm system: 37 mm in from the
 front edge, 32 mm apart, centred on each hinge. They land on the panel's inner
 face, which is already the face being machined, so they cost no extra setup.
+
+### In a face frame
+
+The same two Ø5 mm holes, 32 mm apart, on the same face — but a stile has no
+carcass-panel depth to measure "37 mm in from the front edge" into: its whole
+thickness is already spoken for by the half lap at each end (see
+[JOINERY.md](JOINERY.md)). The 37 mm is measured instead from the stile's own
+edge next to the door, which is the edge that plays the part a carcass panel's
+front edge plays for a frameless hinge. It is the same catalogue entry and the
+same numbers either way; only the edge they are read from moves.
+
+A stile that also carries this project's default UTRUSTA hinge is bored on
+face A — the back, the face looking into the cabinet — which is the same
+face the half lap already cuts into at the stile's ends. Nothing about the
+stile needs turning over on the bed for either operation.
 
 ## Door designs, and the flip
 

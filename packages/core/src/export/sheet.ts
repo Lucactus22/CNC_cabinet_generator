@@ -107,6 +107,8 @@ export function exportSheet(
   parts: Part[],
   sheet: NestedSheet,
   opts: SheetExportOptions = defaultExportOptions(),
+  /** 'board' for solid-stock boards nested by `nest/stock.ts`, otherwise a sheet. */
+  label = 'sheet',
 ): SheetExport {
   const { drawing, warnings } = composeSheet(params, parts, sheet, opts);
   // Tiling follows how far the parts reach, not the blank's nominal length.
@@ -117,7 +119,7 @@ export function exportSheet(
     params.nesting.sheetMargin,
   );
 
-  const base = `${slug(params.name)}-sheet${sheet.index + 1}`;
+  const base = `${slug(params.name)}-${label}${sheet.index + 1}`;
   const full: SheetFile = { name: `${base}.dxf`, dxf: writeDxf(drawing) };
   if (!plan) return { full, tiles: [], plan: null, warnings };
 

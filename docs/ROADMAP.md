@@ -531,15 +531,51 @@ bored into the frame, not the carcass side. That is a catalogue entry (R-06)
 plus a different target panel for the plate holes — the existing hinge code
 already takes the carcass panel as a parameter, so this should be small.
 
+**Revised while working it.** Four things the item as written did not settle:
+
+- *"Chosen per cabinet"* is finer-grained than the model actually needs it to
+  be. A `Cabinet` is a stack of `Carcass`es, and it is each carcass's own bays
+  and front that a frame stands in front of — exactly where `topStyle`,
+  `back` and `toeKick` already live. `construction` and `faceFrame` ended up
+  on `CarcassSpec`, not `Cabinet`. A cabinet with one carcass reads exactly as
+  "chosen per cabinet"; a stack can mix a face-framed base with a frameless
+  upper, which is a strict superset of what was asked for, not a narrower
+  reading of it.
+- *Half-lap topology.* The item does not say whether rails run through with
+  stiles let into them, or the other way round. Shop practice usually runs
+  outer stiles the full height with rails between them and lets a mid-stile
+  into the rails separately — which needs two different joints for what is
+  structurally one relationship: a corner lap at a rail's own end, a T lap
+  wherever a mid-stile lands partway along it. Running every stile (outer and
+  mid alike) the frame's full height and every rail its full width turns
+  every crossing into the same corner-shaped half lap, and produces the
+  identical door opening either way — a bay only ever asks where the nearest
+  stiles' and rails' inner edges are, never which member was "through." See
+  [JOINERY.md](JOINERY.md).
+- *Face-frame hinges bore into the frame with the correct plate positions*
+  needed no new catalogue entry. A stile is built the same way round as a
+  door — a flat board facing the room, not a panel facing sideways into it —
+  so its plate holes follow a door's own cup-boring arithmetic, not a carcass
+  panel's. The numbers are an existing entry's 32 mm system, unchanged; only
+  the edge they are measured from moves, from the carcass's front edge to the
+  stile's own edge next to the door. `HARDWARE.md`'s "deliberately not here"
+  note about face-frame hinges is retired rather than replaced.
+- *"Nested as a linear cut list rather than a 2D nest"* is taken literally:
+  `nest/stock.ts` packs stiles and rails end to end along a board's length
+  only, first-fit-decreasing, and never rotates a part — there is nothing to
+  rotate a length of board into. It returns the same shape the sheet nester
+  does, which is what lets `export/sheet.ts` draw a board's DXF with no
+  changes of its own.
+
 **Acceptance criteria.**
-- [ ] A cabinet can be frameless or face-frame, chosen per cabinet
-- [ ] Rails and stiles generated as parts with half-lap joints
-- [ ] Solid stock is a distinct material class with its own cut list
-- [ ] Doors reference the frame opening; overlay, partial overlay and inset all
+- [x] A cabinet can be frameless or face-frame, chosen per cabinet
+- [x] Rails and stiles generated as parts with half-lap joints
+- [x] Solid stock is a distinct material class with its own cut list
+- [x] Doors reference the frame opening; overlay, partial overlay and inset all
       work against it
-- [ ] Face-frame hinges bore into the frame with the correct plate positions
-- [ ] Door layout has no branch on construction style
-- [ ] Frameless cabinets generate geometry identical to before
+- [x] Face-frame hinges bore into the frame with the correct plate positions
+- [x] Door layout has no branch on construction style
+- [x] Frameless cabinets generate geometry identical to before
 
 **Tests.** Half-lap pockets on both halves at half the stock thickness and
 meeting flush; frame opening dimensions derived correctly from rail and stile
@@ -549,6 +585,21 @@ snapshot is unchanged.
 **Risks.** The opening abstraction is the crux. If it is skipped and a style
 branch goes into the door layout instead, R-08 will inherit the mess and cost
 more than this item saved.
+
+**What it cost, for the items that follow.** `build/doors.ts` holds the
+abstraction R-08 needs: a `FrontOpening` — a clear rectangle, plus how far
+each edge may be overlaid — and a pure `doorLeafRect(opening, fit, reveal,
+gap)` that turns one into a door's box. A drawer front can ask for the same
+`FrontOpening` a door in the same bay would get and run through the same
+function; nothing about either is specific to a door as a `PartRole`.
+`PartRole` gained `'stile'` and `'rail'`; `ProjectParams` gained
+`stockMaterials: StockMaterial[]`; `CarcassSpec` gained
+`construction: ConstructionStyle` and `faceFrame: FaceFrameSpec`.
+`HingeRequest` gained `mount: 'carcass' | 'frame'`, so a hinge — or a slide,
+R-08's own hardware — can point at either kind of panel without its boring
+function needing to know which construction style produced it.
+`JointRequest.purpose` gained `'face-frame'`, dispatched in `applyJoinery` to
+a new `joinery/halflap.ts` alongside the dado and tab-and-slot strategies.
 
 ---
 

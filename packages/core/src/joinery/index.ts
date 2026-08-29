@@ -22,6 +22,7 @@ import { resolveHardware, type ShelfPinBoring } from '../hardware/catalogue.js';
 import { applyHandles } from '../hardware/handles.js';
 import { applyHinges } from '../hardware/hinges.js';
 import { applyDado } from './dado.js';
+import { applyHalfLap } from './halflap.js';
 import { applyTabSlot } from './tabslot.js';
 import {
   centerOf,
@@ -37,6 +38,7 @@ import {
 
 export * from './helpers.js';
 export { applyDado } from './dado.js';
+export { applyHalfLap } from './halflap.js';
 export { applyTabSlot, planTabs } from './tabslot.js';
 
 export interface JoineryResult extends Assembly {
@@ -72,10 +74,16 @@ export function applyJoinery(params: ProjectParams, built: BuildResult): string[
       warnings.push(`Joint references a missing panel (${req.maleId} into ${req.femaleId}).`);
       continue;
     }
+    // A face frame's stiles and rails cross in one plane rather than meeting
+    // edge to face, so neither the housing joint nor the tab-and-slot one
+    // applies to them regardless of what the carcass joint is set to.
     const useTabs = params.joinery.carcassJoint === 'tabslot' && !req.forceDado;
-    const outcome = useTabs
-      ? applyTabSlot(male, female, req, params)
-      : applyDado(male, female, req, params);
+    const outcome =
+      req.purpose === 'face-frame'
+        ? applyHalfLap(male, female, params)
+        : useTabs
+          ? applyTabSlot(male, female, req, params)
+          : applyDado(male, female, req, params);
     warnings.push(...outcome.warnings);
   }
 

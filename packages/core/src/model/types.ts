@@ -31,6 +31,26 @@ export interface Material {
   hasGrain: boolean;
 }
 
+/**
+ * Solid stock: a board with a length and a width, but no fixed sheet size.
+ *
+ * A face frame's rails and stiles are ripped from boards, not cut from a sheet,
+ * so they cannot share `Material` — there is no `sheetWidth` to nest a board
+ * against, only a length to cut it to. Kept as a distinct list on the project
+ * (`stockMaterials`) so a linear cut list and a sheet cut list never get mixed
+ * into one count that means nothing to either supplier.
+ */
+export interface StockMaterial {
+  id: string;
+  name: string;
+  nominalThickness: number;
+  actualThickness: number;
+  /** Standard length a board is bought in, e.g. 2440 mm (8 ft). */
+  boardLength: number;
+  /** Width a board is milled to before ripping it down to a stile or rail width. */
+  boardWidth: number;
+}
+
 export interface ToolSpec {
   /** Main profiling/pocketing cutter. */
   diameter: number;
@@ -51,6 +71,41 @@ export interface MachineSpec {
 
 export type CarcassJoint = 'dado' | 'tabslot';
 export type BackStyle = 'groove' | 'rabbet' | 'none';
+
+/**
+ * Frameless has the doors and hinges reference the carcass opening directly.
+ * Face-frame adds a frame of solid stock across the front, and everything
+ * that used to reference the carcass opening references the frame's opening
+ * instead. See `FaceFrameSpec` and `build/faceframe.ts`.
+ */
+export type ConstructionStyle = 'frameless' | 'face-frame';
+
+/**
+ * A frame of solid stock across the front of a carcass: two outer stiles, one
+ * mid-stile per divider, and a rail top and bottom, half-lapped where they
+ * cross. Only read when `Carcass.construction` is `'face-frame'`, but always
+ * present so switching a carcass to face-frame does not need its numbers
+ * typed in from nothing.
+ */
+export interface FaceFrameSpec {
+  /** A `StockMaterial` id — solid stock, not a sheet good. */
+  materialId: string;
+  /** Outer and mid stiles are all milled to this width. */
+  stileWidth: number;
+  /** Top and bottom rails are milled to this width. */
+  railWidth: number;
+  /**
+   * How far an overlay door extends onto the surrounding frame member.
+   *
+   * Unlike a frameless carcass — where an overlay door covers a thin side
+   * panel edge to edge because there is nothing else to do — a face-frame
+   * stile is wide enough that covering it entirely would hide the frame the
+   * style exists to show. A modest, consistent reveal on every edge is the
+   * standard overlay-hinge convention; this is what "partial overlay"
+   * (R-07) means in practice.
+   */
+  overlay: number;
+}
 
 /**
  * Where a stacked carcass gets its floor.
@@ -168,6 +223,10 @@ export interface CarcassSpec {
   bayWidths: number[];
   bays: BaySpec[];
   back: BackSpec;
+  /** Frameless by default. See `ConstructionStyle`. */
+  construction: ConstructionStyle;
+  /** Read only when `construction` is `'face-frame'`, but always present. */
+  faceFrame: FaceFrameSpec;
 }
 
 export interface ToeKickSpec {
@@ -333,6 +392,8 @@ export interface SurfaceEffectSpec {
 export interface ProjectParams {
   name: string;
   materials: Material[];
+  /** Solid stock for face frames. See `StockMaterial`. */
+  stockMaterials: StockMaterial[];
   carcassMaterialId: string;
   shelfMaterialId: string;
   tool: ToolSpec;
@@ -368,7 +429,11 @@ export type PartRole =
   | 'hanging-rail'
   | 'stretcher'
   /** Scribe strip or filler panel taking up the gap between the run and a wall. */
-  | 'scribe';
+  | 'scribe'
+  /** Face-frame vertical member: outer stiles and one per divider. */
+  | 'stile'
+  /** Face-frame horizontal member: top and bottom of the frame. */
+  | 'rail';
 
 export type FaceSide = 'A' | 'B';
 

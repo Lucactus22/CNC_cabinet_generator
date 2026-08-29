@@ -126,6 +126,50 @@ export function ParamPanel() {
         </button>
       </Group>
 
+      <Group title="Solid stock">
+        <Hint>
+          For face frames: a board with a length to cut it to, not a sheet to nest across.
+        </Hint>
+        {params.stockMaterials.map((m, i) => (
+          <div key={m.id} style={{ display: 'grid', gap: 8, paddingBottom: 8 }}>
+            <strong style={{ fontSize: 12, color: 'var(--muted)' }}>{m.name}</strong>
+            <NumberField
+              label="Measured thickness"
+              value={m.actualThickness}
+              step={0.1}
+              min={1}
+              onChange={(v) =>
+                update((p) => {
+                  p.stockMaterials[i]!.actualThickness = v;
+                })
+              }
+              title="Measure it. The half lap at every stile and rail crossing is cut to half of this."
+            />
+            <NumberField
+              label="Board length"
+              value={m.boardLength}
+              min={100}
+              onChange={(v) =>
+                update((p) => {
+                  p.stockMaterials[i]!.boardLength = v;
+                })
+              }
+            />
+            <NumberField
+              label="Board width"
+              value={m.boardWidth}
+              min={20}
+              onChange={(v) =>
+                update((p) => {
+                  p.stockMaterials[i]!.boardWidth = v;
+                })
+              }
+              title="Before ripping it down to a stile or rail width."
+            />
+          </div>
+        ))}
+      </Group>
+
       <Group title="Joinery">
         <SelectField
           label="Carcass joint"
@@ -955,6 +999,50 @@ function CarcassGroup({
           }
         />
       )}
+
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
+        <SelectField
+          label="Construction"
+          value={spec.construction}
+          options={[
+            { value: 'frameless', label: 'Frameless' },
+            { value: 'face-frame', label: 'Face frame' },
+          ]}
+          onChange={(v) => patch((c) => (c.construction = v))}
+          title="A face frame stands solid stock across the front. Doors and hinges then reference the frame's own opening, not the carcass panels behind it."
+        />
+        {spec.construction === 'face-frame' && (
+          <>
+            <SelectField
+              label="Frame stock"
+              value={spec.faceFrame.materialId}
+              options={params.stockMaterials.map((m) => ({ value: m.id, label: m.name }))}
+              onChange={(v) => patch((c) => (c.faceFrame.materialId = v))}
+            />
+            <NumberField
+              label="Stile width"
+              value={spec.faceFrame.stileWidth}
+              min={20}
+              onChange={(v) => patch((c) => (c.faceFrame.stileWidth = v))}
+              title="Outer stiles and every mid-stile are all milled to this width."
+            />
+            <NumberField
+              label="Rail width"
+              value={spec.faceFrame.railWidth}
+              min={20}
+              onChange={(v) => patch((c) => (c.faceFrame.railWidth = v))}
+              title="The top and bottom rails, milled to this width."
+            />
+            <NumberField
+              label="Door overlay"
+              value={spec.faceFrame.overlay}
+              min={0}
+              onChange={(v) => patch((c) => (c.faceFrame.overlay = v))}
+              title="How far an overlay door reaches onto the surrounding frame member. A modest, consistent reveal is standard — covering the frame edge to edge would hide the reason to have one."
+            />
+          </>
+        )}
+      </div>
 
       {onTheGround && (
         <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>

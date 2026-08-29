@@ -82,6 +82,42 @@ and are easy to forget: at the root, the outline turns concave, so the cutter
 leaves material sticking out past the shoulder line, which holds the joint open
 by up to one tool radius.
 
+## Half lap (face frame)
+
+A face frame's stiles and rails do not meet edge to face the way a carcass
+panel meets a groove — they are coplanar, crossing in the frame's own plane,
+the way two boards cross in a picture frame or a trellis. Neither the housing
+joint nor tab-and-slot applies. Instead each member gives up exactly half its
+own thickness over the footprint where it crosses the other, cut from
+**opposite faces**:
+
+```
+Stile's pocket : depth = thickness / 2, face A (the back)
+Rail's pocket  : depth = thickness / 2, face B (the front)
+```
+
+Combined, the two halves fill the frame's full thickness with nothing left
+proud or short on either face — that is the "half" in half lap, and it is why
+both halves have to come from opposite faces rather than the same one: two
+pockets cut from the same face would either collide or leave a gap, not add up
+to the material. Cutting the stile from its back is what keeps its front,
+and — for a hinged stile — the same face a mounting plate bores into, on one
+side with nothing to flip for.
+
+Every stile runs the frame's full height and every rail its full width, so a
+mid-stile at a divider gets the same corner-shaped lap at each end that an
+outer stile gets, rather than a different, coped joint for landing partway
+along a rail. That is a choice, not the only valid one — shop practice often
+runs the rails through and lets muntins into them instead, which needs two
+different joints for what is structurally one relationship — and it produces
+the same door opening either way: a bay only asks where the nearest stiles'
+and rails' inner edges are, never which member was "through."
+
+No relief is needed, on either half: unlike a stopped dado or a tab root, a
+lap pocket has no floor corner that becomes an inside corner facing a mating
+tongue — it is just a rectangle removed from a flat face, the same shape the
+cutter already leaves.
+
 ## Corner reliefs
 
 ### Dogbone
