@@ -256,6 +256,7 @@ testable on its own and reusable from a CLI or a different front end.
 |---|---|
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | How the pipeline fits together, the invariants, where to add things |
 | [ROADMAP](docs/ROADMAP.md) | What 1.0 means and the work orders to get there |
+| [FEATURE SUGGESTIONS](docs/feature_suggestions.md) | Ideas considered but not committed to |
 | [JOINERY](docs/JOINERY.md) | Every joint, with the geometry and the reasoning |
 | [DOORS](docs/DOORS.md) | Doors, hinge boring, handles, face designs |
 | [HARDWARE](docs/HARDWARE.md) | The catalogue: hinges, shelf pins, handles, and your own |
