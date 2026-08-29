@@ -725,19 +725,37 @@ current UI is load-bearing except the geometry it displays.
 
 ### What we know about the person using this
 
-They are a woodworker. They already know what they want to build — they can
-picture the cabinet before they open the app. They do **not** need to be taught
-what a cabinet is, and they are not looking for inspiration.
+They are a woodworker. They arrive knowing what they want to **build** — they
+can picture the cabinet before they open the app. They do not know what this
+tool can **do**.
 
-What they need is **translation**: getting the thing in their head into a form
-the machine can cut, without fighting the software. Every second spent hunting
-for a control, decoding a term, or scrolling past sixty fields they do not care
-about is a second not spent building.
+Those are different kinds of knowledge, and the interface owes them both:
 
-That single fact should drive every decision in this milestone. The tool is a
-**translator, not a teacher**. Onboarding, tutorials and hand-holding are the
-wrong instinct here; directness, discoverability and reversibility are the right
-ones.
+**Translation.** Getting the thing in their head into a form the machine can
+cut, without fighting the software. Every second spent hunting for a control,
+decoding a term, or scrolling past sixty fields is a second not spent building.
+For the user who knows exactly what they want, the tool must get out of the way.
+
+**Education.** They do not know that tab-and-slot joinery exists and needs no
+fasteners, that the back panel can be beaded, that a crooked alcove is something
+the tool handles, or what a shaker line looks like until they see one. A feature
+nobody can find does not exist. Someone who came to build a plain box should be
+able to leave having built something better than they knew to ask for.
+
+These pull in opposite directions only if education is done badly. The
+resolution is a rule:
+
+> **The tool teaches by showing, never by telling.**
+
+No tutorials, no modal onboarding, no tips that interrupt. Instead: every
+capability is visible somewhere a person would naturally look, every choice is a
+picture of its result, every explanation sits at the moment of the decision, and
+every experiment is free because everything is reversible. Browsing the options
+*is* the lesson. Someone in a hurry sees a gallery and picks; someone curious
+sees the same gallery and learns what the tool can make.
+
+Get this right and the same interface serves both. Get it wrong and you build
+either a wall of jargon or a patronising wizard.
 
 ### The measured state of the interface today
 
@@ -784,6 +802,9 @@ either the item or the principle is wrong; say which.
    nag, repeat themselves, or hold the user's own work hostage.
 7. **Everything is reversible.** Freedom to try requires freedom to undo.
 8. **The cabinet is always visible.** It is the workspace, not a preview panel.
+9. **Every capability is discoverable by browsing.** If a feature can only be
+   found by reading the documentation, the interface has failed. Teach by
+   showing it, in place, at the moment it is relevant — never by interrupting.
 
 ---
 
@@ -811,6 +832,7 @@ ones that matter:
 | Journey | The question really being asked |
 |---|---|
 | Build the thing in my head | "How do I get from a picture in my mind to parts?" |
+| Find out what this can do | "What am I able to make here that I did not know about?" |
 | Fit it to a real room | "Will this go in my crooked alcove?" |
 | Change my mind about one bay | "Can I try this without breaking the rest?" |
 | Choose how it goes together | "Which joint do I want, and what does it cost me?" |
@@ -836,6 +858,10 @@ and they are genuinely open:
   it — a status chip that expands, inline markers on the model, something else?
 - **What is the fastest possible path** from "I want drawers in that bay" to it
   being so? Count the interactions in the current UI, then design for fewer.
+- **How does somebody find a feature they do not know exists?** Pick three —
+  tab-and-slot joinery, surface effects, the bottomless upper carcass — and work
+  out how a user would ever come across them today. The answer is currently
+  "read the source", and that is the failure this principle exists to fix.
 
 Sketch at least two genuinely different architectures before choosing. Say what
 you rejected and why — the next person will want to know whether their idea was
@@ -851,6 +877,8 @@ already considered.
 - [ ] At least two architectures sketched, one rejected in writing
 - [ ] The rest of this milestone reconciled against the findings: confirmed,
       re-scoped, or dropped with a reason
+- [ ] A discovery audit: for each significant capability, how a user would find
+      it today, and whether that route is good enough
 - [ ] Any idea that is good but out of scope added to
       [feature_suggestions.md](feature_suggestions.md)
 
@@ -953,6 +981,13 @@ even makes.
 consequence, and a project starts by picking a picture of something close to
 what you want.
 
+This item carries most of the milestone's teaching load. A gallery of rendered
+options is simultaneously a picker and a **catalogue of what the tool can
+make**: somebody in a hurry glances and chooses, somebody curious scrolls it and
+discovers that tab-and-slot joinery exists. Design it so both readings work —
+that means showing every option, including ones the current design cannot use,
+with the reason they are unavailable.
+
 **Where.** A new thumbnail renderer in `apps/web`, the control components, and
 a starter-project module.
 
@@ -991,6 +1026,8 @@ each one doubles as proof of what the tool can do.
 - [ ] Starter projects chosen from a gallery of live renders, each generating
       with no diagnostics
 - [ ] Thumbnails cached, and never stale after a joinery change
+- [ ] Options that do not currently apply are shown, greyed, with the reason —
+      an option hidden is an option nobody learns exists
 - [ ] Text-only fallback for anything genuinely non-visual
 
 **Tests.** Every choice in every gallery, and every starter project, builds
@@ -1003,7 +1040,67 @@ what they actually use.
 
 ---
 
-### R-19 — Configure the cabinet by touching the cabinet
+### R-19 — Let people find what they did not know to look for
+`Milestone F` · `Depends on: R-16, R-18` · `Size: M`
+
+**Problem.** Nothing in this tool tells you what it can do. Tab-and-slot
+joinery, surface effects, the bottomless upper carcass, stopped dados, scribing
+to a crooked wall — all of it is real, tested and documented, and all of it is
+invisible unless you already know the word to look for. Somebody who came to
+build a plain box will build a plain box, having never learned they could have
+done better. The documentation explains everything and nobody reads it while
+designing.
+
+**Goal.** The tool shows what it can do, in place, without interrupting anybody
+who does not want to know.
+
+**Where.** The inspector and viewport from R-17, the gallery machinery from
+R-18, a small content layer keyed to features.
+
+**Design notes.** R-18 does most of the heavy lifting by turning options into
+pictures. This item covers what that leaves.
+
+**Explain in place, on demand.** Hover or select a joint in the 3D view and get
+a section through it, the clearances, and one line on why it is shaped that way.
+The knowledge already exists in `JOINERY.md` and `DOORS.md`; this puts it where
+the question is actually asked. R-20's section plane renders it.
+
+**Worked examples that say what they demonstrate.** The starter projects from
+R-18 each become a lesson: *"this one uses tab-and-slot joinery and needs no
+fasteners"*, *"this one has no bottom on the upper carcass"*. Load it, take it
+apart, see how it was done. That is how woodworkers learn from each other
+already.
+
+**Quiet contextual suggestions.** Where a capability plainly applies to what
+somebody is doing — an empty bay that could take drawers, a plain door that
+could take a shaker line — say so once, unobtrusively, and let it be dismissed
+for good. **This is the part most likely to be done badly.** The bar: never
+modal, never animated, never repeated after dismissal, and never shown while the
+user is mid-action. If in doubt, leave it out; an annoying tool is worse than a
+quiet one.
+
+**A capability overview, for the curious.** One place that shows what the tool
+can make — every joint, every effect, every cabinet type, rendered — that can be
+browsed without touching the current design. Not a manual. A showroom.
+
+**Acceptance criteria.**
+- [ ] Selecting a joint or feature explains it in place, with a section drawing
+- [ ] Starter projects state what each demonstrates
+- [ ] Contextual suggestions appear at most once, dismiss permanently, and never
+      interrupt an action in progress
+- [ ] A browsable capability overview, rendered from real geometry
+- [ ] Every explanation is generated from or checked against the docs, so it
+      cannot drift from what the code does
+- [ ] Somebody who has never read the documentation can name three features they
+      discovered while designing
+
+**Risks.** Becoming the thing this milestone exists to avoid. Every element here
+must be ignorable. Measure it: a user who dismisses everything should reach the
+same design in the same number of interactions as one who never saw it.
+
+---
+
+### R-20 — Configure the cabinet by touching the cabinet
 `Milestone F` · `Depends on: R-16, R-03` · `Size: L`
 
 **Problem.** The 3D view shows the cabinet and you cannot do anything to it. To
@@ -1052,7 +1149,7 @@ source of truth; the viewport is another editor of them, never a second copy.
 
 ---
 
-### R-20 — Diagnostics that show you the problem
+### R-21 — Diagnostics that show you the problem
 `Milestone F` · `Depends on: R-16` · `Size: M`
 
 **Problem.** The diagnostics say what is wrong well and help you fix it badly.
@@ -1095,7 +1192,7 @@ each, because a fix that does not fix is worse than none.
 
 ---
 
-### R-21 — Confidence at export, and a view for the workshop
+### R-22 — Confidence at export, and a view for the workshop
 `Milestone F` · `Depends on: R-16, R-10` · `Size: M`
 
 **Problem.** Export hands over a zip and says nothing: you do not know what is
@@ -1131,7 +1228,7 @@ and answers a real, frequent problem.
 
 ---
 
-### R-22 — Visual and interaction polish, and accessibility
+### R-23 — Visual and interaction polish, and accessibility
 `Milestone F` · `Depends on: R-16, R-14` · `Size: M`
 
 **Problem.** The interface is consistent but was never designed: spacing, type
@@ -1178,7 +1275,7 @@ automated contrast check over both palettes.
 
 ## Milestone G — Release
 
-### R-23 — 1.0 release
+### R-24 — 1.0 release
 `Milestone G` · `Depends on: everything above` · `Size: S`
 
 - [ ] Sample projects that load from the UI

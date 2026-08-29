@@ -37,11 +37,8 @@ one cabinet at a time is noticeable friction.
 
 ## Understanding what you are making
 
-### Explain this joint, in place
-`M` · Hover a joint in the 3D view and get a section, the clearances, and one
-line on why it is shaped that way. The knowledge is already in `JOINERY.md`;
-this puts it where the question is actually asked rather than in a file nobody
-opens mid-design.
+> "Explain this joint, in place" was promoted from this list to roadmap item
+> R-19, along with worked examples and a capability overview.
 
 ### Compare two variants side by side
 `M` · Fork the design, change something, see both at once with the differences
