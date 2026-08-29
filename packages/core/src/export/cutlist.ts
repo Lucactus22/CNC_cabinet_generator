@@ -3,6 +3,15 @@ import type { ProjectParams, Part } from '../model/types.js';
 import { blankSize } from '../nest/index.js';
 import type { NestResult } from '../nest/index.js';
 
+const nameLookups = (
+  params: ProjectParams,
+): { cabinet: Map<string, string>; carcass: Map<string, string> } => ({
+  cabinet: new Map(params.cabinets.map((c) => [c.id, c.name])),
+  carcass: new Map(
+    params.cabinets.flatMap((c) => c.carcasses.map((k) => [`${c.id}/${k.id}`, k.name] as const)),
+  ),
+});
+
 export interface CutListRow {
   id: string;
   label: string;
@@ -29,10 +38,7 @@ export function buildCutList(params: ProjectParams, parts: Part[], nest: NestRes
   const sheetOf = new Map<string, number>();
   for (const s of nest.sheets) for (const p of s.parts) sheetOf.set(p.partId, s.index + 1);
 
-  const cabinetName = new Map(params.cabinets.map((c) => [c.id, c.name]));
-  const carcassName = new Map(
-    params.cabinets.flatMap((c) => c.carcasses.map((k) => [`${c.id}/${k.id}`, k.name] as const)),
-  );
+  const { cabinet: cabinetName, carcass: carcassName } = nameLookups(params);
 
   return parts.map((part) => {
     const material = params.materials.find((m) => m.id === part.materialId);
@@ -72,7 +78,61 @@ export function buildCutList(params: ProjectParams, parts: Part[], nest: NestRes
   });
 }
 
-export function cutListCsv(rows: CutListRow[]): string {
+/**
+ * Solid-stock parts — face-frame stiles and rails — in the same row shape as
+ * the sheet cut list, but sized from `stockMaterials` and read off boards
+ * rather than sheets. Kept as its own list rather than merged into
+ * `buildCutList`: mixing board feet into a sheet count would help nobody
+ * totting up what to buy.
+ */
+export function buildStockCutList(
+  params: ProjectParams,
+  parts: Part[],
+  nest: NestResult,
+): CutListRow[] {
+  const boardOf = new Map<string, number>();
+  for (const b of nest.sheets) for (const p of b.parts) boardOf.set(p.partId, b.index + 1);
+
+  const { cabinet: cabinetName, carcass: carcassName } = nameLookups(params);
+
+  return parts.map((part) => {
+    const material = params.stockMaterials.find((m) => m.id === part.materialId);
+    const bb = bboxOf(part.outline);
+    let cutLength = pathLength(part.outline);
+    let pockets = 0;
+    let holes = 0;
+    for (const f of part.features) {
+      if (f.kind === 'pocket') {
+        pockets++;
+        cutLength += pathLength(f.path);
+      } else if (f.kind === 'through') {
+        cutLength += pathLength(f.path);
+      } else if (f.kind === 'drill') {
+        holes++;
+      }
+    }
+    return {
+      id: part.id,
+      label: part.label,
+      cabinet: cabinetName.get(part.cabinetId) ?? part.cabinetId,
+      carcass: carcassName.get(`${part.cabinetId}/${part.carcassId}`) ?? part.carcassId,
+      role: part.role,
+      material: material?.name ?? part.materialId,
+      thickness: round(part.thickness),
+      length: round(Math.max(bb.maxX - bb.minX, bb.maxY - bb.minY)),
+      width: round(Math.min(bb.maxX - bb.minX, bb.maxY - bb.minY)),
+      quantity: 1,
+      sheet: boardOf.get(part.id) ?? '',
+      // Solid stock is always cut with the grain running along its length.
+      grain: 'fixed',
+      pockets,
+      holes,
+      cutLength: round(cutLength),
+    };
+  });
+}
+
+export function cutListCsv(rows: CutListRow[], sheetLabel = 'Sheet'): string {
   const headers = [
     'Part ID',
     'Description',
@@ -84,7 +144,7 @@ export function cutListCsv(rows: CutListRow[]): string {
     'Length (mm)',
     'Width (mm)',
     'Qty',
-    'Sheet',
+    sheetLabel,
     'Grain',
     'Pockets',
     'Holes',
@@ -132,6 +192,25 @@ export function materialSummary(
         return a + (s.w * s.h) / 1e6;
       }, 0);
       return { material: m.name, sheets: sheets.length, parts: mine.length, area: round(area) };
+    })
+    .filter((x) => x.parts > 0);
+}
+
+/** Summary by stock material, for ordering boards. Length stands in for `materialSummary`'s area. */
+export function stockSummary(
+  params: ProjectParams,
+  parts: Part[],
+  nest: NestResult,
+): Array<{ material: string; boards: number; parts: number; length: number }> {
+  return params.stockMaterials
+    .map((m) => {
+      const mine = parts.filter((p) => p.materialId === m.id);
+      const boards = nest.sheets.filter((s) => s.materialId === m.id);
+      const length = mine.reduce((a, p) => {
+        const bb = bboxOf(p.outline);
+        return a + Math.max(bb.maxX - bb.minX, bb.maxY - bb.minY);
+      }, 0);
+      return { material: m.name, boards: boards.length, parts: mine.length, length: round(length) };
     })
     .filter((x) => x.parts > 0);
 }

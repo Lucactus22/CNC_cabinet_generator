@@ -7,25 +7,44 @@ import { DrawingSvg } from './drawing';
  * The nested sheets, drawn from the very geometry that gets exported.
  */
 export function SheetView() {
-  const { params, parts, nest } = useStore((s) => s.project);
+  const { params, parts, nest, stockNest } = useStore((s) => s.project);
   const selected = useStore((s) => s.selectedPartId);
   const select = useStore((s) => s.select);
 
   const sheets = useMemo(
     () =>
-      nest.sheets.map((sheet) => ({
-        sheet,
-        drawing: composeSheet(params, parts, sheet, defaultExportOptions()).drawing,
-        // Setups follow how far the parts actually reach, matching the export.
-        tiles: planTiles(
-          sheet.contentLength,
-          sheet.width,
-          params.machine,
-          params.nesting.sheetMargin,
+      nest.sheets
+        .map((sheet) => ({
+          sheet,
+          label: 'Sheet',
+          drawing: composeSheet(params, parts, sheet, defaultExportOptions()).drawing,
+          // Setups follow how far the parts actually reach, matching the export.
+          tiles: planTiles(
+            sheet.contentLength,
+            sheet.width,
+            params.machine,
+            params.nesting.sheetMargin,
+          ),
+          material: params.materials.find((m) => m.id === sheet.materialId)?.name,
+        }))
+        // Boards, drawn the same way: `composeSheet` only ever asks a sheet
+        // for its size and its parts, so a board is nothing but a sheet with
+        // its parts in a single row.
+        .concat(
+          stockNest.sheets.map((sheet) => ({
+            sheet,
+            label: 'Board',
+            drawing: composeSheet(params, parts, sheet, defaultExportOptions()).drawing,
+            tiles: planTiles(
+              sheet.contentLength,
+              sheet.width,
+              params.machine,
+              params.nesting.sheetMargin,
+            ),
+            material: params.stockMaterials.find((m) => m.id === sheet.materialId)?.name,
+          })),
         ),
-        material: params.materials.find((m) => m.id === sheet.materialId),
-      })),
-    [params, parts, nest],
+    [params, parts, nest, stockNest],
   );
 
   if (sheets.length === 0) {
@@ -62,12 +81,12 @@ export function SheetView() {
           </span>
         </div>
 
-        {sheets.map(({ sheet, drawing, tiles, material }) => (
-          <div className="sheet-card" key={sheet.index}>
+        {sheets.map(({ sheet, label, drawing, tiles, material }) => (
+          <div className="sheet-card" key={`${label}-${sheet.index}`}>
             <h3>
-              Sheet {sheet.index + 1}
+              {label} {sheet.index + 1}
               <span className="meta">
-                {material?.name ?? sheet.materialId} · {sheet.length} × {sheet.width} mm ·{' '}
+                {material ?? sheet.materialId} · {sheet.length} × {sheet.width} mm ·{' '}
                 {sheet.parts.length} parts · {(sheet.yield * 100).toFixed(0)}% used
                 {tiles ? ` · ${tiles.tiles.length} setups` : ' · one setup'}
               </span>

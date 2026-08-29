@@ -36,7 +36,10 @@ export function applyHinges(
     const panel = byId.get(req.carcassPanelId);
     if (!door) continue;
     boreDoor(door, req, h, warnings);
-    if (panel) borePanel(panel, req, h);
+    if (panel) {
+      if (req.mount === 'frame') boreFaceFrameStile(panel, req, h);
+      else borePanel(panel, req, h);
+    }
   }
 
   return { warnings };
@@ -116,6 +119,53 @@ function borePanel(panel: Part, req: HingeRequest, h: HingeSpec): void {
         diameter: h.plateHoleDiameter,
         depth: h.plateHoleDepth,
         side,
+        purpose: 'hinge-plate',
+      });
+    }
+  }
+}
+
+/**
+ * Mounting plate holes in a face-frame stile, on the 32 mm system.
+ *
+ * A stile shares a door's own orientation — both are flat boards facing the
+ * room, not a carcass side facing sideways into it — so this follows
+ * `boreDoor`'s edge-and-inward math rather than `borePanel`'s. `plateFrontOffset`
+ * is reused for a different measurement than it names on a carcass panel: not
+ * how far behind the front edge the plate sits, but how far in from the
+ * stile's own door-side edge, because a stile has no meaningful depth of its
+ * own to measure into — its whole thickness is already spoken for by the half
+ * lap at each end. It is the same 32 mm system either way, just referenced
+ * from a different edge.
+ */
+function boreFaceFrameStile(stile: Part, req: HingeRequest, h: HingeSpec): void {
+  const frame = frameOf(stile);
+  const zMap = mapAxis(frame, 'z');
+  const xMap = mapAxis(frame, 'x');
+  if (!zMap || !xMap) return;
+
+  // The door sits on the opposite side of the stile from the edge it shares
+  // with it: a door hinged on its own low-x edge is bounded by the stile to
+  // its left, which meets it at that stile's high-x edge.
+  const hingeAtLow = req.side === 'low';
+  const edgeLocal = localOf(frame, hingeAtLow ? stile.box.max.x : stile.box.min.x, 'x');
+  const awayFromDoor = hingeAtLow ? -xMap.sign : xMap.sign;
+  const across = edgeLocal + awayFromDoor * h.plateFrontOffset;
+
+  // The plates go on whichever face looks into the cabinet, the same face a
+  // door's own hinge cup is bored into — which for a stile, built the same
+  // way round as a door, is always face A.
+  for (const z of req.heights) {
+    const along = localOf(frame, z, 'z');
+    for (const d of [-h.plateHoleSpacing / 2, h.plateHoleSpacing / 2]) {
+      const pt = axisPoint(zMap, across, along + d);
+      stile.features.push({
+        kind: 'drill',
+        x: pt.x,
+        y: pt.y,
+        diameter: h.plateHoleDiameter,
+        depth: h.plateHoleDepth,
+        side: 'A',
         purpose: 'hinge-plate',
       });
     }

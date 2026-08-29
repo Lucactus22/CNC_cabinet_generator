@@ -62,6 +62,12 @@ export function normaliseParams(raw: unknown): ProjectParams {
       Array.isArray(input.materials) && input.materials.length > 0
         ? (input.materials as ProjectParams['materials'])
         : base.materials,
+    // A file written before R-07 has no stock list at all, because nothing
+    // needed one: it opens with the one this project ships by default.
+    stockMaterials:
+      Array.isArray(input.stockMaterials) && input.stockMaterials.length > 0
+        ? (input.stockMaterials as ProjectParams['stockMaterials'])
+        : base.stockMaterials,
     surfaceEffects: Array.isArray(input.surfaceEffects)
       ? (input.surfaceEffects as SurfaceEffectSpec[]).map(migrateEffect)
       : [],
@@ -239,6 +245,10 @@ function mergeCarcass(template: Carcass, raw: Record<string, unknown>): Carcass 
     back: { ...template.back, ...(raw.back as object) },
     toeKick: { ...template.toeKick, ...(raw.toeKick as object) },
     hangingRail: { ...template.hangingRail, ...(raw.hangingRail as object) },
+    // A file written before R-07 has no faceFrame block at all: it opens
+    // frameless, exactly as it was cut, with sensible numbers already sitting
+    // there the moment someone switches it on.
+    faceFrame: { ...template.faceFrame, ...(raw.faceFrame as object) },
     bays: Array.isArray(raw.bays) ? (raw.bays as Carcass['bays']) : template.bays,
     bayWidths: Array.isArray(raw.bayWidths) ? (raw.bayWidths as number[]) : [],
   };

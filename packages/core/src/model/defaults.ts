@@ -1,9 +1,18 @@
-import type { Cabinet, Carcass, HangingRailSpec, ProjectParams, Material } from './types.js';
+import type {
+  Cabinet,
+  Carcass,
+  FaceFrameSpec,
+  HangingRailSpec,
+  ProjectParams,
+  Material,
+  StockMaterial,
+} from './types.js';
 import { defaultOpening } from './opening.js';
 import { defaultHardware } from '../hardware/catalogue.js';
 
 export const MATERIAL_CARCASS = 'ply18';
 export const MATERIAL_BACK = 'ply12';
+export const MATERIAL_STOCK = 'stock19';
 
 /** Off by default: only a wall cabinet has anything to hang from. */
 export function defaultHangingRail(): HangingRailSpec {
@@ -34,6 +43,34 @@ export function defaultMaterials(): Material[] {
   ];
 }
 
+export function defaultStockMaterials(): StockMaterial[] {
+  return [
+    {
+      id: MATERIAL_STOCK,
+      name: '19 mm (3/4 in) solid stock',
+      nominalThickness: 19,
+      actualThickness: 19,
+      // A standard 8 ft board.
+      boardLength: 2440,
+      boardWidth: 140,
+    },
+  ];
+}
+
+/** Frameless: the doors and hinges reference the carcass opening directly. */
+export function defaultFaceFrame(materialId: string): FaceFrameSpec {
+  return {
+    materialId,
+    // 1 3/4 in, a common face-frame stile/rail width.
+    stileWidth: 44,
+    railWidth: 44,
+    // A modest, consistent reveal onto the frame — the standard overlay-hinge
+    // convention, and what makes the reveal read as a frame rather than a
+    // door covering it entirely. See FaceFrameSpec.overlay.
+    overlay: 10,
+  };
+}
+
 /**
  * The base carcass of the unit in the reference photographs: a deep box with
  * doors, a toe kick, and a capped top that forms the visible ledge.
@@ -58,6 +95,8 @@ export function defaultBaseCarcass(): Carcass {
       { shelves: 'fixed', shelfCount: 1, doors: 'right' },
     ],
     back: { style: 'groove', materialId: MATERIAL_BACK, inset: 12 },
+    construction: 'frameless',
+    faceFrame: defaultFaceFrame(MATERIAL_STOCK),
   };
 }
 
@@ -81,6 +120,8 @@ export function defaultUpperCarcass(): Carcass {
       { shelves: 'adjustable', shelfCount: 0, doors: 'none' },
     ],
     back: { style: 'groove', materialId: MATERIAL_BACK, inset: 12 },
+    construction: 'frameless',
+    faceFrame: defaultFaceFrame(MATERIAL_STOCK),
   };
 }
 
@@ -140,6 +181,8 @@ export function newCarcass(existing: Carcass[]): Carcass {
     bayWidths: [],
     bays: [{ shelves: 'adjustable', shelfCount: 0, doors: 'none' }],
     back: { style: 'groove', materialId: MATERIAL_BACK, inset: 12 },
+    construction: 'frameless',
+    faceFrame: defaultFaceFrame(MATERIAL_STOCK),
   };
 }
 
@@ -176,6 +219,7 @@ export function copyCarcass(source: Carcass): Carcass {
     back: { ...source.back },
     toeKick: { ...source.toeKick },
     hangingRail: { ...source.hangingRail },
+    faceFrame: { ...source.faceFrame },
   };
 }
 
@@ -187,6 +231,7 @@ export function defaultParams(): ProjectParams {
   return {
     name: 'Stacked built-in',
     materials: defaultMaterials(),
+    stockMaterials: defaultStockMaterials(),
     carcassMaterialId: MATERIAL_CARCASS,
     shelfMaterialId: MATERIAL_CARCASS,
     tool: {

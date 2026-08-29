@@ -98,6 +98,13 @@ produced a cabinet; a wall unit looks different only because its `CarcassSpec`
 turns `toeKick` off and `hangingRail` on. Add a fifth type by writing another
 preset, never by teaching `build/builder.ts` a new case.
 
+`CarcassSpec.construction` is frameless or face-frame, the same per-carcass
+granularity as `topStyle` or `back` — a stack can mix a face-framed base with
+a frameless upper. `build/faceframe.ts` builds the stiles and rails and their
+half-lap joints (see [JOINERY.md](JOINERY.md)); either construction style
+produces a `FrontOpening` (`build/doors.ts`) that door layout consumes
+without ever asking which one built it. See [DOORS.md](DOORS.md).
+
 Everything above the cabinet list is project-wide, because it describes the
 workshop rather than the furniture: one spindle, one stack of sheets, one set of
 grooves that all have to fit each other.
@@ -184,7 +191,7 @@ Three registries, each designed so new entries are additive.
 
 | To add | Write | Register in |
 |---|---|---|
-| A joint | a function taking (male, female, request, params) that pushes features | `joinery/index.ts`, the `useTabs` branch |
+| A joint | a function taking (male, female, request, params) that pushes features | `joinery/index.ts`, dispatched on the request's `purpose` and `params.joinery.carcassJoint` |
 | A surface effect | an `EffectApplier` in `effects/` | `EFFECTS` and `EFFECT_LABELS` |
 | A make of hardware | a `HardwareEntry` — plain data | `CATALOGUE` in `hardware/catalogue.ts` |
 | A new *kind* of hardware | a boring function in `hardware/` | called from `applyJoinery`, plus a row in `CARRIES` |
@@ -283,6 +290,5 @@ person will delete.
 
 Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
-- frameless only; no face frames (**R-07**)
 - no drawers and no drawer slides (**R-08**), no edge banding (**R-09**)
 - the web app has no automated tests

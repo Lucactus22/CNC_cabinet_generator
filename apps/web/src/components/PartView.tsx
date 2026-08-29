@@ -19,6 +19,9 @@ export function PartView() {
   const select = useStore((s) => s.select);
 
   const part = project.parts.find((p) => p.id === selected) ?? project.parts[0] ?? null;
+  // Solid stock is kept off the sheet cut list — see project.ts — but it
+  // still belongs here, next to everything else that comes off the machine.
+  const rows = project.cutList.concat(project.stockCutList);
 
   return (
     <div className="viewport">
@@ -40,7 +43,7 @@ export function PartView() {
               </tr>
             </thead>
             <tbody>
-              {project.cutList.map((row) => (
+              {rows.map((row) => (
                 <tr
                   key={row.id}
                   className={row.id === part?.id ? 'selected' : ''}

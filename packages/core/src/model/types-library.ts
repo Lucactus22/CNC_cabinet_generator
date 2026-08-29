@@ -1,5 +1,12 @@
 import type { Cabinet, Carcass } from './types.js';
-import { MATERIAL_BACK, defaultCabinet, defaultHangingRail, nextCabinetId } from './defaults.js';
+import {
+  MATERIAL_BACK,
+  MATERIAL_STOCK,
+  defaultCabinet,
+  defaultFaceFrame,
+  defaultHangingRail,
+  nextCabinetId,
+} from './defaults.js';
 
 /**
  * A named starting point for a cabinet.
@@ -39,6 +46,8 @@ function baseCarcass(): Carcass {
       { shelves: 'adjustable', shelfCount: 0, doors: 'right' },
     ],
     back: { style: 'groove', materialId: MATERIAL_BACK, inset: 12 },
+    construction: 'frameless',
+    faceFrame: defaultFaceFrame(MATERIAL_STOCK),
   };
 }
 
@@ -68,6 +77,8 @@ function wallCarcass(): Carcass {
       { shelves: 'adjustable', shelfCount: 0, doors: 'right' },
     ],
     back: { style: 'groove', materialId: MATERIAL_BACK, inset: 12 },
+    construction: 'frameless',
+    faceFrame: defaultFaceFrame(MATERIAL_STOCK),
   };
 }
 
@@ -88,6 +99,8 @@ function tallCarcass(): Carcass {
     bayWidths: [],
     bays: [{ shelves: 'fixed', shelfCount: 5, doors: 'double' }],
     back: { style: 'groove', materialId: MATERIAL_BACK, inset: 12 },
+    construction: 'frameless',
+    faceFrame: defaultFaceFrame(MATERIAL_STOCK),
   };
 }
 

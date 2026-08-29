@@ -187,5 +187,12 @@ roadmap item existed to remove: an option in the UI that does nothing. Roadmap
 item R-08 adds the kind and its entries alongside the boxes that consume them,
 which for the catalogue is one more entry type and no new machinery.
 
-**Face-frame hinges.** Same reason, one item earlier: R-07 brings the frame they
-bore into.
+**A separate face-frame hinge entry.** R-07 brought the frame a hinge bores
+into, and it turned out not to need one: a face-frame stile takes the same
+cup, the same dowels and the same 32 mm mounting-hole pattern any built-in
+entry already publishes, just read from the stile's own door-side edge
+instead of the carcass's front edge. See [DOORS.md](DOORS.md) for the two
+readings side by side. A maker whose face-frame plate genuinely differs —
+a different hole pattern, not just a different reference edge — is still a
+plain `HingeEntry` away; nothing about the catalogue's shape stops one being
+added.

@@ -17,6 +17,8 @@ import { fitOpening, gapAt, type OpeningFit, type RunSize } from '../model/openi
 import { localFrame } from '../model/frame.js';
 import { hingeHeights, layoutBays, pinHeights, shelfHeights, wallMountXs } from './layout.js';
 import { resolveHardware } from '../hardware/catalogue.js';
+import { doorLeafRect, type FrontOpening } from './doors.js';
+import { buildFaceFrame } from './faceframe.js';
 
 /**
  * A joint the joinery stage has to realise. The builder decides *what* meets
@@ -29,7 +31,7 @@ export interface JointRequest {
   depthOverride?: number;
   /** Carcass joints stop short of this assembly Y so nothing shows on the front edge. */
   stopFrontAtY?: number;
-  purpose: 'carcass' | 'shelf' | 'back' | 'divider' | 'toe-rail' | 'hanging-rail';
+  purpose: 'carcass' | 'shelf' | 'back' | 'divider' | 'toe-rail' | 'hanging-rail' | 'face-frame';
   /** Backs and toe rails always sit in a plain groove, whatever the carcass joint is. */
   forceDado?: boolean;
   /**
@@ -112,14 +114,21 @@ export interface HandleRequest {
 /** A door leaf that needs hinge boring, plus the panel its plates screw to. */
 export interface HingeRequest {
   doorId: string;
-  /** Panel carrying the mounting plates. */
+  /** Panel carrying the mounting plates: a carcass side/divider, or a stile. */
   carcassPanelId: string;
   /** Assembly-space heights of each hinge's cup centre. */
   heights: number[];
   /** Which side of the door the hinges are on, in assembly X. */
   side: 'low' | 'high';
-  /** Front face of the carcass, which the plate holes are measured from. */
+  /** Front face of the carcass, which the plate holes are measured from. Unused when mount is 'frame'. */
   yFront: number;
+  /**
+   * Whether the plates land on the carcass panel behind the opening, or on a
+   * face-frame stile in front of it — the two are different shapes (a side
+   * panel faces sideways; a stile faces the room like a door) and need
+   * different boring math. See `hardware/hinges.ts`.
+   */
+  mount: 'carcass' | 'frame';
 }
 
 export interface PinRowRequest {
@@ -547,7 +556,7 @@ export function cabinetPositions(cabinets: Cabinet[]): Array<{ id: string; x: nu
  * swapping two of them would put pin rows where the toe notches should be with
  * nothing to say so until a panel came off the machine.
  */
-interface BuildSink {
+export interface BuildSink {
   parts: Part[];
   joints: JointRequest[];
   pinRows: PinRowRequest[];
@@ -590,6 +599,11 @@ function buildCarcass(
   const innerBackY = spec.back.style === 'none' ? yBack : yBack - spec.back.inset - backT;
 
   const toeH = ctx.toeKick?.height ?? 0;
+  // Vertically the door run — and, when there is one, the face frame — stops
+  // under the top panel, which on a capped carcass is the visible ledge, and
+  // above the toe kick.
+  const runTop = zTop - t;
+  const runBottom = z0 + toeH;
   // Standing on the panel below means its top face is this carcass's floor.
   const hasOwnBottom = ctx.standsOnId === null;
   const shelfZ0 = hasOwnBottom ? z0 + toeH + t : z0;
@@ -955,6 +969,40 @@ function buildCarcass(
     }
   });
 
+  // --- Face frame ----------------------------------------------------------
+  // Stands proud of the carcass front and, once built, is what the doors and
+  // hinges below reference instead of the carcass opening — see
+  // build/doors.ts for why the door layout itself never has to know which one
+  // it was handed.
+  let faceFrame: ReturnType<typeof buildFaceFrame> | null = null;
+  if (spec.construction === 'face-frame') {
+    const stock = params.stockMaterials.find((m) => m.id === spec.faceFrame.materialId);
+    if (!stock) {
+      notes.push(
+        `${human}: the face frame's material is missing from the stock list, so no frame was built and its doors were left referencing the carcass opening instead.`,
+      );
+    } else {
+      faceFrame = buildFaceFrame(
+        {
+          cabinetId: ctx.cabinetId,
+          carcassId: spec.id,
+          prefix,
+          human,
+          xL,
+          xR,
+          yFront,
+          zBottom: runBottom,
+          zTop: runTop,
+        },
+        spec.faceFrame,
+        stock,
+        bays,
+        dividerX.map((x) => x + t / 2),
+        sink,
+      );
+    }
+  }
+
   // --- Doors -------------------------------------------------------------
   const doorMat = params.materials.find((m) => m.id === params.doors.materialId);
   const anyDoors = bays.some((_, i) => (spec.bays[i]?.doors ?? 'none') !== 'none');
@@ -964,36 +1012,40 @@ function buildCarcass(
   if (anyDoors && doorMat) {
     const d = params.doors;
     const td = doorMat.actualThickness;
-    // Overlay doors hang in front of the carcass; inset doors sit in the opening.
-    const yDoor0 = d.fit === 'overlay' ? yFront - td : yFront;
-    // Vertically the run stops under the top panel, which on a capped carcass
-    // is the visible ledge, and above the toe kick.
-    const runTop = zTop - t;
-    const runBottom = z0 + toeH;
+    // A door hangs off whatever it fronts: the carcass directly, or a face
+    // frame standing proud of it. Referencing the frame's own front face here
+    // is what stops an overlay door being positioned back inside the frame's
+    // own thickness.
+    const frontY = faceFrame?.frontY ?? yFront;
+    const yDoor0 = d.fit === 'overlay' ? frontY - td : frontY;
+
+    const openings: FrontOpening[] = faceFrame
+      ? faceFrame.openings
+      : bays.map((bay, i) => ({
+          clearX0: bay.x0,
+          clearX1: bay.x1,
+          clearZ0: shelfZ0,
+          clearZ1: shelfZ1,
+          // Each overlay door covers half of the panel it shares with its
+          // neighbour, and all of an outer side, so the run reads as one
+          // continuous front. Vertically there is nothing to overlay onto —
+          // the run simply stops at the ledge and the toe kick.
+          overlayX0: i === 0 ? xL : dividerX[i - 1]! + t / 2,
+          overlayX1: i === bays.length - 1 ? xR : dividerX[i]! + t / 2,
+          overlayZ0: runBottom,
+          overlayZ1: runTop,
+        }));
 
     bays.forEach((bay, i) => {
       const style = spec.bays[i]?.doors ?? 'none';
       if (style === 'none') return;
 
-      let x0: number;
-      let x1: number;
-      let zBottom: number;
-      let zTopDoor: number;
-      if (d.fit === 'overlay') {
-        // Each door covers half of the panel it shares with its neighbour, and
-        // all of an outer side, so the run reads as one continuous front.
-        x0 = i === 0 ? xL : dividerX[i - 1]! + t / 2;
-        x1 = i === bays.length - 1 ? xR : dividerX[i]! + t / 2;
-        x0 += d.reveal / 2;
-        x1 -= d.reveal / 2;
-        zBottom = runBottom + d.reveal / 2;
-        zTopDoor = runTop - d.reveal / 2;
-      } else {
-        x0 = bay.x0 + d.insetGap;
-        x1 = bay.x1 - d.insetGap;
-        zBottom = shelfZ0 + d.insetGap;
-        zTopDoor = shelfZ1 - d.insetGap;
-      }
+      const {
+        x0,
+        x1,
+        z0: zBottom,
+        z1: zTopDoor,
+      } = doorLeafRect(openings[i]!, d.fit, d.reveal, d.insetGap);
       if (x1 - x0 <= 0 || zTopDoor - zBottom <= 0) return;
 
       const leaves: Array<{ from: number; to: number; hingeSide: 'low' | 'high'; suffix: string }> =
@@ -1022,16 +1074,27 @@ function buildCarcass(
         );
 
         const heights = hingeHeights(zBottom, zTopDoor, hw.hinge.boring.endOffset);
-        // Plates screw to whichever panel the hinge side runs against.
-        const carcassPanelId =
-          leaf.hingeSide === 'low'
+        const side = leaf.hingeSide === 'low' ? 'left' : 'right';
+        // Plates screw to whichever member the hinge side runs against: a
+        // face-frame stile when there is a frame, the carcass side or
+        // divider it stands in for otherwise.
+        const carcassPanelId = faceFrame
+          ? faceFrame.stileFor(i, side)
+          : leaf.hingeSide === 'low'
             ? i === 0
               ? leftId
               : dividerIds[i - 1]!
             : i === bays.length - 1
               ? rightId
               : dividerIds[i]!;
-        hinges.push({ doorId: id, carcassPanelId, heights, side: leaf.hingeSide, yFront });
+        hinges.push({
+          doorId: id,
+          carcassPanelId,
+          heights,
+          side: leaf.hingeSide,
+          yFront,
+          mount: faceFrame ? 'frame' : 'carcass',
+        });
         // The handle goes on the edge away from the hinges, so the request
         // carries the hinge side rather than a position: where on that edge it
         // lands is a placement setting, not something the carcass decides.

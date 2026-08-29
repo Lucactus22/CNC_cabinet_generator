@@ -4,6 +4,7 @@ import { feedStep } from '../machine/tiling.js';
 import { MaxRectsBin, type BandConstraint, type Placement } from './maxrects.js';
 
 export * from './maxrects.js';
+export * from './stock.js';
 
 export interface NestedPart {
   partId: string;

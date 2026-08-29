@@ -33,6 +33,7 @@ export function checkManufacturability(
   nest: NestResult,
   joineryWarnings: string[],
   flipParts: Part[],
+  stockNest?: NestResult,
 ): Diagnostic[] {
   const out: Diagnostic[] = [];
   const m = params.machine;
@@ -96,8 +97,14 @@ export function checkManufacturability(
   const tooBig: string[] = [];
   for (const part of parts) {
     const material = params.materials.find((x) => x.id === part.materialId);
-    if (!material) continue;
-    const { w, h } = blankSize(part, material);
+    // A face-frame stile or rail is not in the sheet-goods list at all — it
+    // still has to clear the same machine, just measured off its own outline
+    // rather than a sheet material's grain rules.
+    const stock = material
+      ? undefined
+      : params.stockMaterials.find((x) => x.id === part.materialId);
+    if (!material && !stock) continue;
+    const { w, h } = material ? blankSize(part, material) : boardBlankSize(part);
     const short = Math.min(w, h);
     const long = Math.max(w, h);
     const fits =
@@ -168,6 +175,17 @@ export function checkManufacturability(
     }
   }
 
+  // --- Solid stock ---------------------------------------------------------
+  if (stockNest && stockNest.unplaced.length > 0) {
+    out.push({
+      severity: 'error',
+      topic: 'nesting',
+      message: `${stockNest.unplaced.length} face-frame part(s) are too big for the board they are cut from.`,
+      partIds: stockNest.unplaced,
+      hint: 'Use a longer or wider board, or reduce the carcass width or height.',
+    });
+  }
+
   // --- Joinery and tooling ----------------------------------------------
   for (const w of joineryWarnings) {
     out.push({ severity: 'warning', topic: 'joinery', message: w });
@@ -225,10 +243,23 @@ export function checkManufacturability(
   const sheetsUsed = nest.sheets.length;
   if (sheetsUsed > 0) {
     const avg = nest.sheets.reduce((a, s) => a + s.yield, 0) / sheetsUsed;
+    // Counted off the sheets themselves, not `parts.length`: that list also
+    // holds any face-frame stiles and rails, which live on boards, not here.
+    const nested = nest.sheets.reduce((a, s) => a + s.parts.length, 0);
     out.push({
       severity: 'info',
       topic: 'nesting',
-      message: `${parts.length} parts on ${sheetsUsed} sheet(s), averaging ${(avg * 100).toFixed(0)}% yield.`,
+      message: `${nested} parts on ${sheetsUsed} sheet(s), averaging ${(avg * 100).toFixed(0)}% yield.`,
+    });
+  }
+  const boardsUsed = stockNest?.sheets.length ?? 0;
+  if (boardsUsed > 0) {
+    const avg = stockNest!.sheets.reduce((a, s) => a + s.yield, 0) / boardsUsed;
+    const nested = stockNest!.sheets.reduce((a, s) => a + s.parts.length, 0);
+    out.push({
+      severity: 'info',
+      topic: 'nesting',
+      message: `${nested} face-frame parts on ${boardsUsed} board(s), averaging ${(avg * 100).toFixed(0)}% yield.`,
     });
   }
   if (tooBig.length === 0 && m.tilingAxis !== 'none') {
@@ -326,6 +357,12 @@ function openingDiagnostics(params: ProjectParams, parts: Part[]): Diagnostic[] 
   }
 
   return out;
+}
+
+/** A stock part's blank size straight off its outline: there is no grain-based rotation to resolve. */
+function boardBlankSize(part: Part): { w: number; h: number } {
+  const bb = bboxOf(part.outline);
+  return { w: bb.maxX - bb.minX, h: bb.maxY - bb.minY };
 }
 
 /** Part IDs claimed by more than one panel. */
