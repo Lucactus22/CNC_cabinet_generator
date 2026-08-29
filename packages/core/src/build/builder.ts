@@ -16,6 +16,7 @@ import type {
 import { fitOpening, gapAt, type OpeningFit, type RunSize } from '../model/opening.js';
 import { localFrame } from '../model/frame.js';
 import { hingeHeights, layoutBays, pinHeights, shelfHeights, wallMountXs } from './layout.js';
+import { resolveHardware } from '../hardware/catalogue.js';
 
 /**
  * A joint the joinery stage has to realise. The builder decides *what* meets
@@ -50,6 +51,8 @@ export interface BuildResult {
   toeNotches: ToeNotchRequest[];
   /** Doors needing hinge boring. */
   hinges: HingeRequest[];
+  /** Doors needing handle fixing holes. Empty unless a handle is selected. */
+  handles: HandleRequest[];
   /** Screw holes through a hanging rail, for mounting a wall cabinet. */
   wallMounts: WallMountRequest[];
   notes: string[];
@@ -93,6 +96,17 @@ export interface ToeNotchRequest {
   setback: number;
   /** Measured up from the carcass floor. */
   height: number;
+}
+
+/**
+ * A door leaf that needs handle boring.
+ *
+ * Only the hinge side is carried: the handle goes on the opposite edge, and
+ * exactly where along it is a placement setting shared by the whole project.
+ */
+export interface HandleRequest {
+  doorId: string;
+  hingeSide: 'low' | 'high';
 }
 
 /** A door leaf that needs hinge boring, plus the panel its plates screw to. */
@@ -167,10 +181,21 @@ export function buildParts(params: ProjectParams): BuildResult {
   const pinRows: PinRowRequest[] = [];
   const toeNotches: ToeNotchRequest[] = [];
   const hinges: HingeRequest[] = [];
+  const handles: HandleRequest[] = [];
   const wallMounts: WallMountRequest[] = [];
   const tapers: TaperRequest[] = [];
   const notes: string[] = [];
   const ends: Partial<Record<'left' | 'right', RunEnd>> = {};
+  const sink: BuildSink = {
+    parts,
+    joints,
+    pinRows,
+    toeNotches,
+    hinges,
+    handles,
+    wallMounts,
+    notes,
+  };
 
   // Cabinets stand side by side along the wall, each starting where the one
   // before it ends. Deriving the position from the order rather than storing an
@@ -253,13 +278,7 @@ export function buildParts(params: ProjectParams): BuildResult {
         carcassMat,
         shelfMat,
         t,
-        parts,
-        joints,
-        pinRows,
-        toeNotches,
-        hinges,
-        wallMounts,
-        notes,
+        sink,
       );
       z0 += carcass.height;
     });
@@ -281,7 +300,7 @@ export function buildParts(params: ProjectParams): BuildResult {
     buildScribeParts(params, fitOpening(params.opening, run), run, ends, parts, tapers, notes);
   }
 
-  return { parts, joints, pinRows, toeNotches, hinges, wallMounts, tapers, notes };
+  return { parts, joints, pinRows, toeNotches, hinges, handles, wallMounts, tapers, notes };
 }
 
 /**
@@ -520,20 +539,38 @@ export function cabinetPositions(cabinets: Cabinet[]): Array<{ id: string; x: nu
   return out;
 }
 
+/**
+ * Everything a carcass adds to as it is built.
+ *
+ * Gathered into one object rather than passed as a row of same-typed arrays:
+ * eight positional arrays is an argument order waiting to be got wrong, and
+ * swapping two of them would put pin rows where the toe notches should be with
+ * nothing to say so until a panel came off the machine.
+ */
+interface BuildSink {
+  parts: Part[];
+  joints: JointRequest[];
+  pinRows: PinRowRequest[];
+  toeNotches: ToeNotchRequest[];
+  hinges: HingeRequest[];
+  handles: HandleRequest[];
+  wallMounts: WallMountRequest[];
+  notes: string[];
+}
+
 function buildCarcass(
   ctx: CarcassContext,
   params: ProjectParams,
   carcassMat: Material,
   shelfMat: Material,
   t: number,
-  parts: Part[],
-  joints: JointRequest[],
-  pinRows: PinRowRequest[],
-  toeNotches: ToeNotchRequest[],
-  hinges: HingeRequest[],
-  wallMounts: WallMountRequest[],
-  notes: string[],
+  sink: BuildSink,
 ): void {
+  const { parts, joints, pinRows, toeNotches, hinges, handles, wallMounts, notes } = sink;
+  // Which hardware this project is cut to. Resolving it here rather than
+  // reading numbers off the project is the whole point of the catalogue: a
+  // different make of hinge is a different entry, not a different code path.
+  const hw = resolveHardware(params.hardware);
   const { spec, yFront, z0 } = ctx;
   const W = spec.width;
   const H = spec.height;
@@ -877,7 +914,10 @@ function buildCarcass(
 
     if (baySpec.shelves === 'adjustable') {
       const pin = params.joinery.shelfPin;
-      const heights = pinHeights(shelfZ0, shelfZ1, pin);
+      const heights = pinHeights(shelfZ0, shelfZ1, {
+        ...pin,
+        pitch: hw.shelfPin.boring.pitch,
+      });
       const ys = [yFront + pin.frontOffset, innerBackY - pin.backOffset].filter(
         (y) => y > yFront && y < innerBackY,
       );
@@ -981,7 +1021,7 @@ function buildCarcass(
           'v',
         );
 
-        const heights = hingeHeights(zBottom, zTopDoor, params.hinge.endOffset);
+        const heights = hingeHeights(zBottom, zTopDoor, hw.hinge.boring.endOffset);
         // Plates screw to whichever panel the hinge side runs against.
         const carcassPanelId =
           leaf.hingeSide === 'low'
@@ -992,6 +1032,10 @@ function buildCarcass(
               ? rightId
               : dividerIds[i]!;
         hinges.push({ doorId: id, carcassPanelId, heights, side: leaf.hingeSide, yFront });
+        // The handle goes on the edge away from the hinges, so the request
+        // carries the hinge side rather than a position: where on that edge it
+        // lands is a placement setting, not something the carcass decides.
+        if (hw.handle) handles.push({ doorId: id, hingeSide: leaf.hingeSide });
       });
     });
   }

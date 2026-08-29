@@ -3,10 +3,12 @@ import { base, upper } from './carcasses.js';
 import { bboxOf, tessellate } from '../src/geom/index.js';
 import {
   buildParts,
+  buildProject,
   defaultParams,
   frameOf,
   generate,
   partsNeedingFlip,
+  PIN_5MM,
   toAssembly,
 } from '../src/index.js';
 import type { ProjectParams, Part, PocketFeature } from '../src/model/types.js';
@@ -341,12 +343,12 @@ describe('shelf pins', () => {
     expect(holes.length).toBeGreaterThan(20);
     for (const h of holes) {
       if (h.kind !== 'drill') continue;
-      expect(h.diameter).toBe(params.joinery.shelfPin.diameter);
-      expect(h.depth).toBe(params.joinery.shelfPin.depth);
+      expect(h.diameter).toBe(PIN_5MM.boring.diameter);
+      expect(h.depth).toBe(PIN_5MM.boring.depth);
     }
     const ys = [...new Set(holes.map((h) => (h.kind === 'drill' ? h.y : 0)))].sort((a, b) => a - b);
     for (let i = 1; i < ys.length; i++) {
-      expect(ys[i]! - ys[i - 1]!).toBeCloseTo(params.joinery.shelfPin.pitch, 6);
+      expect(ys[i]! - ys[i - 1]!).toBeCloseTo(PIN_5MM.boring.pitch, 6);
     }
   });
 
@@ -446,10 +448,21 @@ describe('manufacturability signals', () => {
     expect(warnings.some((w) => w.includes('narrower than'))).toBe(true);
   });
 
-  it('warns when shelf pin holes would break through the panel', () => {
+  it('reports shelf pin holes that would break through the panel', () => {
     const params = defaultParams();
-    params.joinery.shelfPin.depth = 30;
-    const { warnings } = generate(params);
-    expect(warnings.some((w) => w.includes('break through'))).toBe(true);
+    params.hardware.custom = [
+      {
+        ...PIN_5MM,
+        id: 'too-long',
+        name: 'A pin with a long peg',
+        custom: true,
+        boring: { ...PIN_5MM.boring, depth: 30 },
+      },
+    ];
+    params.hardware.shelfPinId = 'too-long';
+    const said = buildProject(params).diagnostics.find((d) => d.message.includes('break through'));
+    // An error, not a warning: the hole comes out of the outside of the cabinet.
+    expect(said?.severity).toBe('error');
+    expect(said?.partIds?.length).toBeGreaterThan(0);
   });
 });

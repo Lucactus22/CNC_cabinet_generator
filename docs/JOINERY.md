@@ -242,16 +242,26 @@ disabled, because nothing else in this generator is hung rather than stood.
 
 ## Shelf pins (32 mm system)
 
-| Setting | Default | Why |
+The pin comes from the hardware catalogue, and the hole follows it:
+
+| From the pin | Default | Why |
 |---|---|---|
-| Diameter | 5 mm | The universal shelf pin |
+| Diameter | 5 mm | The universal European shelf pin; a 1/4 in entry ships too |
 | Depth | 12 mm | Deep enough to hold, short of breaking through 18 mm |
-| Pitch | 32 mm | The European standard |
+| Pitch | 32 mm | The European standard, and what the imperial jigs index at |
+
+| A layout choice | Default | Why |
+|---|---|---|
 | Rows from front / back | 37 mm | Standard, and clear of hinge plates |
+| Held short of top / bottom | 100 mm | No pin lands where a shelf could not go |
+
+The split is the point: which pin is in the drawer decides the hole, and where
+the ladders go is the same decision whichever pin that is. See
+[HARDWARE.md](HARDWARE.md).
 
 The ladder is anchored to the bottom of the opening rather than centred, so both
-sides of a bay — and both rows on a side — always line up. If a hole would break
-through the panel, you get a warning rather than a hole.
+sides of a bay — and both rows on a side — always line up. A hole that would
+break through the panel is an error, not a hole.
 
 ## The one-face rule
 

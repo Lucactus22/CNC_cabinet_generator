@@ -2,6 +2,7 @@ import { bboxOf } from '../geom/index.js';
 import { checkMeasurements } from '../model/measure.js';
 import { describeFit, fitOpening } from '../model/opening.js';
 import { runSize } from '../build/builder.js';
+import { checkHardware } from '../hardware/fit.js';
 import type { ProjectParams, Part, PocketFeature } from '../model/types.js';
 import type { NestResult } from '../nest/index.js';
 import { blankSize } from '../nest/index.js';
@@ -58,6 +59,9 @@ export function checkManufacturability(
     });
   }
   out.push(...openingDiagnostics(params, parts));
+  for (const problem of checkHardware(params, parts)) {
+    out.push({ ...problem, topic: 'hardware' });
+  }
 
   const feedsAlongX = m.tilingAxis === 'x';
   const fixedTravel = m.tilingAxis === 'none' ? m.travelY : feedsAlongX ? m.travelY : m.travelX;

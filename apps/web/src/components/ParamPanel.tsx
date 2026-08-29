@@ -19,6 +19,7 @@ import {
   type ShelfMode,
 } from '@cabgen/core';
 import { CheckField, Group, Hint, NumberField, SelectField, TextField } from './Controls';
+import { HardwarePanel } from './HardwarePanel';
 import { MeasureWizard } from './MeasureWizard';
 import { EffectsPanel } from './EffectsPanel';
 
@@ -285,135 +286,11 @@ export function ParamPanel() {
         <Hint>Turn doors on per bay, under each carcass.</Hint>
       </Group>
 
-      <Group title="Hinges" open={false}>
-        <Hint>
-          IKEA UTRUSTA, which is Blum's pattern: a 35 mm cup with two 8 mm press-fit dowels. Change
-          these only for different hardware.
-        </Hint>
-        <NumberField
-          label="Cup diameter"
-          value={params.hinge.cupDiameter}
-          step={0.5}
-          min={10}
-          onChange={(v) =>
-            update((p) => {
-              p.hinge.cupDiameter = v;
-            })
-          }
-        />
-        <NumberField
-          label="Cup depth"
-          value={params.hinge.cupDepth}
-          step={0.5}
-          min={1}
-          onChange={(v) =>
-            update((p) => {
-              p.hinge.cupDepth = v;
-            })
-          }
-        />
-        <NumberField
-          label="Boring distance"
-          value={params.hinge.boringDistance}
-          step={0.5}
-          min={0}
-          onChange={(v) =>
-            update((p) => {
-              p.hinge.boringDistance = v;
-            })
-          }
-          title="Door edge to the near edge of the cup. Blum publishes 3 to 6 mm; the cup centre lands 17.5 mm further in."
-        />
-        <NumberField
-          label="Dowel diameter"
-          value={params.hinge.dowelDiameter}
-          step={0.5}
-          min={1}
-          onChange={(v) =>
-            update((p) => {
-              p.hinge.dowelDiameter = v;
-            })
-          }
-        />
-        <NumberField
-          label="Dowel spacing"
-          value={params.hinge.dowelSpacing}
-          min={10}
-          onChange={(v) =>
-            update((p) => {
-              p.hinge.dowelSpacing = v;
-            })
-          }
-        />
-        <NumberField
-          label="Dowel offset"
-          value={params.hinge.dowelOffset}
-          step={0.5}
-          min={0}
-          onChange={(v) =>
-            update((p) => {
-              p.hinge.dowelOffset = v;
-            })
-          }
-          title="How far the dowels sit behind the cup's centre line."
-        />
-        <NumberField
-          label="Cup from door end"
-          value={params.hinge.endOffset}
-          step={0.1}
-          min={20}
-          onChange={(v) =>
-            update((p) => {
-              p.hinge.endOffset = v;
-            })
-          }
-        />
-        <NumberField
-          label="Plate from front"
-          value={params.hinge.plateFrontOffset}
-          min={5}
-          onChange={(v) =>
-            update((p) => {
-              p.hinge.plateFrontOffset = v;
-            })
-          }
-        />
-      </Group>
+      <HardwarePanel />
 
       <EffectsPanel />
 
-      <Group title="Shelf pins">
-        <NumberField
-          label="Hole diameter"
-          value={params.joinery.shelfPin.diameter}
-          step={0.5}
-          min={1}
-          onChange={(v) =>
-            update((p) => {
-              p.joinery.shelfPin.diameter = v;
-            })
-          }
-        />
-        <NumberField
-          label="Hole depth"
-          value={params.joinery.shelfPin.depth}
-          min={1}
-          onChange={(v) =>
-            update((p) => {
-              p.joinery.shelfPin.depth = v;
-            })
-          }
-        />
-        <NumberField
-          label="Pitch"
-          value={params.joinery.shelfPin.pitch}
-          min={4}
-          onChange={(v) =>
-            update((p) => {
-              p.joinery.shelfPin.pitch = v;
-            })
-          }
-        />
+      <Group title="Shelf pin rows">
         <NumberField
           label="Row from front"
           value={params.joinery.shelfPin.frontOffset}
@@ -435,7 +312,8 @@ export function ParamPanel() {
           }
         />
         <Hint>
-          Defaults follow the 32 mm system: 5 mm holes, 32 mm pitch, 37 mm in from each edge.
+          Where the ladders go. Which pin they are bored for — its diameter, depth and pitch — is
+          under Hardware.
         </Hint>
       </Group>
 

@@ -18,6 +18,8 @@ import {
   type WallMountRequest,
 } from '../build/builder.js';
 import { applyEffects } from '../effects/index.js';
+import { resolveHardware, type ShelfPinBoring } from '../hardware/catalogue.js';
+import { applyHandles } from '../hardware/handles.js';
 import { applyHinges } from '../hardware/hinges.js';
 import { applyDado } from './dado.js';
 import { applyTabSlot } from './tabslot.js';
@@ -77,12 +79,17 @@ export function applyJoinery(params: ProjectParams, built: BuildResult): string[
     warnings.push(...outcome.warnings);
   }
 
+  const hw = resolveHardware(params.hardware);
+
   for (const row of built.pinRows) {
     const draft = drafts.get(row.panelId);
-    if (draft) applyPinRow(draft, row, params, warnings);
+    if (draft) applyPinRow(draft, row, hw.shelfPin.boring);
   }
 
-  warnings.push(...applyHinges(params, built.parts, built.hinges).warnings);
+  warnings.push(...applyHinges(hw.hinge, built.parts, built.hinges).warnings);
+  if (hw.handle) {
+    warnings.push(...applyHandles(hw.handle, hw.placement, built.parts, built.handles).warnings);
+  }
 
   for (const notch of built.toeNotches) {
     const draft = drafts.get(notch.panelId);
@@ -104,25 +111,13 @@ export function applyJoinery(params: ProjectParams, built: BuildResult): string[
 }
 
 /** Shelf pin ladder, drilled on whichever face looks into the bay. */
-function applyPinRow(
-  draft: PartDraft,
-  row: PinRowRequest,
-  params: ProjectParams,
-  warnings: string[],
-): void {
-  const pin = params.joinery.shelfPin;
+function applyPinRow(draft: PartDraft, row: PinRowRequest, pin: ShelfPinBoring): void {
   const part = draft.part;
   const centre = centerOf(part.box);
   // Face A points along +normal when faceASign is '+', so compare the bay's
   // side of the panel with the side face A looks out on.
   const bayIsHigh = row.bayCentreX > centre.x;
   const side: 'A' | 'B' = (part.faceASign === '+') === bayIsHigh ? 'A' : 'B';
-
-  if (pin.depth >= part.thickness) {
-    warnings.push(
-      `${part.label}: ${pin.depth} mm shelf pin holes would break through a ${part.thickness.toFixed(1)} mm panel.`,
-    );
-  }
 
   const zMap = mapAxis(draft.frame, 'z');
   const yMap = mapAxis(draft.frame, 'y');

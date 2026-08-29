@@ -33,7 +33,12 @@ ProjectParams
     │    Decides HOW each joint looks in the material.
     │
     ├─ applyHinges()         hardware/hinges.ts
-    │    hardware boring on doors and the panels they hang from
+    │    cup, dowels and plate holes, to the catalogue entry the project
+    │    selected. It only knows how to bore; whether the hinge suits the
+    │    doors is decided in hardware/fit.ts, with the diagnostics.
+    │
+    ├─ applyHandles()        hardware/handles.ts
+    │    clearance holes through a door for a pull, when one is chosen
     │
     ├─ applyEffects()        effects/index.ts
     │    decorative machining on chosen faces
@@ -96,6 +101,14 @@ preset, never by teaching `build/builder.ts` a new case.
 Everything above the cabinet list is project-wide, because it describes the
 workshop rather than the furniture: one spindle, one stack of sheets, one set of
 grooves that all have to fit each other.
+
+`ProjectParams.hardware` names the catalogue entries the run is cut to, by id,
+plus any entries the project defines itself. **No hardware dimension lives on
+the project.** A hinge's cup depth belongs to a make of hinge, and putting it on
+the project would let two projects claim the same hardware and bore differently.
+Entries are plain data — including their fitting rules, which are a short closed
+list of measures rather than a predicate, because a rule has to survive being
+written to a file and read back. See [HARDWARE.md](HARDWARE.md).
 
 `model/opening.ts` holds the one thing above the cabinet list that is not the
 workshop: the **opening**, meaning the room. `model/measure.ts` sits beside it
@@ -173,7 +186,8 @@ Three registries, each designed so new entries are additive.
 |---|---|---|
 | A joint | a function taking (male, female, request, params) that pushes features | `joinery/index.ts`, the `useTabs` branch |
 | A surface effect | an `EffectApplier` in `effects/` | `EFFECTS` and `EFFECT_LABELS` |
-| Hardware | a boring function in `hardware/` | called from `applyJoinery` |
+| A make of hardware | a `HardwareEntry` — plain data | `CATALOGUE` in `hardware/catalogue.ts` |
+| A new *kind* of hardware | a boring function in `hardware/` | called from `applyJoinery`, plus a row in `CARRIES` |
 
 Effects are the cleanest of the three: an effect only ever *adds features*, so
 the builder, the nester and the DXF writer need no changes at all. Prefer that
@@ -270,5 +284,5 @@ person will delete.
 Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
 - frameless only; no face frames (**R-07**)
-- no drawers, no hardware catalogue, no edge banding
+- no drawers and no drawer slides (**R-08**), no edge banding (**R-09**)
 - the web app has no automated tests

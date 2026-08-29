@@ -1,5 +1,6 @@
 import type { Cabinet, Carcass, HangingRailSpec, ProjectParams, Material } from './types.js';
 import { defaultOpening } from './opening.js';
+import { defaultHardware } from '../hardware/catalogue.js';
 
 export const MATERIAL_CARCASS = 'ply18';
 export const MATERIAL_BACK = 'ply12';
@@ -213,9 +214,6 @@ export function defaultParams(): ProjectParams {
       tabMinCount: 3,
       stackDadoDepth: 4,
       shelfPin: {
-        diameter: 5,
-        depth: 12,
-        pitch: 32,
         frontOffset: 37,
         backOffset: 37,
         startAbove: 100,
@@ -228,21 +226,9 @@ export function defaultParams(): ProjectParams {
       reveal: 3,
       insetGap: 2,
     },
-    // The IKEA UTRUSTA pattern, which is Blum's.
-    hinge: {
-      cupDiameter: 35,
-      cupDepth: 13,
-      boringDistance: 5,
-      dowelDiameter: 8,
-      dowelSpacing: 45,
-      dowelOffset: 9.5,
-      dowelDepth: 12,
-      endOffset: 76.2,
-      plateHoleDiameter: 5,
-      plateHoleDepth: 12,
-      plateHoleSpacing: 32,
-      plateFrontOffset: 37,
-    },
+    // IKEA UTRUSTA hinges, 5 mm shelf pins and no handles. Every number behind
+    // those choices lives in hardware/catalogue.ts.
+    hardware: defaultHardware(),
     cabinets: [defaultCabinet()],
     // Off until someone measures a room: with no opening the run is built
     // exactly as it was before there was one in the model.
