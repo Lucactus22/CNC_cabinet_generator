@@ -22,6 +22,7 @@ import { CheckField, Group, Hint, NumberField, SelectField, TextField } from './
 import { HardwarePanel } from './HardwarePanel';
 import { MeasureWizard } from './MeasureWizard';
 import { EffectsPanel } from './EffectsPanel';
+import { BandingPanel } from './BandingPanel';
 
 const SHELF_MODES: Array<{ value: ShelfMode; label: string }> = [
   { value: 'none', label: 'Open, no shelves' },
@@ -333,6 +334,8 @@ export function ParamPanel() {
       <HardwarePanel />
 
       <EffectsPanel />
+
+      <BandingPanel />
 
       <Group title="Shelf pin rows">
         <NumberField

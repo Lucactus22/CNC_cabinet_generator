@@ -3,6 +3,7 @@ import { generate, partsNeedingFlip } from './joinery/index.js';
 import { nestParts, nestStock, type NestResult } from './nest/index.js';
 import { checkManufacturability, type Diagnostic } from './machine/check.js';
 import {
+  bandingSummary,
   buildCutList,
   buildStockCutList,
   cutListCsv,
@@ -29,6 +30,8 @@ export interface ProjectResult {
   stockCutList: CutListRow[];
   materials: ReturnType<typeof materialSummary>;
   stockMaterials: ReturnType<typeof stockSummary>;
+  /** Total tape length needed per banding material. */
+  banding: ReturnType<typeof bandingSummary>;
   notes: string[];
 }
 
@@ -56,6 +59,7 @@ export function buildProject(params: ProjectParams): ProjectResult {
   const stockCutList = buildStockCutList(params, stockParts, stockNest);
   const materials = materialSummary(params, sheetParts, nest);
   const stockMaterials = stockSummary(params, stockParts, stockNest);
+  const banding = bandingSummary(params, parts);
   return {
     params,
     parts,
@@ -66,6 +70,7 @@ export function buildProject(params: ProjectParams): ProjectResult {
     stockCutList,
     materials,
     stockMaterials,
+    banding,
     notes,
   };
 }

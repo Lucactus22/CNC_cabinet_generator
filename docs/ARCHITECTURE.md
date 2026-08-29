@@ -44,7 +44,8 @@ ProjectParams
     │    decorative machining on chosen faces
     │
     ├─ materialise()         joinery/index.ts
-    │    the finished outline for each blank, once every stage has had its say
+    │    the finished outline for each blank, once every stage has had its say,
+    │    shrunk on any banded edge to leave room for the tape
     │
     ├─ nestParts()           nest/index.ts
     │    parts → sheets, one run per material
@@ -142,11 +143,12 @@ the machine as identical blanks.
 A `Part` lives in two worlds at once.
 
 ```ts
-box        // where it sits in the assembled cabinet
-outline    // its flat blank, in local machining coordinates
-features   // pockets, through cuts, drilling, engraving, in the same local frame
-frame      // how those local coordinates map into the assembly
-exposed    // the region of the blank still visible once assembled
+box          // where it sits in the assembled cabinet
+outline      // its flat blank, in local machining coordinates
+features     // pockets, through cuts, drilling, engraving, in the same local frame
+frame        // how those local coordinates map into the assembly
+exposed      // the region of the blank still visible once assembled
+bandedEdges  // edges cut short for tape, resolved from ProjectParams.edgeBanding
 ```
 
 Assembly space is **X = width, Y = depth (0 at the front), Z = height**.
@@ -188,6 +190,18 @@ A captured panel grows into its grooves, so its blank is bigger than the face
 you see. `part.exposed` is the visible rectangle, and surface effects work
 inside it. That is what stops beading being cut across a tongue that is buried
 in a joint.
+
+### Edge banding
+
+The mirror image of growing into a joint: a banded edge is cut *short* by the
+tape's own thickness, so gluing the tape on afterwards returns the part to its
+designed size. Applied to the same working rectangle a notch or a tab is
+placed against, in `materialise()`, so a stopped-dado notch on a banded edge
+is still measured from where the tape's own face will be. `exposed` is left
+alone — it describes the finished, banded panel, not today's substrate — and
+so is anything bored from a part's frame, which is fixed at build time and
+never reads the working rectangle at all. See
+[JOINERY.md](JOINERY.md#not-a-joint-either-edge-banding).
 
 ## Extension points
 
@@ -294,5 +308,4 @@ person will delete.
 
 Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
-- no edge banding (**R-09**)
 - the web app has no automated tests

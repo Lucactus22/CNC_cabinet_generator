@@ -62,18 +62,49 @@ export function PartView() {
               ))}
             </tbody>
           </table>
+          {project.banding.length > 0 && (
+            <p className="hint" style={{ margin: '8px 0 0' }}>
+              Banding to order:{' '}
+              {project.banding.map((b) => `${b.length} mm ${b.material}`).join(', ')}
+            </p>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
+/** How far outside the outline a banding mark is drawn, so it reads as tape applied to the edge rather than merging with the OUTLINE stroke. */
+const bandOffset = (w: number, h: number): number => Math.max(w, h) * 0.02 + 3;
+
+/** The line a banded edge is marked with, just outside the blank's true edge. */
+function bandLine(
+  local: 'left' | 'right' | 'top' | 'bottom',
+  bb: { minX: number; minY: number; maxX: number; maxY: number },
+  off: number,
+): { x1: number; y1: number; x2: number; y2: number } {
+  switch (local) {
+    case 'left':
+      return { x1: bb.minX - off, y1: bb.minY, x2: bb.minX - off, y2: bb.maxY };
+    case 'right':
+      return { x1: bb.maxX + off, y1: bb.minY, x2: bb.maxX + off, y2: bb.maxY };
+    case 'bottom':
+      return { x1: bb.minX, y1: bb.minY - off, x2: bb.maxX, y2: bb.minY - off };
+    case 'top':
+      return { x1: bb.minX, y1: bb.maxY + off, x2: bb.maxX, y2: bb.maxY + off };
+  }
+}
+
 function PartDrawing({ part }: { part: Part }) {
+  const params = useStore((s) => s.params);
   const drawing = useMemo(() => partDrawing(part), [part]);
   const bb = bboxOf(part.outline);
   const w = bb.maxX - bb.minX;
   const h = bb.maxY - bb.minY;
   const pad = Math.max(w, h) * 0.08 + 10;
+  const off = bandOffset(w, h);
+  const bandingName = (id: string): string =>
+    params.bandingMaterials.find((m) => m.id === id)?.name ?? id;
 
   return (
     <div>
@@ -92,8 +123,30 @@ function PartDrawing({ part }: { part: Part }) {
       >
         <g transform={`translate(0, ${2 * bb.minY + h}) scale(1, -1)`}>
           <DrawingSvg drawing={drawing} showLabels={false} />
+          {part.bandedEdges.map((e, i) => {
+            const line = bandLine(e.localEdge, bb, off);
+            return (
+              <line
+                key={i}
+                x1={line.x1}
+                y1={line.y1}
+                x2={line.x2}
+                y2={line.y2}
+                stroke="#ec4899"
+                strokeWidth={2.4}
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            );
+          })}
         </g>
       </svg>
+      {part.bandedEdges.length > 0 && (
+        <p className="hint" style={{ margin: '4px 0 0' }}>
+          <span style={{ color: '#ec4899' }}>▬</span> Banded:{' '}
+          {part.bandedEdges.map((e) => `${e.edge} (${bandingName(e.materialId)})`).join(', ')}
+        </p>
+      )}
     </div>
   );
 }
