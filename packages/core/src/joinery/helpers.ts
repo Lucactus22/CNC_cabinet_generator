@@ -138,6 +138,9 @@ export function dirToFemale(c: Contact): Vec3 {
 }
 
 export const FRONT_DIR: Vec3 = { x: 0, y: -1, z: 0 };
+export const REAR_DIR: Vec3 = { x: 0, y: 1, z: 0 };
+export const LEFT_DIR: Vec3 = { x: -1, y: 0, z: 0 };
+export const RIGHT_DIR: Vec3 = { x: 1, y: 0, z: 0 };
 
 export function makeDraft(part: Part): PartDraft {
   const frame = frameOf(part);

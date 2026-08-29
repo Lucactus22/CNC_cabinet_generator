@@ -638,14 +638,53 @@ extra. That means it also consumes the *opening* abstraction R-07 introduces,
 and so works against a face frame for free.
 
 **Acceptance criteria.**
-- [ ] A bay can hold *n* drawers with configurable front heights
-- [ ] Box parts are correctly sized from the opening and the slide entry
-- [ ] Slide boring on the box sides and the cabinet sides
-- [ ] Drawer fronts take surface effects exactly as doors do
-- [ ] Warnings for a box outside the slide's supported width or side thickness
+- [x] A bay can hold *n* drawers with configurable front heights
+- [x] Box parts are correctly sized from the opening and the slide entry
+- [x] Slide boring on the box sides and the cabinet sides
+- [x] Drawer fronts take surface effects exactly as doors do
+- [x] Warnings for a box outside the slide's supported width or side thickness
 
 **Tests.** The width formula at both thickness bands; box parts fit the opening
 with the slide clearance; a drawer front lines up with the door reveal above it.
+
+**Revised while working it.** Two things the item as written did not settle:
+
+- *"A bay can hold a stack of drawers"* is read as replacing doors and
+  shelves entirely, not sitting alongside them: a bay is either fronted with
+  doors, or with a drawer stack, never both in the same bay. A drawer over a
+  door is real cabinetry, but the opening it needs to size against is a
+  second, different shape from the single rectangle this item's design notes
+  already work out, and mixing the two would have doubled the item's real
+  work for a case the acceptance criteria never asked for.
+- Blum's real undermount hardware is a proprietary clip-on system, not a
+  simple user-drilled screw pattern, and its own published mounting-hole
+  offsets are a different pair of numbers for every one of the five runner
+  lengths. "Slide boring on the box sides and the cabinet sides" is
+  satisfied with a generic, symmetric pair of mounting holes held in from
+  each end of the runner, rather than a transcription of that table — the
+  hook bore for the locking device is left out for the same reason. Both are
+  said plainly in [DRAWERS.md](DRAWERS.md) rather than presented as more
+  exact than they are.
+
+**What it cost, for the items that follow.** `PartRole` gained `'drawer-side'`,
+`'drawer-front'` (the hidden sub-front), `'drawer-back'`, `'drawer-bottom'` and
+`'drawer-face'` (the visible one, targetable by surface effects exactly like a
+door). `BaySpec` gained `drawerFrontHeights: number[]`; `ProjectParams` gained
+`drawerBoxMaterialId`. The hardware catalogue gained a `'slide'` kind
+(`hardware/slides.ts`, mirroring `hardware/hinges.ts`) and two entries — Blum
+TANDEM plus BLUMOTION 563H and 563F — plus two new `HardwareMeasure`s, `'drawer
+side thickness'` and `'drawer box width'`, each carried by the one member of
+the box (the sides, the sub-front) that a joint receives a pocket into rather
+than grows, which is what keeps them measurable at all once the pipeline is
+done. `build/doors.ts` gained `splitOpeningVertically`, slicing one
+`FrontOpening` into a stack of smaller ones — what a drawer stack asks of a
+bay a single door would otherwise fill whole — so a drawer face reuses
+`doorLeafRect` exactly as a door does, face frame included. `build/drawers.ts`
+is the new module that builds the box, mirroring `build/faceframe.ts`'s shape.
+A drawer box's own sides are the panel that *grows* into its sub-front and
+back — the same relationship a capped top's sides have with the top panel —
+rather than the more obvious way round, precisely so the sub-front's and the
+back's widths stay stable for the hardware checks above.
 
 ---
 

@@ -22,6 +22,19 @@ export interface HardwareProblem {
 const TOL = 1e-6;
 
 /**
+ * Which member of a request each measure is read from — not what the whole
+ * codebase calls a part, but which *role in the hardware's own fitting* it
+ * plays. A hinge's door and a slide's drawer box are different `PartRole`s
+ * carrying the same role here: the primary, moving member. Kept apart from
+ * 'panel' and its own drawer-specific counterpart so two kinds sharing an
+ * `on` bucket can never leak one another's measures into `measuresFor` — see
+ * that function for why a shared bucket without this split is a real bug,
+ * not a tidiness concern: it would offer a shelf pin's rule editor a measure
+ * about drawer sides.
+ */
+type Carrier = 'door' | 'panel' | 'drawer-front' | 'drawer-side';
+
+/**
  * Which machining tells you a piece of hardware is actually fitted here.
  *
  * The checks work from the holes that were cut rather than from what the
@@ -29,21 +42,36 @@ const TOL = 1e-6;
  * really lands on. It also means a new kind of hardware is checked as soon as
  * it bores something, with no second list to keep in step.
  */
-const CARRIES: Record<HardwareKind, { door: string | null; panel: string | null }> = {
-  hinge: { door: 'hinge-cup', panel: 'hinge-plate' },
-  'shelf-pin': { door: null, panel: 'shelf-pin' },
-  handle: { door: 'handle', panel: null },
+const CARRIES: Record<HardwareKind, Record<Carrier, string | null>> = {
+  hinge: { door: 'hinge-cup', panel: 'hinge-plate', 'drawer-front': null, 'drawer-side': null },
+  'shelf-pin': { door: null, panel: 'shelf-pin', 'drawer-front': null, 'drawer-side': null },
+  handle: { door: 'handle', panel: null, 'drawer-front': null, 'drawer-side': null },
+  // Both purposes are the drawer-box joint's own (see build/drawers.ts), not
+  // a feature the slide bores itself: it is the joint that lands on the one
+  // part of each that stays put through the rest of the pipeline. The
+  // sub-front plays a hinge door's role — the primary member a width
+  // requirement is checked against — and the box's own sides play the panel's:
+  // the member whose *thickness* the slide cares about.
+  slide: {
+    door: null,
+    panel: null,
+    'drawer-front': 'drawer-box',
+    'drawer-side': 'drawer-box-bottom',
+  },
 };
 
 /** The dimension a requirement is about, and which set of panels carries it. */
-const MEASURES: Record<
-  HardwareMeasure,
-  { on: 'door' | 'panel'; of: (p: Part) => number; noun: string }
-> = {
+const MEASURES: Record<HardwareMeasure, { on: Carrier; of: (p: Part) => number; noun: string }> = {
   'door thickness': { on: 'door', of: (p) => p.thickness, noun: 'thick' },
   'door width': { on: 'door', of: (p) => p.box.max.x - p.box.min.x, noun: 'wide' },
   'door height': { on: 'door', of: (p) => p.box.max.z - p.box.min.z, noun: 'tall' },
   'carcass panel thickness': { on: 'panel', of: (p) => p.thickness, noun: 'thick' },
+  // The sub-front's own width is the box's outside width: nothing grows it
+  // (see the CARRIES comment above), so it reads back exactly what it was
+  // built to, unlike the bottom or the sides once the bottom's own joint has
+  // grown them.
+  'drawer box width': { on: 'drawer-front', of: (p) => p.box.max.x - p.box.min.x, noun: 'wide' },
+  'drawer side thickness': { on: 'drawer-side', of: (p) => p.thickness, noun: 'thick' },
 };
 
 /**
@@ -84,7 +112,12 @@ export function checkHardware(params: ProjectParams, parts: Part[]): HardwarePro
   }
 
   const chosen = new Set(
-    [params.hardware.hingeId, params.hardware.shelfPinId, params.hardware.handleId].filter(Boolean),
+    [
+      params.hardware.hingeId,
+      params.hardware.shelfPinId,
+      params.hardware.handleId,
+      params.hardware.slideId,
+    ].filter(Boolean),
   );
   for (const own of params.hardware.custom) {
     // Only for an id the project is actually cut to: saying "the project's own
@@ -104,6 +137,7 @@ export function checkHardware(params: ProjectParams, parts: Part[]): HardwarePro
   requirements(hw.hinge, parts, out);
   requirements(hw.shelfPin, parts, out);
   if (hw.handle) requirements(hw.handle, parts, out);
+  requirements(hw.slide, parts, out);
 
   hingeChecks(hw.hinge, parts, out);
   shelfPinChecks(hw.shelfPin, parts, out);
@@ -113,7 +147,7 @@ export function checkHardware(params: ProjectParams, parts: Part[]): HardwarePro
 }
 
 /** Panels a piece of hardware is actually fitted to, by the holes it left. */
-function carriers(entry: HardwareEntry, parts: Part[], on: 'door' | 'panel'): Part[] {
+function carriers(entry: HardwareEntry, parts: Part[], on: Carrier): Part[] {
   const purpose = CARRIES[entry.kind][on];
   if (!purpose) return [];
   // An engraved label has no purpose field, so ask before reading it.
@@ -163,6 +197,12 @@ function fixFor(req: Requirement, entry: HardwareEntry): string {
   }
   if (req.measure === 'carcass panel thickness') {
     return `Change the carcass material, or pick a ${KIND_LABELS[entry.kind].toLowerCase()} with a shallower hole.`;
+  }
+  if (req.measure === 'drawer side thickness') {
+    return `Change the drawer box material, or pick a ${KIND_LABELS[entry.kind].toLowerCase()} made for it.`;
+  }
+  if (req.measure === 'drawer box width') {
+    return 'Widen the bay, or move this drawer to a wider one.';
   }
   return `Resize the door, or pick a ${KIND_LABELS[entry.kind].toLowerCase()} that suits it.`;
 }

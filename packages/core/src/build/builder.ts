@@ -15,10 +15,18 @@ import type {
 } from '../model/types.js';
 import { fitOpening, gapAt, type OpeningFit, type RunSize } from '../model/opening.js';
 import { localFrame } from '../model/frame.js';
-import { hingeHeights, layoutBays, pinHeights, shelfHeights, wallMountXs } from './layout.js';
+import {
+  drawerHeights,
+  hingeHeights,
+  layoutBays,
+  pinHeights,
+  shelfHeights,
+  wallMountXs,
+} from './layout.js';
 import { resolveHardware } from '../hardware/catalogue.js';
 import { doorLeafRect, type FrontOpening } from './doors.js';
 import { buildFaceFrame } from './faceframe.js';
+import { buildDrawerStack } from './drawers.js';
 
 /**
  * A joint the joinery stage has to realise. The builder decides *what* meets
@@ -31,7 +39,17 @@ export interface JointRequest {
   depthOverride?: number;
   /** Carcass joints stop short of this assembly Y so nothing shows on the front edge. */
   stopFrontAtY?: number;
-  purpose: 'carcass' | 'shelf' | 'back' | 'divider' | 'toe-rail' | 'hanging-rail' | 'face-frame';
+  purpose:
+    | 'carcass'
+    | 'shelf'
+    | 'back'
+    | 'divider'
+    | 'toe-rail'
+    | 'hanging-rail'
+    | 'face-frame'
+    | 'drawer-box'
+    | 'drawer-box-back'
+    | 'drawer-box-bottom';
   /** Backs and toe rails always sit in a plain groove, whatever the carcass joint is. */
   forceDado?: boolean;
   /**
@@ -57,6 +75,10 @@ export interface BuildResult {
   handles: HandleRequest[];
   /** Screw holes through a hanging rail, for mounting a wall cabinet. */
   wallMounts: WallMountRequest[];
+  /** Drawer box bottoms needing a rear-corner notch for the slide's locking device. */
+  drawerNotches: DrawerBottomNotchRequest[];
+  /** Drawer boxes needing slide boring, box side and cabinet side alike. */
+  slides: SlideRequest[];
   notes: string[];
 }
 
@@ -142,6 +164,44 @@ export interface PinRowRequest {
   bayCentreX: number;
 }
 
+/**
+ * A notch at each rear corner of a drawer box's bottom, clearing the slide's
+ * locking device. Resolved against the panel's own frame by the joinery
+ * stage, the same way a toe kick notch is.
+ */
+export interface DrawerBottomNotchRequest {
+  panelId: string;
+  /** Along the box's width, from each rear corner. */
+  width: number;
+  /** Along the box's depth, in from the true rear edge. */
+  depth: number;
+}
+
+/**
+ * A drawer box needing slide boring: mounting holes on its own two sides,
+ * and on the two cabinet panels the bay is bounded by.
+ */
+export interface SlideRequest {
+  boxLeftId: string;
+  boxRightId: string;
+  /** Cabinet panels (carcass side or divider) the runner's cabinet-side member screws to. */
+  panelLeftId: string;
+  panelRightId: string;
+  /**
+   * The drawer box's own front face — not the carcass's, which can sit a
+   * door-thickness further forward under inset fit — since the runner's
+   * mounting holes are measured back from where the box itself starts.
+   */
+  boxFrontY: number;
+  /** The nominal running length actually selected for this drawer. */
+  length: number;
+  /** How far in from each end of the runner the mounting holes sit. */
+  mountInset: number;
+  screwDiameter: number;
+  /** Assembly-space height the mounting holes are bored at. */
+  z: number;
+}
+
 interface CarcassContext {
   cabinetId: string;
   /** What this carcass is called in labels and diagnostics; unique in the project. */
@@ -192,6 +252,8 @@ export function buildParts(params: ProjectParams): BuildResult {
   const hinges: HingeRequest[] = [];
   const handles: HandleRequest[] = [];
   const wallMounts: WallMountRequest[] = [];
+  const drawerNotches: DrawerBottomNotchRequest[] = [];
+  const slides: SlideRequest[] = [];
   const tapers: TaperRequest[] = [];
   const notes: string[] = [];
   const ends: Partial<Record<'left' | 'right', RunEnd>> = {};
@@ -203,6 +265,8 @@ export function buildParts(params: ProjectParams): BuildResult {
     hinges,
     handles,
     wallMounts,
+    drawerNotches,
+    slides,
     notes,
   };
 
@@ -309,7 +373,19 @@ export function buildParts(params: ProjectParams): BuildResult {
     buildScribeParts(params, fitOpening(params.opening, run), run, ends, parts, tapers, notes);
   }
 
-  return { parts, joints, pinRows, toeNotches, hinges, handles, wallMounts, tapers, notes };
+  return {
+    parts,
+    joints,
+    pinRows,
+    toeNotches,
+    hinges,
+    handles,
+    wallMounts,
+    drawerNotches,
+    slides,
+    tapers,
+    notes,
+  };
 }
 
 /**
@@ -564,6 +640,8 @@ export interface BuildSink {
   hinges: HingeRequest[];
   handles: HandleRequest[];
   wallMounts: WallMountRequest[];
+  drawerNotches: DrawerBottomNotchRequest[];
+  slides: SlideRequest[];
   notes: string[];
 }
 
@@ -1003,9 +1081,35 @@ function buildCarcass(
     }
   }
 
+  // --- Doors and drawers ---------------------------------------------------
+  // Both consume the same opening abstraction R-07 introduced: a clear
+  // rectangle plus how far each edge may be overlaid, whichever construction
+  // built it. A bay is one or the other, never both — see
+  // `BaySpec.drawerFrontHeights` for why a drawer stack over a door is out of
+  // scope for now.
+  const openings: FrontOpening[] = faceFrame
+    ? faceFrame.openings
+    : bays.map((bay, i) => ({
+        clearX0: bay.x0,
+        clearX1: bay.x1,
+        clearZ0: shelfZ0,
+        clearZ1: shelfZ1,
+        // Each overlay door covers half of the panel it shares with its
+        // neighbour, and all of an outer side, so the run reads as one
+        // continuous front. Vertically there is nothing to overlay onto —
+        // the run simply stops at the ledge and the toe kick.
+        overlayX0: i === 0 ? xL : dividerX[i - 1]! + t / 2,
+        overlayX1: i === bays.length - 1 ? xR : dividerX[i]! + t / 2,
+        overlayZ0: runBottom,
+        overlayZ1: runTop,
+      }));
+  const hasDrawers = (i: number): boolean => (spec.bays[i]?.drawerFrontHeights?.length ?? 0) > 0;
+
   // --- Doors -------------------------------------------------------------
   const doorMat = params.materials.find((m) => m.id === params.doors.materialId);
-  const anyDoors = bays.some((_, i) => (spec.bays[i]?.doors ?? 'none') !== 'none');
+  const anyDoors = bays.some(
+    (_, i) => !hasDrawers(i) && (spec.bays[i]?.doors ?? 'none') !== 'none',
+  );
   if (anyDoors && !doorMat) {
     notes.push('Doors are switched on but their material is missing from the list.');
   }
@@ -1019,24 +1123,8 @@ function buildCarcass(
     const frontY = faceFrame?.frontY ?? yFront;
     const yDoor0 = d.fit === 'overlay' ? frontY - td : frontY;
 
-    const openings: FrontOpening[] = faceFrame
-      ? faceFrame.openings
-      : bays.map((bay, i) => ({
-          clearX0: bay.x0,
-          clearX1: bay.x1,
-          clearZ0: shelfZ0,
-          clearZ1: shelfZ1,
-          // Each overlay door covers half of the panel it shares with its
-          // neighbour, and all of an outer side, so the run reads as one
-          // continuous front. Vertically there is nothing to overlay onto —
-          // the run simply stops at the ledge and the toe kick.
-          overlayX0: i === 0 ? xL : dividerX[i - 1]! + t / 2,
-          overlayX1: i === bays.length - 1 ? xR : dividerX[i]! + t / 2,
-          overlayZ0: runBottom,
-          overlayZ1: runTop,
-        }));
-
     bays.forEach((bay, i) => {
+      if (hasDrawers(i)) return;
       const style = spec.bays[i]?.doors ?? 'none';
       if (style === 'none') return;
 
@@ -1100,6 +1188,65 @@ function buildCarcass(
         // lands is a placement setting, not something the carcass decides.
         if (hw.handle) handles.push({ doorId: id, hingeSide: leaf.hingeSide });
       });
+    });
+  }
+
+  // --- Drawers ---------------------------------------------------------------
+  const anyDrawers = bays.some((_, i) => hasDrawers(i));
+  if (anyDrawers && !doorMat) {
+    notes.push('Drawers are configured but their face material is missing from the list.');
+  }
+  const drawerBoxMat = params.materials.find((m) => m.id === params.drawerBoxMaterialId);
+  if (anyDrawers && doorMat && !drawerBoxMat) {
+    notes.push('Drawers are configured but the drawer box material is missing from the list.');
+  }
+  if (anyDrawers && doorMat && drawerBoxMat) {
+    const d = params.doors;
+    bays.forEach((bay, i) => {
+      const explicit = spec.bays[i]?.drawerFrontHeights ?? [];
+      if (explicit.length === 0) return;
+      const opening = openings[i]!;
+      const available =
+        d.fit === 'overlay'
+          ? opening.overlayZ1 - opening.overlayZ0
+          : opening.clearZ1 - opening.clearZ0;
+      const { heights, fellBackToEven } = drawerHeights(available, explicit, d.reveal);
+      if (fellBackToEven) {
+        notes.push(
+          `${human} carcass, bay ${i + 1}: the drawer front heights did not add up to the opening, so the stack was split evenly instead.`,
+        );
+      }
+      const { leftPanel, rightPanel } = bayBoundingPanels(
+        i,
+        bays.length,
+        leftId,
+        rightId,
+        dividerIds,
+      );
+      buildDrawerStack(
+        {
+          cabinetId: ctx.cabinetId,
+          carcassId: spec.id,
+          prefix,
+          human,
+          bayIndex: i,
+          // A drawer face hangs off whatever it fronts, the same as a door does.
+          yFront: faceFrame?.frontY ?? yFront,
+          innerBackY,
+          panelLeftId: leftPanel,
+          panelRightId: rightPanel,
+        },
+        opening,
+        heights,
+        d.fit,
+        d.reveal,
+        d.insetGap,
+        drawerBoxMat,
+        drawerBoxMat.actualThickness,
+        doorMat,
+        hw.slide,
+        sink,
+      );
     });
   }
 

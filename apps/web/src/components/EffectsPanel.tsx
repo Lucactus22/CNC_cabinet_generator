@@ -16,6 +16,7 @@ import { CheckField, Group, Hint, NumberField, SelectField } from './Controls';
 /** Surfaces worth offering by name, rather than picking a part id. */
 const ROLE_TARGETS: Array<{ role: PartRole; label: string }> = [
   { role: 'door', label: 'Doors' },
+  { role: 'drawer-face', label: 'Drawer fronts' },
   { role: 'back', label: 'Back panel' },
   { role: 'side', label: 'Side panels' },
   { role: 'divider', label: 'Dividers' },

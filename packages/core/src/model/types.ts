@@ -191,6 +191,21 @@ export interface BaySpec {
   shelfCount: number;
   /** 'left' and 'right' name the side the hinges go on. */
   doors: DoorStyle;
+  /**
+   * A stack of drawers fronting this bay instead of doors and shelves, top to
+   * bottom, each entry the clear front height of one drawer.
+   *
+   * Empty means no drawers, which is the default: `doors` and `shelves` decide
+   * the bay as before. A bay is one or the other — a drawer stack over a door
+   * is real cabinetry but doubles the opening math this item has to get right,
+   * so it is out of scope for now; see docs/DRAWERS.md.
+   *
+   * Explicit heights are used as given when they, plus a reveal between each,
+   * add up to the bay's own opening height; otherwise the opening is split
+   * evenly among them, the same fallback `bayWidths` uses for a carcass's own
+   * bays.
+   */
+  drawerFrontHeights: number[];
 }
 
 /** How doors sit relative to the carcass. */
@@ -396,6 +411,8 @@ export interface ProjectParams {
   stockMaterials: StockMaterial[];
   carcassMaterialId: string;
   shelfMaterialId: string;
+  /** Sides, sub-front, back and bottom of a drawer box. See `PartRole`. */
+  drawerBoxMaterialId: string;
   tool: ToolSpec;
   machine: MachineSpec;
   joinery: JoinerySettings;
@@ -433,7 +450,17 @@ export type PartRole =
   /** Face-frame vertical member: outer stiles and one per divider. */
   | 'stile'
   /** Face-frame horizontal member: top and bottom of the frame. */
-  | 'rail';
+  | 'rail'
+  /** Drawer box left/right side. */
+  | 'drawer-side'
+  /** Drawer box sub-front: the hidden member the visible drawer face screws to. */
+  | 'drawer-front'
+  /** Drawer box back, shorter than the sides so it clears the runner. */
+  | 'drawer-back'
+  /** Drawer box bottom, notched at each rear corner for the slide's locking device. */
+  | 'drawer-bottom'
+  /** The visible drawer face: same kind of part as a door, and targetable the same way by surface effects. */
+  | 'drawer-face';
 
 export type FaceSide = 'A' | 'B';
 

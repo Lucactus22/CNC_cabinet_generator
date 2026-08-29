@@ -7,7 +7,7 @@
  * data, which is what lets a user's own entry be saved in a project file and
  * checked by exactly the same code as a built-in one.
  */
-export type HardwareKind = 'hinge' | 'shelf-pin' | 'handle';
+export type HardwareKind = 'hinge' | 'shelf-pin' | 'handle' | 'slide';
 
 /**
  * A measurement of the job that a piece of hardware can have an opinion about.
@@ -17,7 +17,12 @@ export type HardwareKind = 'hinge' | 'shelf-pin' | 'handle';
  * and a function does not.
  */
 export type HardwareMeasure =
-  'door thickness' | 'door width' | 'door height' | 'carcass panel thickness';
+  | 'door thickness'
+  | 'door width'
+  | 'door height'
+  | 'carcass panel thickness'
+  | 'drawer side thickness'
+  | 'drawer box width';
 
 /**
  * One fitting rule, in the maker's own terms.
@@ -129,7 +134,48 @@ export interface HandleEntry extends EntryBase {
   boring: HandleBoring;
 }
 
-export type HardwareEntry = HingeEntry | ShelfPinEntry | HandleEntry;
+/**
+ * An undermount drawer runner.
+ *
+ * Only the numbers that decide *geometry* live here. The side-thickness band
+ * and the minimum box width a runner supports are published limits, not
+ * arithmetic on the boring pattern, so — same as a hinge's door-thickness
+ * range — they live in `requires` and are checked by the same generic code
+ * that checks every other maker's limit, rather than being duplicated here.
+ */
+export interface SlideBoring {
+  /**
+   * Deduction from the bay's clear opening width to the drawer box's OUTSIDE
+   * width, so the runner aligns and runs properly.
+   */
+  widthDeduction: number;
+  /** Nominal running lengths this runner ships in, ascending, in mm. */
+  nominalLengths: number[];
+  /**
+   * Cabinet depth a runner needs beyond its own nominal length, for the rear
+   * mounting bracket and running clearance.
+   */
+  lengthClearance: number;
+  /**
+   * How far the box bottom sits up from the underside of the sides — the
+   * zone the runner's own hardware occupies, and why the back stops short of
+   * the floor of the box instead of running the sides' full height.
+   */
+  bottomRecess: number;
+  /** Width of the notch cut into each rear corner of the box bottom, clearing the locking device. */
+  bottomNotchWidth: number;
+  /** Mounting screw clearance diameter, box side and cabinet side alike. */
+  screwDiameter: number;
+  /** How far in from each end of the runner the mounting screws sit. */
+  mountInset: number;
+}
+
+export interface SlideEntry extends EntryBase {
+  kind: 'slide';
+  boring: SlideBoring;
+}
+
+export type HardwareEntry = HingeEntry | ShelfPinEntry | HandleEntry | SlideEntry;
 
 // ---------------------------------------------------------------------------
 // The built-in entries
@@ -318,6 +364,98 @@ export const HANDLE_KNOB: HandleEntry = {
   ],
 };
 
+/**
+ * Blum TANDEM plus BLUMOTION 563H: undermount, full-extension, soft-close,
+ * for 12-16 mm (15/32-5/8 in) drawer sides. IKEA MAXIMERA follows the same
+ * 42 mm deduction.
+ *
+ * Source: Blum's own 563H spec sheet (LIT.TDM4101.06.12, (c) 2012 Blum, Inc.):
+ * "NOTE: Material thickness may vary. Inside drawer width must equal opening
+ * width minus 42 for TANDEM to align and function properly"; the runner-set
+ * table pairing overall cabinet depth 305-610 mm against runner length
+ * 229-533 mm; "13 (1/2") bottom recess" and "14 (9/16") bottom clearance" in
+ * the front-view drawing; the drawer-back-preparation drawing giving a
+ * "35 (1-3/8") minimum rear notch" for the locking device. The side-adjustable
+ * locking device's own sheet gives "Minimum inside drawer width 170
+ * (6-11/16")" for the standard hardware — Blum publish a separate narrow-
+ * drawer system below that, which this project does not model.
+ */
+export const SLIDE_BLUM_TANDEM_H: SlideEntry = {
+  kind: 'slide',
+  id: 'blum-tandem-563h',
+  name: 'Blum TANDEM plus BLUMOTION 563H',
+  source:
+    "Blum's 563H spec sheet, LIT.TDM4101.06.12 (c) 2012 Blum, Inc.: inside drawer width = opening width - 42 mm; 229-533 mm runner lengths against 305-610 mm cabinet depths; 13 mm bottom recess; 35 mm minimum rear notch; 170 mm minimum inside width for the standard locking device.",
+  boring: {
+    widthDeduction: 42,
+    nominalLengths: [229, 305, 381, 457, 533],
+    // Blum's own table needs 23-37 mm of cabinet depth beyond the runner's
+    // own length, tightest on the shortest runner. Rounded up to one
+    // conservative figure rather than encoding the whole per-length table:
+    // this can only under-pick a runner, never suggest one that does not fit.
+    lengthClearance: 40,
+    bottomRecess: 13,
+    bottomNotchWidth: 35,
+    screwDiameter: 4.5,
+    // Blum's own screw-location table varies by runner length in a way that
+    // does not reduce to one offset; this is a generic, symmetric stand-in,
+    // not a transcription of that table. See docs/DRAWERS.md.
+    mountInset: 25,
+  },
+  requires: [
+    {
+      measure: 'drawer side thickness',
+      min: 12,
+      max: 16,
+      why: 'the running gear is set out for this band of drawer side material; thinner or thicker and it does not align',
+    },
+    {
+      measure: 'drawer box width',
+      min: 170,
+      why: 'below this the standard locking device does not fit — Blum publish a separate narrow-drawer system for 95-124 mm boxes, which this project does not model',
+    },
+  ],
+};
+
+/**
+ * Blum TANDEM plus BLUMOTION 563F: the same runner family for 16-19 mm
+ * (5/8-3/4 in) drawer sides.
+ *
+ * Source: Blum's own 563F spec sheet: "Inside drawer width must equal
+ * opening width minus 49 for TANDEM to align and function properly", the
+ * same 229-533 mm runner lengths against 305-610 mm cabinet depths, and the
+ * same 13 mm bottom recess and 35 mm rear notch as the 563H sheet.
+ */
+export const SLIDE_BLUM_TANDEM_F: SlideEntry = {
+  kind: 'slide',
+  id: 'blum-tandem-563f',
+  name: 'Blum TANDEM plus BLUMOTION 563F',
+  source:
+    "Blum's 563F spec sheet: inside drawer width = opening width - 49 mm, for 16-19 mm drawer sides; same 229-533 mm runner lengths, 13 mm bottom recess and 35 mm rear notch as the 563H sheet.",
+  boring: {
+    widthDeduction: 49,
+    nominalLengths: [229, 305, 381, 457, 533],
+    lengthClearance: 40,
+    bottomRecess: 13,
+    bottomNotchWidth: 35,
+    screwDiameter: 4.5,
+    mountInset: 25,
+  },
+  requires: [
+    {
+      measure: 'drawer side thickness',
+      min: 16,
+      max: 19,
+      why: 'the running gear is set out for this band of drawer side material; thinner or thicker and it does not align',
+    },
+    {
+      measure: 'drawer box width',
+      min: 170,
+      why: 'below this the standard locking device does not fit — Blum publish a separate narrow-drawer system for 95-124 mm boxes, which this project does not model',
+    },
+  ],
+};
+
 /** Add a make by writing an entry and listing it here. */
 export const CATALOGUE: HardwareEntry[] = [
   HINGE_UTRUSTA,
@@ -330,16 +468,20 @@ export const CATALOGUE: HardwareEntry[] = [
   HANDLE_BAR_160,
   HANDLE_BAR_320,
   HANDLE_KNOB,
+  SLIDE_BLUM_TANDEM_H,
+  SLIDE_BLUM_TANDEM_F,
 ];
 
 /** What a project falls back to, and what a new project starts with. */
 export const DEFAULT_HINGE_ID = HINGE_UTRUSTA.id;
 export const DEFAULT_SHELF_PIN_ID = PIN_5MM.id;
+export const DEFAULT_SLIDE_ID = SLIDE_BLUM_TANDEM_H.id;
 
 export const KIND_LABELS: Record<HardwareKind, string> = {
   hinge: 'Hinge',
   'shelf-pin': 'Shelf pin',
   handle: 'Handle',
+  slide: 'Drawer slide',
 };
 
 // ---------------------------------------------------------------------------
@@ -359,6 +501,12 @@ export interface HardwareSelection {
   shelfPinId: string;
   /** Empty means no handles are bored, which is the default. */
   handleId: string;
+  /**
+   * Which runner a bay's drawers are cut to. Always has a value, the same way
+   * a hinge and a shelf pin do: a project with no drawer bays hears nothing
+   * about it, exactly as one with no doors hears nothing about hinges.
+   */
+  slideId: string;
   /** Entries the user added, saved with the project. */
   custom: HardwareEntry[];
   /** Where a handle sits on the door it is fixed to. */
@@ -395,6 +543,7 @@ export function defaultHardware(): HardwareSelection {
     // Off until asked for: a hole through the face of a finished door is not
     // something to produce by default.
     handleId: '',
+    slideId: DEFAULT_SLIDE_ID,
     custom: [],
     handlePlacement: defaultHandlePlacement(),
   };
@@ -476,6 +625,15 @@ export function copyEntry(source: HardwareEntry, existing: HardwareEntry[]): Har
   }
   if (source.kind === 'shelf-pin')
     return { ...head, kind: 'shelf-pin', boring: { ...source.boring } };
+  if (source.kind === 'slide') {
+    return {
+      ...head,
+      kind: 'slide',
+      // The nested array needs its own copy too, or editing the copy's
+      // lengths would edit the shipped entry's right along with it.
+      boring: { ...source.boring, nominalLengths: [...source.boring.nominalLengths] },
+    };
+  }
   return { ...head, kind: 'handle', boring: { ...source.boring } };
 }
 
@@ -484,6 +642,7 @@ export interface ResolvedHardware {
   shelfPin: ShelfPinEntry;
   /** Null when no handle is selected, which is the default. */
   handle: HandleEntry | null;
+  slide: SlideEntry;
   placement: HandlePlacement;
   /**
    * Ids that named nothing. Falling back silently would cut a project to
@@ -528,6 +687,10 @@ export function resolveHardware(selection: HardwareSelection): ResolvedHardware 
     hinge: pick<HingeEntry>(selection.hingeId, 'hinge', HINGE_UTRUSTA)!,
     shelfPin: pick<ShelfPinEntry>(selection.shelfPinId, 'shelf-pin', PIN_5MM)!,
     handle: selection.handleId ? pick<HandleEntry>(selection.handleId, 'handle', null) : null,
+    // A drawer box cannot be built without some runner to size it to, so this
+    // falls back the same way a hinge does. A project with no drawer bays
+    // never bores a slide feature, so it never hears about this fallback.
+    slide: pick<SlideEntry>(selection.slideId, 'slide', SLIDE_BLUM_TANDEM_H)!,
     placement: selection.handlePlacement,
     missing,
   };
@@ -553,12 +716,22 @@ const HINGE_KEYS = [
 ] as const;
 const PIN_KEYS = ['diameter', 'depth', 'pitch'] as const;
 const HANDLE_KEYS = ['centres', 'screwDiameter', 'length'] as const;
+const SLIDE_KEYS = [
+  'widthDeduction',
+  'lengthClearance',
+  'bottomRecess',
+  'bottomNotchWidth',
+  'screwDiameter',
+  'mountInset',
+] as const;
 
 const ALL_MEASURES: HardwareMeasure[] = [
   'door thickness',
   'door width',
   'door height',
   'carcass panel thickness',
+  'drawer side thickness',
+  'drawer box width',
 ];
 
 /**
@@ -612,6 +785,23 @@ export function readEntry(raw: unknown): HardwareEntry | null {
     (boring.style === 'bar' || boring.style === 'knob')
   ) {
     return { ...head, kind: 'handle', boring: boring as unknown as HandleBoring };
+  }
+  if (
+    boring &&
+    e.kind === 'slide' &&
+    hasNumbers(boring, SLIDE_KEYS) &&
+    Array.isArray(boring.nominalLengths) &&
+    boring.nominalLengths.length > 0 &&
+    boring.nominalLengths.every((n) => typeof n === 'number' && Number.isFinite(n))
+  ) {
+    return {
+      ...head,
+      kind: 'slide',
+      boring: {
+        ...(boring as unknown as SlideBoring),
+        nominalLengths: (boring.nominalLengths as number[]).slice(),
+      },
+    };
   }
   return null;
 }
