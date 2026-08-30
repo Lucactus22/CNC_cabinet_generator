@@ -852,9 +852,37 @@ while a new one computes.
 what makes this cheap. Do not make it async — wrap it.
 
 **Acceptance criteria.**
-- [ ] Generation runs in a worker; the UI never blocks
-- [ ] Rapid parameter changes coalesce rather than queue
-- [ ] A large project still previews smoothly
+- [x] Generation runs in a worker; the UI never blocks
+- [x] Rapid parameter changes coalesce rather than queue
+- [x] A large project still previews smoothly
+
+**What it cost, for the items that follow.** `store.ts`'s `project` is no longer
+updated inside the same `set()` call as `params` — it lands separately, from
+`apps/web/src/worker/projectWorkerClient.ts`, once the worker's rebuild for the
+current params finishes. A new `building` flag on the store is true from the
+moment `params` changes until that lands, so a view that cares can say so; the
+topbar badge does. The coalescing itself needs no queue at all: the client
+tracks one in-flight request and one pending one, and a request that arrives
+while the worker is busy simply overwrites `pending` — dragging a slider
+through fifteen values now costs two round trips to the worker, not fifteen.
+`ARCHITECTURE.md`'s claim that "the previews and diagnostics can never disagree
+with the parameters" is revised to say what is now true: they always catch up,
+but for the length of one build they can lag behind what is on screen.
+
+**What review found.** Two defects, both the kind this repo cares about,
+because both would have shown up as a silently wrong file. First, `building`
+dropped to `false` the instant any build finished, even when a coalesced
+request for newer params was about to fire right behind it — the UI briefly
+called itself settled while a second build was still running.
+`projectWorkerClient.ts` now resends a pending request, if there is one,
+*before* notifying its listener, and exposes `isBusy()` so the store can read
+it accurately at that exact moment, rather than assuming the flag it had just
+set. Second, and worse: `ExportBar`'s Export DXF button read `project` and its
+`diagnostics`, which can be one build behind `params` — nothing stopped
+exporting mid-build, which would have cut whatever the *previous* params
+produced, silently, including skipping a blocking error the *new* params would
+have raised. `blocked` now also considers `building`, and the button is
+disabled and explains why while a rebuild is in flight.
 
 ---
 

@@ -80,10 +80,17 @@ also produced, so a cabinet with no doors gets no door steps without this
 stage knowing that in advance. Scribe strips and wall fixing come last,
 because both happen on site rather than at the bench.
 
-It is pure and fast enough (single-digit milliseconds) that the UI re-runs the
-whole thing on every keystroke. That is why the previews and the diagnostics can
-never disagree with the parameters. **Keep it pure.** No I/O, no randomness, no
-`Date.now()`, no mutation of the input.
+It is pure and fast enough (single-digit milliseconds for a modest project)
+that the UI re-runs the whole thing on every keystroke. **Keep it pure.** No
+I/O, no randomness, no `Date.now()`, no mutation of the input — that purity is
+also what makes it safe to run off the main thread, which the web app does
+(R-12): `buildProject` runs in a worker, so a fifteen-cabinet kitchen never
+blocks typing. The previews and diagnostics always catch up to the parameters,
+but for the length of one build they can lag a build behind what is on screen;
+`apps/web/src/store.ts` keeps the last finished result displayed while the next
+one computes, and `apps/web/src/worker/projectWorkerClient.ts` coalesces a
+burst of rapid changes to whichever params were current when the worker last
+finished, rather than working through every intermediate value.
 
 ### Determinism
 
