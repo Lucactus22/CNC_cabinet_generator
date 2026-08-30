@@ -349,6 +349,83 @@ input[type='checkbox'] {
   background: var(--ok);
 }
 
+/* A topbar button that opens a small panel under itself — the project
+   library today, and the natural place for anything else the topbar grows
+   that is too much for a single click but not worth its own page. */
+.menu {
+  position: relative;
+}
+.menu > summary {
+  list-style: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+}
+.menu > summary::-webkit-details-marker {
+  display: none;
+}
+.menu > summary:hover {
+  border-color: var(--accent-dim);
+}
+.menu[open] > summary {
+  border-color: var(--accent-dim);
+}
+.menu > .panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  width: 260px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+  display: grid;
+  gap: 8px;
+}
+.menu-save {
+  display: flex;
+  gap: 6px;
+}
+.menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.menu-list li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.menu-item {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: 1px solid transparent;
+  padding: 5px 8px;
+}
+.menu-item:hover {
+  background: var(--panel-2);
+  border-color: var(--line);
+}
+.menu-delete {
+  padding: 5px 8px;
+  color: var(--muted);
+}
+.menu-delete:hover {
+  color: var(--error);
+  border-color: var(--error);
+}
+
 /* ------------------------------------------------------------ sheet view */
 .sheet-card {
   margin-bottom: 22px;
