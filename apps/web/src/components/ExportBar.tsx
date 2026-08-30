@@ -6,12 +6,17 @@ import { saveText, saveBlob, zipFiles } from '../download';
 export function ExportBar() {
   const project = useStore((s) => s.project);
   const params = useStore((s) => s.params);
+  const building = useStore((s) => s.building);
   const load = useStore((s) => s.load);
   const reset = useStore((s) => s.reset);
   const [safeNames, setSafeNames] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const blocked = project.diagnostics.some((d) => d.severity === 'error');
+  // `project` runs a build behind `params` while the worker is still catching
+  // up (R-12), so exporting mid-build would cut whatever the previous params
+  // produced — wrong dimensions, or a blocking error the new params would
+  // have raised that this stale `project` does not carry yet.
+  const blocked = building || project.diagnostics.some((d) => d.severity === 'error');
 
   const doExport = (): void => {
     const bundle = exportProject(project, { ...defaultExportOptions(), safeNames });
@@ -77,9 +82,11 @@ export function ExportBar() {
         onClick={doExport}
         disabled={blocked}
         title={
-          blocked
-            ? 'Fix the blocking diagnostics first, or the files will not be cuttable.'
-            : 'Sheet DXFs, per-tile DXFs and the cut list, as one zip.'
+          building
+            ? 'Still catching up to your last change — wait a moment and try again.'
+            : blocked
+              ? 'Fix the blocking diagnostics first, or the files will not be cuttable.'
+              : 'Sheet DXFs, per-tile DXFs and the cut list, as one zip.'
         }
       >
         Export DXF

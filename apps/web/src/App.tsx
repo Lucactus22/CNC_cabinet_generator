@@ -19,6 +19,7 @@ export function App() {
   const tab = useStore((s) => s.tab);
   const setTab = useStore((s) => s.setTab);
   const project = useStore((s) => s.project);
+  const building = useStore((s) => s.building);
 
   const sheets = project.nest.sheets.length;
   const boards = project.stockNest.sheets.length;
@@ -36,6 +37,9 @@ export function App() {
           {cabinets.length > 1 ? `${cabinets.length} cabinets · ` : ''}
           {runWidth.toFixed(0)} × {height.toFixed(0)} mm · {project.parts.length} parts · {sheets}{' '}
           sheets{boards > 0 ? ` · ${boards} board${boards === 1 ? '' : 's'}` : ''}
+          {/* The build runs in a worker (R-12); this is the one visible sign it is
+              still catching up to the params on screen. */}
+          {building ? ' · updating…' : ''}
         </span>
         <span className="spacer" />
         <ExportBar />
