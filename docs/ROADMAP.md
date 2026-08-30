@@ -893,6 +893,90 @@ disabled and explains why while a rebuild is in flight.
 list of saved projects to open. Losing an hour's work to a stray reset is not
 acceptable at 1.0.
 
+**Where.** `apps/web/src/store.ts`, a new `apps/web/src/persistence.ts`, a new
+`apps/web/src/components/ProjectLibrary.tsx`, `ExportBar.tsx`.
+
+**Revised while working it.** The item as written had a goal but no acceptance
+criteria — unlike every other item on this roadmap — so the list below was
+written in the doing, from the goal's own sentence, rather than found
+pre-written.
+
+**Acceptance criteria.**
+- [x] Every parameter change can be undone and redone
+- [x] A burst of rapid edits — dragging a field, typing a number — undoes as
+      one step, not one per keystroke
+- [x] Reset and Open are themselves undoable — the disaster the goal names
+- [x] The current project autosaves to `localStorage` and is restored on the
+      next visit, with no action from the user
+- [x] A library of designs saved under a name, independent of autosave, each
+      openable and deletable
+
+**What it cost, for the items that follow.** `apps/web/src/persistence.ts` is
+the new home for everything that touches `localStorage`: `loadAutosave` /
+`saveAutosave`, and `loadLibrary` / `saveLibrary` for an array of
+`{ id, name, savedAt, params }`. Both read paths reuse the same
+"does this look like a project" check `ExportBar`'s Open button already had,
+and run it through `normaliseParams`, so a stale autosave from an older
+schema or a hand-edited library entry repairs itself exactly as opening an old
+file already does, rather than crashing the app on load.
+
+`store.ts` gained `past`, `future` and `library`, and `undo`, `redo`,
+`saveToLibrary`, `loadFromLibrary`, `deleteFromLibrary`. The history is a plain
+undo/redo pair of stacks, not a queue keyed by time: `update()` pushes the
+state a burst of edits started from onto `past` immediately, on the burst's
+*first* call, and a later call within `HISTORY_DEBOUNCE_MS` of the one before
+it is read as continuing that burst and pushes nothing further — the same
+coalescing shape R-12 already uses for the worker, so a dragged slider costs
+one undo step, not fifty, and Undo is enabled the instant an edit lands rather
+than after the coalescing window. `reset()`, `load()` and `loadFromLibrary()`
+all now go through a shared `jumpTo` that pushes the *current* params onto
+`past` before swapping them out, which is what makes Reset itself undoable —
+the exact loss the goal opens by naming. A fresh edit after an undo clears
+`future`: redoing into a branch that no longer follows from the params on
+screen would silently reapply a change the user has since typed over.
+
+Autosave and the undo history are independent: autosave debounces to
+`localStorage` on every path that changes `params`, undo history included, so
+closing the tab mid-undo still resumes from what was on screen. The undo stack
+itself does not survive a reload — restarting a session with a full redo queue
+into parameters that are no longer on screen would be its own kind of
+surprise, and no editor does that.
+
+The project library lives in `ProjectLibrary.tsx`, a `<details>` popover next
+to Save in `ExportBar` — new topbar chrome, so `styles.css` gained a `.menu`
+pattern (a button-styled `<summary>`, an absolutely positioned panel) that the
+next thing the topbar needs a small popover for can reuse. Undo and redo also
+answer to Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z (or Ctrl+Y), skipped while focus is
+in a text field so a field's own native undo is not shadowed.
+
+**What review found.** Three defects, caught before this landed:
+
+- Autosave's debounce had nothing forcing it to fire before the tab actually
+  closed — the one window where losing an edit is exactly the failure
+  autosave exists to prevent. The debounce itself is still right (writing to
+  `localStorage` on every keystroke would be wasteful), but a real exit
+  cannot wait for it: `store.ts` now flushes whatever write is still pending
+  the moment the tab is hidden or the page navigates away, on
+  `visibilitychange` and `pagehide` — the pair the web platform actually
+  fires reliably, unlike `beforeunload` on mobile.
+- The first version of the undo history queued its commit to `past` behind
+  the same debounce as the coalescing itself, so for up to 500 ms after a
+  single edit the Undo button read disabled — correctly reflecting `past`,
+  but incorrectly implying Ctrl+Z would do nothing, when it would in fact
+  have flushed that pending edit and undone it. A button telling the user
+  the opposite of what the keyboard shortcut standing right next to it does
+  is exactly the kind of silent disagreement this codebase does not allow.
+  The fix above — push the baseline immediately rather than after a pause —
+  removed the gap entirely rather than papering over it with a second flag.
+- `update()` unconditionally replaced `future` with a new empty array on
+  every call, which is harmless once but was doing it on every keystroke of
+  a drag — the exact hot path R-12 was built to keep cheap — waking every
+  component reading `future` for no change at all. It now reuses the
+  existing array when there is nothing to clear.
+
+**Tests.** `apps/web` has no automated test harness yet (R-14); verified in
+the running app instead — see the definition of done in `CLAUDE.md`.
+
 ---
 
 ### R-14 — Test the web app

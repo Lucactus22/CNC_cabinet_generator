@@ -296,6 +296,19 @@ hardware and how it is fixed. A cabinet with no doors gets no door steps; add
 drawers and the guide grows steps for them without anyone having written a
 line for that case. Print it, or save it as a PDF, straight from the browser.
 
+## Undo, autosave and your projects
+
+Every change is undoable — **Undo**/**Redo** in the topbar, or Ctrl/Cmd+Z and
+Ctrl/Cmd+Shift+Z. Dragging a field or typing a number undoes as one step, not
+one per keystroke, and **Reset counts as a change too**: a stray click gets you
+back in one Undo.
+
+The open project autosaves to this browser as you work, so closing the tab or
+reloading picks up exactly where you left off, with nothing to click. **Save**
+still writes a project file you can put anywhere; **Library** is a shelf of
+designs saved to this browser under a name, for the ones you want to reopen
+later without hunting through downloads.
+
 ## Before you cut
 
 1. **Measure your sheet** with calipers and enter the real thickness. 18 mm ply

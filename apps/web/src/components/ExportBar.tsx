@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { defaultExportOptions, exportProject, normaliseParams } from '@cabgen/core';
 import { useStore } from '../store';
 import { saveText, saveBlob, zipFiles } from '../download';
+import { ProjectLibrary } from './ProjectLibrary';
 
 export function ExportBar() {
   const project = useStore((s) => s.project);
@@ -9,8 +10,38 @@ export function ExportBar() {
   const building = useStore((s) => s.building);
   const load = useStore((s) => s.load);
   const reset = useStore((s) => s.reset);
+  const past = useStore((s) => s.past);
+  const future = useStore((s) => s.future);
+  const undo = useStore((s) => s.undo);
+  const redo = useStore((s) => s.redo);
   const [safeNames, setSafeNames] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z (also Ctrl+Y) work anywhere except inside
+  // a field that has its own native undo — a stray project-level undo while
+  // someone is mid-keystroke in a name field would be far more surprising
+  // than doing nothing.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const typing =
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.tagName === 'SELECT';
+      if (typing || !(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      if (key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      } else if (key === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [undo, redo]);
 
   // `project` runs a build behind `params` while the worker is still catching
   // up (R-12), so exporting mid-build would cut whatever the previous params
@@ -63,6 +94,20 @@ export function ExportBar() {
         />
         safe layer names
       </label>
+      <button
+        onClick={undo}
+        disabled={past.length === 0}
+        title={past.length > 0 ? 'Undo the last change (Ctrl+Z)' : 'Nothing to undo'}
+      >
+        Undo
+      </button>
+      <button
+        onClick={redo}
+        disabled={future.length === 0}
+        title={future.length > 0 ? 'Redo the last undone change (Ctrl+Shift+Z)' : 'Nothing to redo'}
+      >
+        Redo
+      </button>
       <button onClick={() => fileInput.current?.click()}>Open</button>
       <input
         ref={fileInput}
@@ -76,6 +121,7 @@ export function ExportBar() {
         }}
       />
       <button onClick={saveProject}>Save</button>
+      <ProjectLibrary />
       <button onClick={reset}>Reset</button>
       <button
         className="primary"
