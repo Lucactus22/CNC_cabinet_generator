@@ -92,6 +92,7 @@ export function buildFaceFrame(
       outline: rect(0, 0, 0, 0),
       features: [],
       grainAxis,
+      bandedEdges: [],
     });
   };
 

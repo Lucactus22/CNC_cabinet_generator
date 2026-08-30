@@ -1,4 +1,4 @@
-import type { Path } from '../geom/index.js';
+import type { Edge, Path } from '../geom/index.js';
 import type { ReliefStyle } from '../geom/relief.js';
 import type { OpeningSpec } from './opening.js';
 import type { HardwareSelection } from '../hardware/catalogue.js';
@@ -49,6 +49,57 @@ export interface StockMaterial {
   boardLength: number;
   /** Width a board is milled to before ripping it down to a stile or rail width. */
   boardWidth: number;
+}
+
+/**
+ * A roll of edge tape (or iron-on veneer), applied by hand once the sheet is
+ * cut.
+ *
+ * Not a `Material`: it has no sheet to nest, and a workshop buys and reports
+ * it by length, not area.
+ */
+export interface BandingMaterial {
+  id: string;
+  name: string;
+  /**
+   * The blank is cut this much short on every edge banded in this material, so
+   * gluing the tape back on returns the part to the size it was designed at.
+   */
+  thickness: number;
+}
+
+/**
+ * One of the (up to) four edges around a panel's perimeter, named the way a
+ * woodworker points at one rather than by a local axis — a part's local edges
+ * flip with its handedness, but 'the front edge' does not.
+ *
+ * Only the two directions perpendicular to a part's own normal axis are ever
+ * real: a door (normal axis Y) has left/right/top/bottom edges and no
+ * front/back edge to speak of, a shelf (normal axis Z) the opposite pair. An
+ * edge that can never occur on a given role is simply never resolved, rather
+ * than being a distinct set of options per role — see `applyBanding`.
+ */
+export type PanelEdge = 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom';
+
+/** Which edges of every part with a given role are banded, and with what. */
+export interface EdgeBandingSpec {
+  edges: PanelEdge[];
+  /** A `BandingMaterial` id. */
+  materialId: string;
+}
+
+/**
+ * Banding actually applied to one part's blank, resolved from
+ * `ProjectParams.edgeBanding` against that part's own frame.
+ */
+export interface BandedEdge {
+  /** Which side of the panel, as named in the project's banding rule. */
+  edge: PanelEdge;
+  /** Which side of the flat blank that turned out to be, for drawing it. */
+  localEdge: Edge;
+  materialId: string;
+  /** Length of tape this edge needs, in mm — the blank's own finished size along it. */
+  length: number;
 }
 
 export interface ToolSpec {
@@ -409,6 +460,10 @@ export interface ProjectParams {
   materials: Material[];
   /** Solid stock for face frames. See `StockMaterial`. */
   stockMaterials: StockMaterial[];
+  /** Rolls of edge tape available to the project. See `BandingMaterial`. */
+  bandingMaterials: BandingMaterial[];
+  /** Which edges of a part role are banded. A role missing from this is not banded at all. */
+  edgeBanding: Partial<Record<PartRole, EdgeBandingSpec>>;
   carcassMaterialId: string;
   shelfMaterialId: string;
   /** Sides, sub-front, back and bottom of a drawer box. See `PartRole`. */
@@ -571,6 +626,8 @@ export interface Part {
    * orientation, which is what veneered ply on a visible face needs.
    */
   grainAxis: GrainAxis;
+  /** Edges banded on this blank. Empty unless `ProjectParams.edgeBanding` covers this part's role. */
+  bandedEdges: BandedEdge[];
 }
 
 export interface Assembly {

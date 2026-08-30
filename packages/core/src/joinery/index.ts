@@ -23,6 +23,7 @@ import { resolveHardware, type ShelfPinBoring } from '../hardware/catalogue.js';
 import { applyHandles } from '../hardware/handles.js';
 import { applyHinges } from '../hardware/hinges.js';
 import { applySlides } from '../hardware/slides.js';
+import { applyBanding } from './banding.js';
 import { applyDado } from './dado.js';
 import { applyHalfLap } from './halflap.js';
 import { applyTabSlot } from './tabslot.js';
@@ -42,6 +43,7 @@ import {
 } from './helpers.js';
 
 export * from './helpers.js';
+export { applyBanding } from './banding.js';
 export { applyDado } from './dado.js';
 export { applyHalfLap } from './halflap.js';
 export { applyTabSlot, planTabs } from './tabslot.js';
@@ -125,7 +127,11 @@ export function applyJoinery(params: ProjectParams, built: BuildResult): string[
     if (draft) applyTaper(draft, req, warnings);
   }
 
-  for (const draft of drafts.values()) materialise(draft, params);
+  // Shared across every part so a role that is banded on an edge it never has
+  // — or a banding material missing from the list — is reported once, not
+  // once per panel of that role.
+  const warnedRoleEdges = new Set<string>();
+  for (const draft of drafts.values()) materialise(draft, params, warnings, warnedRoleEdges);
   return warnings;
 }
 
@@ -202,8 +208,17 @@ function applyTaper(draft: PartDraft, req: TaperRequest, warnings: string[]): vo
  * Build the final outline once every joint has contributed its notches and
  * tabs, then record the blank size the nester and cut list will work from.
  */
-function materialise(draft: PartDraft, params: ProjectParams): void {
+function materialise(
+  draft: PartDraft,
+  params: ProjectParams,
+  warnings: string[],
+  warnedRoleEdges: Set<string>,
+): void {
   refreshBase(draft);
+  // Shrinks `base` on any banded edge before the outline is built from it, so
+  // the blank the nester and cut list see is already the size the router
+  // actually cuts.
+  applyBanding(draft, params, warnings, warnedRoleEdges);
   const { base, notches, tabs, taper } = draft;
 
   let outline = buildOutline({

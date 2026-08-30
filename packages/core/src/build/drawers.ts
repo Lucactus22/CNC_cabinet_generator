@@ -109,6 +109,7 @@ export function buildDrawerStack(
       outline: rect(0, 0, 0, 0),
       features: [],
       grainAxis,
+      bandedEdges: [],
     });
   };
 

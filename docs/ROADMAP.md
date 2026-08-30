@@ -704,10 +704,38 @@ down to compensate.
 `export/cutlist.ts`.
 
 **Acceptance criteria.**
-- [ ] Banded edges are declared per part role and per edge
-- [ ] Part sizes are reduced by the banding thickness on banded edges
-- [ ] The cut list reports total banding length per material
-- [ ] The part drawing marks banded edges
+- [x] Banded edges are declared per part role and per edge
+- [x] Part sizes are reduced by the banding thickness on banded edges
+- [x] The cut list reports total banding length per material
+- [x] The part drawing marks banded edges
+
+**Tests.** The shrink lands on exactly the requested edges and no others; a
+role asked to band an edge it structurally cannot have is reported and left
+untouched; two edges thick enough to consume the whole panel are refused
+rather than producing a negative-size blank; a door banded on its hinge side
+still bores the cup at the same local coordinates, because hinge boring reads
+the part's frame, never the working rectangle banding shrinks.
+
+**Revised while working it.** The item's own "Where" line named
+`build/builder.ts` for the size reduction; the shrink is in `joinery/banding.ts`
+instead, called from `materialise()` in `joinery/index.ts`. That is where the
+final outline is already built from a working rectangle notches and tabs are
+placed against, and applying the same rectangle to banding — rather than
+plumbing a second, builder-side adjustment through every part-constructing
+module (`build/builder.ts`, `build/drawers.ts`, `build/faceframe.ts` all push
+`Part` literals) — is what keeps a stopped-dado notch on a banded edge
+correctly positioned with no extra arithmetic: both are already measured from
+that same rectangle. `build/builder.ts` itself only gained the field's zero
+value on the parts it constructs directly.
+
+**What it cost, for the items that follow.** `Part` gained `bandedEdges`.
+`ProjectParams` gained `bandingMaterials` — a `BandingMaterial` is a name and
+a thickness, nothing else, because it has no sheet to nest and is bought and
+reported by length — and `edgeBanding`, a per-role `{ edges, materialId }`.
+`ProjectResult` gained a `banding` summary, following `materialSummary` and
+`stockSummary`'s own shape: computed and ready, but — like those two — not
+yet surfaced anywhere beyond the parts view. R-22's shopping summary can read
+it directly.
 
 ---
 

@@ -563,6 +563,7 @@ function buildScribeParts(
         features: [],
         // Upright, alongside the door it stands next to.
         grainAxis: 'v',
+        bandedEdges: [],
       });
 
       if (atTop < widest - TOL) {
@@ -722,6 +723,7 @@ function buildCarcass(
       outline: rect(0, 0, 0, 0),
       features: [],
       grainAxis,
+      bandedEdges: [],
     };
     parts.push(part);
     return part;

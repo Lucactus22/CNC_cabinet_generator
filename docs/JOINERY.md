@@ -332,3 +332,36 @@ against the plaster with a pencil and a block, not on the screen, so a hole
 drilled for it here would be a hole in the wrong place. Screw it through the
 cabinet side, or pocket-screw it from behind, once it is scribed. See
 [OPENING.md](OPENING.md).
+
+## Not a joint either: edge banding
+
+Banding is not machined at all — it is tape or veneer ironed on by hand once
+the sheet is cut — but it has real thickness, and a panel cut to its full
+designed size would come out oversize the moment tape goes on a visible edge.
+So a banded edge is **cut short by the tape's own thickness**, on that edge
+only, before the outline is built. Gluing the tape on afterwards brings the
+part back to the size it was designed at.
+
+Declare which edges are banded per part role — a shelf's front edge, every
+edge of a door — and with which entry in `bandingMaterials`, a roll of tape
+with nothing but a name and a thickness: it has no sheet to nest, so it is not
+a `Material`, and it is reported in the cut list by length, not by area. Each
+edge's length is the panel's *finished* size along it, not the substrate's:
+banding a door on all four edges needs a full door-height's worth of tape on
+the left and right even though the top and bottom edges have also taken a
+bite out of the substrate there, because tape on one pair returns that
+dimension to its designed size before the other pair goes on.
+
+The shrink lands on the same rectangle a stopped-dado notch or a toe-kick
+notch is measured against, not as a separate offset. That is deliberate: those
+notches are already measured from *this panel's own edge*, so when the tape
+is glued back on and the substrate returns to its designed size, the notch
+ends up exactly where it was meant to relative to the finished, banded edge —
+no different arithmetic needed for a banded panel than an unbanded one. Hinge
+and shelf-pin boring are unaffected either way, because neither is ever
+measured from this rectangle: both come from the part's frame, fixed when it
+was built, which already describes the finished panel.
+
+Ask for an edge a role does not have — a door has no front or back edge, only
+a side panel does — and it is reported and simply never applied, the same as
+a stopped groove narrower than the cutter.

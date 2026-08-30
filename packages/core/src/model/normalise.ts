@@ -68,6 +68,16 @@ export function normaliseParams(raw: unknown): ProjectParams {
       Array.isArray(input.stockMaterials) && input.stockMaterials.length > 0
         ? (input.stockMaterials as ProjectParams['stockMaterials'])
         : base.stockMaterials,
+    // A file written before R-09 has no banding material either, but unlike
+    // the stock list an empty one is a real, common state — nobody has to
+    // band anything — so an explicitly emptied list is respected rather than
+    // snapped back to the default roll.
+    bandingMaterials: Array.isArray(input.bandingMaterials)
+      ? (input.bandingMaterials as ProjectParams['bandingMaterials'])
+      : base.bandingMaterials,
+    // Same file has no rules at all, which reads exactly as it should: no role
+    // was ever banded, so none is now either.
+    edgeBanding: { ...base.edgeBanding, ...(input.edgeBanding as object) },
     surfaceEffects: Array.isArray(input.surfaceEffects)
       ? (input.surfaceEffects as SurfaceEffectSpec[]).map(migrateEffect)
       : [],

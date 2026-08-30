@@ -1,4 +1,5 @@
 import type {
+  BandingMaterial,
   Cabinet,
   Carcass,
   FaceFrameSpec,
@@ -53,6 +54,20 @@ export function defaultStockMaterials(): StockMaterial[] {
       // A standard 8 ft board.
       boardLength: 2440,
       boardWidth: 140,
+    },
+  ];
+}
+
+export const MATERIAL_BANDING = 'band-pvc';
+
+export function defaultBandingMaterials(): BandingMaterial[] {
+  return [
+    {
+      id: MATERIAL_BANDING,
+      name: '0.4 mm PVC edge tape',
+      // A typical figure for iron-on PVC edging, commonly sold around 0.4-0.45
+      // mm. Like sheet thickness, measure the actual roll rather than trust this.
+      thickness: 0.4,
     },
   ];
 }
@@ -232,6 +247,10 @@ export function defaultParams(): ProjectParams {
     name: 'Stacked built-in',
     materials: defaultMaterials(),
     stockMaterials: defaultStockMaterials(),
+    bandingMaterials: defaultBandingMaterials(),
+    // Off by default: nobody is committed to banding until they turn an edge
+    // on for a role, same as surface effects.
+    edgeBanding: {},
     carcassMaterialId: MATERIAL_CARCASS,
     shelfMaterialId: MATERIAL_CARCASS,
     // 12 mm ply, the thinnest of the two shipped sheet materials, sits right

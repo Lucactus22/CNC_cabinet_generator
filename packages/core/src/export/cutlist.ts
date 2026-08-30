@@ -215,6 +215,23 @@ export function stockSummary(
     .filter((x) => x.parts > 0);
 }
 
+/** Total banding tape needed, by material — what to order alongside the sheets. */
+export function bandingSummary(
+  params: ProjectParams,
+  parts: Part[],
+): Array<{ material: string; length: number }> {
+  return params.bandingMaterials
+    .map((m) => {
+      const length = parts.reduce(
+        (a, p) =>
+          a + p.bandedEdges.filter((e) => e.materialId === m.id).reduce((x, e) => x + e.length, 0),
+        0,
+      );
+      return { material: m.name, length: round(length) };
+    })
+    .filter((x) => x.length > 0);
+}
+
 function csvCell(v: string | number): string {
   const s = String(v);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;

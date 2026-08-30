@@ -170,6 +170,19 @@ it — and that part is flagged in the diagnostics, with its second-face geometr
 written to `_FLIP` layers, mirrored so it lands correctly once you turn the
 sheet over left to right.
 
+## Edge banding
+
+Plywood edges get taped once they are off the machine, and tape has thickness:
+a shelf cut to its full designed depth comes out oversize the moment banding
+goes on its front edge. Turn banding on per part role — a shelf's front edge,
+every edge of a door — and the panel is cut short by the tape's own thickness
+on exactly those edges, so gluing the tape on afterwards brings it back to the
+size it was designed at.
+
+Banding tape isn't a sheet good, so it gets its own short list: a name and a
+thickness, reported in the cut list by length rather than area. The parts view
+marks every banded edge on the drawing, and says which tape it takes.
+
 ## Your machine
 
 Enter your travels and which axis the stock feeds through. The tool then checks
@@ -278,8 +291,7 @@ testable on its own and reusable from a CLI or a different front end.
 
 ## Known gaps
 
-Honest list, all tracked in the roadmap: no edge banding; the web app has no
-automated tests.
+Honest list, all tracked in the roadmap: the web app has no automated tests.
 
 Millimetres only, deliberately.
 
