@@ -22,8 +22,7 @@ import type { ProjectParams } from '../src/model/types.js';
 function machineSized(): ProjectParams {
   const p = defaultParams();
   for (const m of p.materials) {
-    m.sheetLength = 1000;
-    m.sheetWidth = 1000;
+    m.sheets = [{ length: 1000, width: 1000 }];
   }
   base(p).width = 700;
   base(p).height = 800;
@@ -162,6 +161,34 @@ describe('machine diagnostics', () => {
   it('is happy once the sheets match the machine', () => {
     const project = buildProject(machineSized());
     expect(project.diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
+  });
+
+  it('does not check the raw sheet against the machine under guillotine', () => {
+    // A panel saw breaks the sheet down before anything reaches the router,
+    // so "does the whole sheet fit the bed" does not describe that workflow
+    // — unlike the default project, this must not error just because the
+    // configured sheet is bigger than the machine.
+    const p = defaultParams();
+    p.nesting.strategy = 'guillotine';
+    const project = buildProject(p);
+    const machineErrs = project.diagnostics.filter(
+      (d) => d.severity === 'error' && d.topic === 'machine',
+    );
+    expect(machineErrs).toEqual([]);
+  });
+
+  it('still checks each part against the machine under guillotine', () => {
+    // Whatever the saw leaves behind still has to be machined, so a part
+    // itself too big for the bed is still an error even in guillotine mode.
+    const p = defaultParams();
+    p.nesting.strategy = 'guillotine';
+    p.machine.travelY = 300;
+    p.machine.travelX = 300;
+    const project = buildProject(p);
+    const errs = project.diagnostics.filter(
+      (d) => d.severity === 'error' && d.message.includes('cannot be cut'),
+    );
+    expect(errs.length).toBeGreaterThan(0);
   });
 
   it('counts the setups a long sheet needs', () => {

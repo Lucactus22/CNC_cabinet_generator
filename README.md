@@ -200,20 +200,46 @@ There is a **Set sheets to machine size** button. On a small machine, nesting
 into blanks the size of your bed usually beats tiling: more sheets, but no
 registration, no seams, and no chance of drift.
 
-### Nesting: fewest setups, or least material
+### Sheet stock: sizes and remnants
+
+A material is not one sheet size — it is every size you can put it in the nest
+from. A **standard** size carries no quantity: the nester treats it as always
+available, because you just order another sheet. A **remnant** carries a fixed
+quantity — however many you actually have leaning against the wall — and is
+spent before a fresh standard sheet is opened, smallest first so a big offcut
+is not wasted on a part a small one would have carried. Once a remnant's
+quantity runs out, the nester falls back to the next size that fits.
+
+The nester also tracks what is left once a sheet is full: any leftover space
+with a shorter side above the **remnant threshold** is reported as a usable
+offcut, sized, so you know what is worth keeping for the next job rather than
+sweeping it into the bin. Set the threshold to whatever is too small to bother
+storing.
+
+### Nesting: fewest setups, least material, or a panel saw
 
 **Fewest setups** (default) keeps every part inside a single machine tile and
 fills the earliest tile first. Nothing is cut across a seam unless the part is
 itself larger than the machine. **Least material** packs as tightly as it can
 and lets parts fall where they will.
 
+**Guillotine** is for a panel saw rather than a router: every part is placed so
+the whole layout can be recovered by a sequence of straight, full-length cuts,
+which is the only kind of cut a saw can make. A router mills each part's own
+outline regardless of what sits next to it, so the other two strategies can
+tuck a part into a pocket a saw could never reach without cutting through its
+neighbour first. That guarantee costs yield against the other two — a real
+trade, not a bug — so it is worth picking only when you are actually breaking
+sheets down on a saw.
+
 The number of setups follows how far the parts actually reach, not the blank's
 nominal length, so a half-filled sheet only needs the setups that cover it.
 
-On a typical cabinet the two come out at the same sheet count and the same
-yield, and fewest-setups still removes every avoidable seam crossing. Where they
-do diverge, it is a straight trade: a little more offcut for a little less time
-at the machine. Neither makes any difference when nothing needs tiling.
+On a typical cabinet fewest-setups and least-material come out at the same
+sheet count and the same yield, and fewest-setups still removes every avoidable
+seam crossing. Where they do diverge, it is a straight trade: a little more
+offcut for a little less time at the machine. Neither makes any difference when
+nothing needs tiling.
 
 ### Tiling workflow
 

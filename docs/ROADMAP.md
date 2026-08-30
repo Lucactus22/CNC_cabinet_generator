@@ -796,9 +796,46 @@ including remnants the user already has. Add a guillotine strategy for anyone
 cutting on a panel saw rather than a router.
 
 **Acceptance criteria.**
-- [ ] A material can hold several stock sizes, each with a quantity
-- [ ] Remnants above a threshold are reported with their sizes
-- [ ] A guillotine strategy sits alongside the existing two
+- [x] A material can hold several stock sizes, each with a quantity
+- [x] Remnants above a threshold are reported with their sizes
+- [x] A guillotine strategy sits alongside the existing two
+
+**Revised while working it.** The item did not say how to choose among several
+sizes, or how the two kinds of "remnant" it names relate, so both were settled
+in the doing:
+
+- A **standard size and a remnant are one list**, not a sheet size plus a
+  separate remnants list: `Material.sheets: SheetSize[]`, where a size with no
+  `quantity` is standard (order as many as needed) and one with a `quantity` is
+  a remnant (spend it, then it is gone). Two lists would have let a project
+  claim a remnant that both was and was not the sheet size, which is exactly
+  the kind of contradiction `normaliseParams` exists to not have to migrate
+  later.
+- Opening a fresh sheet picks the **smallest configured size that actually
+  fits the part**, remnant or standard, so a big offcut is not spent on a part
+  a small one would have carried. A remnant only wins a tie against a standard
+  size of the same area — it is already paid for.
+- The item's own word "remnant" covers two different things: a size the user
+  types in because they already own it, and a leftover rectangle the nester
+  finds once a sheet is full. Both are real and both are called that in the
+  UI, but they are unrelated in code — the second is never fed back into the
+  first automatically. Doing that would mean guessing whether an offcut from
+  this run is still on the shelf by the next one, which is exactly the kind of
+  false capability this codebase avoids; the number is shown so a person can
+  enter it as a remnant themselves, on the project that will actually use it.
+- **Guillotine sits alongside "fewest setups" and "least material" as a third
+  `NestStrategy`**, not a modifier on the other two: it is a constraint on the
+  *shape* of the layout (every part freeable by straight end-to-end cuts),
+  while the other two are goals for the same MaxRects packer. A panel saw has
+  no bed-size limit in the router sense, so the guillotine strategy never
+  tiles and ignores `machine.tilingAxis` entirely — there was nothing to
+  reconcile between the two ideas, only a decision that they are orthogonal
+  and only one axis was asked for.
+- Solid stock (`StockMaterial`, the board list R-07 added for face frames) is
+  untouched. Boards are bought in one length and ripped to width; "several
+  sizes, including remnants" and "a panel saw" both describe sheet goods, and
+  widening the board list too would have doubled this item's scope for a case
+  the acceptance criteria never named.
 
 ---
 

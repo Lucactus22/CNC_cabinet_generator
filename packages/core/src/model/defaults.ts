@@ -28,8 +28,8 @@ export function defaultMaterials(): Material[] {
       nominalThickness: 18,
       // Sheet goods are almost never their nominal size. Measure yours.
       actualThickness: 17.8,
-      sheetLength: 2440,
-      sheetWidth: 1220,
+      // A standard full sheet, ordered as needed: no quantity.
+      sheets: [{ length: 2440, width: 1220 }],
       hasGrain: true,
     },
     {
@@ -37,8 +37,7 @@ export function defaultMaterials(): Material[] {
       name: '12 mm birch plywood',
       nominalThickness: 12,
       actualThickness: 11.9,
-      sheetLength: 2440,
-      sheetWidth: 1220,
+      sheets: [{ length: 2440, width: 1220 }],
       hasGrain: true,
     },
   ];
@@ -307,6 +306,9 @@ export function defaultParams(): ProjectParams {
       sheetMargin: 10,
       partGap: 2,
       allowRotation: true,
+      // Under about a foot on its short side, an offcut is more trouble to
+      // store and label than the material it would save.
+      remnantThreshold: 300,
     },
     // Panelling and the like: none by default, added from the Surface effects
     // panel and applied to whichever face you pick.

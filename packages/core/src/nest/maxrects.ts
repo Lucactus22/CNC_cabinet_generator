@@ -60,6 +60,19 @@ export class MaxRectsBin {
     return this.used.reduce((a, p) => a + p.w * p.h, 0);
   }
 
+  /**
+   * Free rectangles left once every part has been placed.
+   *
+   * MaxRects keeps them overlapping each other on purpose — that is what
+   * gives a later part more than one place to try — so two of these can
+   * describe the same physical offcut from different corners. Callers that
+   * want to name a piece of leftover material rather than a placement
+   * candidate need to dedupe before reporting it as one.
+   */
+  freeRects(): readonly Rect[] {
+    return this.free;
+  }
+
   private findSpot(
     w: number,
     h: number,
@@ -153,7 +166,7 @@ export function straddles(x: number, w: number, b: BandConstraint): boolean {
   return bandIndex(x, b) !== bandIndex(x + w - 1e-6, b);
 }
 
-const overlaps = (a: Rect, b: Rect): boolean =>
+export const overlaps = (a: Rect, b: Rect): boolean =>
   a.x < b.x + b.w - 1e-9 &&
   b.x < a.x + a.w - 1e-9 &&
   a.y < b.y + b.h - 1e-9 &&
