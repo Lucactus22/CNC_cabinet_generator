@@ -4,7 +4,9 @@ import { nestParts, nestStock, type NestResult } from './nest/index.js';
 import { checkManufacturability, type Diagnostic } from './machine/check.js';
 import {
   bandingSummary,
+  buildAssemblyPlan,
   buildCutList,
+  buildLabelSheet,
   buildStockCutList,
   cutListCsv,
   defaultExportOptions,
@@ -12,7 +14,9 @@ import {
   materialSummary,
   slug,
   stockSummary,
+  type AssemblyPlan,
   type CutListRow,
+  type PartLabel,
   type SheetExportOptions,
   type SheetFile,
 } from './export/index.js';
@@ -32,6 +36,10 @@ export interface ProjectResult {
   stockMaterials: ReturnType<typeof stockSummary>;
   /** Total tape length needed per banding material. */
   banding: ReturnType<typeof bandingSummary>;
+  /** Step-by-step assembly order, derived from the joint graph. See export/assembly.ts. */
+  assembly: AssemblyPlan;
+  /** One entry per part, for a printable label sheet. See export/labels.ts. */
+  labels: PartLabel[];
   notes: string[];
 }
 
@@ -47,7 +55,7 @@ function isStock(params: ProjectParams, part: Part): boolean {
  * and a test can call it without any scaffolding.
  */
 export function buildProject(params: ProjectParams): ProjectResult {
-  const { parts, warnings, notes } = generate(params);
+  const { parts, warnings, notes, joints, hinges, handles, slides, wallMounts } = generate(params);
   const stockParts = parts.filter((p) => isStock(params, p));
   const sheetParts = parts.filter((p) => !isStock(params, p));
 
@@ -60,6 +68,14 @@ export function buildProject(params: ProjectParams): ProjectResult {
   const materials = materialSummary(params, sheetParts, nest);
   const stockMaterials = stockSummary(params, stockParts, stockNest);
   const banding = bandingSummary(params, parts);
+  const assembly = buildAssemblyPlan(params, parts, {
+    joints,
+    hinges,
+    handles,
+    slides,
+    wallMounts,
+  });
+  const labels = buildLabelSheet(params, parts);
   return {
     params,
     parts,
@@ -71,6 +87,8 @@ export function buildProject(params: ProjectParams): ProjectResult {
     materials,
     stockMaterials,
     banding,
+    assembly,
+    labels,
     notes,
   };
 }

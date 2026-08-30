@@ -13,7 +13,11 @@ import {
   buildParts,
   type BuildResult,
   type DrawerBottomNotchRequest,
+  type HandleRequest,
+  type HingeRequest,
+  type JointRequest,
   type PinRowRequest,
+  type SlideRequest,
   type TaperRequest,
   type ToeNotchRequest,
   type WallMountRequest,
@@ -51,6 +55,17 @@ export { applyTabSlot, planTabs } from './tabslot.js';
 export interface JoineryResult extends Assembly {
   warnings: string[];
   notes: string[];
+  /**
+   * What meets what, exactly as the builder decided it — kept around after
+   * joinery has consumed it so a later stage can derive an assembly order from
+   * it (R-10) without re-deriving what the builder already knows. See
+   * `export/assembly.ts`.
+   */
+  joints: JointRequest[];
+  hinges: HingeRequest[];
+  handles: HandleRequest[];
+  slides: SlideRequest[];
+  wallMounts: WallMountRequest[];
 }
 
 /**
@@ -66,7 +81,17 @@ export function generate(params: ProjectParams): JoineryResult {
   // Effects run last: they need the finished blank and the region of it that
   // stays visible, and they only ever add features on top.
   warnings.push(...applyEffects(params, built.parts).warnings);
-  return { params, parts: built.parts, warnings, notes: built.notes };
+  return {
+    params,
+    parts: built.parts,
+    warnings,
+    notes: built.notes,
+    joints: built.joints,
+    hinges: built.hinges,
+    handles: built.handles,
+    slides: built.slides,
+    wallMounts: built.wallMounts,
+  };
 }
 
 export function applyJoinery(params: ProjectParams, built: BuildResult): string[] {

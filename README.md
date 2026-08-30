@@ -254,6 +254,22 @@ dislikes decimal points, tick **safe layer names** to get `POCKET_D6P35`.
 
 Full spec: [docs/DXF.md](docs/DXF.md).
 
+## Build guide
+
+The **Build guide** tab is a printable pack: a label for every part — id,
+size, material and which face is up — and a step-by-step assembly order.
+
+The order is never hand-authored. It falls out of the same joint graph the
+builder used to decide what meets what: a panel is only ever scheduled once
+everything it houses into is already in place, so a capped top is fitted
+before the sides that grow up into it and a back panel waits for the sides
+and bottom it is captured between. Doors are hung once their carcass exists,
+drawer boxes are mounted on their runners once they are glued up, and a
+loose adjustable shelf is dropped in last — each step naming its own
+hardware and how it is fixed. A cabinet with no doors gets no door steps; add
+drawers and the guide grows steps for them without anyone having written a
+line for that case. Print it, or save it as a PDF, straight from the browser.
+
 ## Before you cut
 
 1. **Measure your sheet** with calipers and enter the real thickness. 18 mm ply

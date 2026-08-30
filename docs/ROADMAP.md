@@ -756,11 +756,33 @@ the web app.
 already produces: a panel can be fitted once everything it houses into is
 fitted. Derive the order, do not hand-author it.
 
+**Revised while working it.** The goal's own sentence asks for "an exploded
+diagram per step", which the acceptance criteria below never actually name —
+they ask for parts, hardware and fixings as text, not a rendering. Building a
+real per-step 3D diagram is R-17/R-18 territory (a thumbnail renderer keyed to
+the design system that milestone is about to build); doing a one-off version
+of it here would either be thrown away or fought with once that lands. Left
+for that milestone rather than built twice.
+
+The joint graph alone only orders the glued-up carcass: a door is never
+itself a joint, only hinge-bored, and a drawer face is screwed to its box from
+inside with no hole this generator models at all. Both still had to appear
+somewhere without this file hand-authoring "and then hang the doors" for a
+cabinet that might not have any. The joint graph's own male/female direction
+generalises: a door is scheduled from the hinge requests the builder already
+produces, a drawer box from its slide requests, and *anything* left over —
+today that is only an adjustable shelf and a drawer face — gets a step from
+the parts list itself, grouped by carcass and role, so a future part role that
+never becomes a joint or a hardware request still gets a step instead of
+silently going unmentioned. Scribe strips and wall fixing screws are held back
+to a final phase, because both are done on site rather than at the bench —
+see JOINERY.md's own "not a joint: the scribe strip".
+
 **Acceptance criteria.**
-- [ ] A label sheet with id, description, size and which face is up
-- [ ] Assembly steps derived from the joint graph, not hardcoded
-- [ ] Each step lists its parts, hardware and fixings
-- [ ] Both print cleanly to PDF from the browser
+- [x] A label sheet with id, description, size and which face is up
+- [x] Assembly steps derived from the joint graph, not hardcoded
+- [x] Each step lists its parts, hardware and fixings
+- [x] Both print cleanly to PDF from the browser
 
 ---
 
