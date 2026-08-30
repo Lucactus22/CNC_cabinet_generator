@@ -115,3 +115,5 @@ just the change — what was wrong, why this fixes it, what it costs. If a bug w
 found on the way, say what it was and how it would have shown up.
 
 ask an advisor for feedback before commiting.
+
+a pull request is expected when an item is done.
