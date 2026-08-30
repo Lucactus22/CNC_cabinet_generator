@@ -2,6 +2,7 @@ import { ParamPanel } from './components/ParamPanel';
 import { Viewport3D } from './components/Viewport3D';
 import { SheetView } from './components/SheetView';
 import { PartView } from './components/PartView';
+import { BuildGuide } from './components/BuildGuide';
 import { Diagnostics } from './components/Diagnostics';
 import { ExportBar } from './components/ExportBar';
 import { cabinetPositions } from '@cabgen/core';
@@ -11,6 +12,7 @@ const TABS: Array<{ id: ViewTab; label: string }> = [
   { id: '3d', label: 'Assembly' },
   { id: 'sheets', label: 'Sheets' },
   { id: 'parts', label: 'Parts' },
+  { id: 'guide', label: 'Build guide' },
 ];
 
 export function App() {
@@ -28,7 +30,7 @@ export function App() {
 
   return (
     <div className="app">
-      <header className="topbar">
+      <header className="topbar no-print">
         <h1>Cabinet CNC Generator</h1>
         <span className="badge">
           {cabinets.length > 1 ? `${cabinets.length} cabinets · ` : ''}
@@ -42,7 +44,7 @@ export function App() {
       <div className="main">
         <ParamPanel />
         <div className="content">
-          <nav className="tabs" role="tablist">
+          <nav className="tabs no-print" role="tablist">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -60,6 +62,7 @@ export function App() {
             <Viewport3D hidden={tab !== '3d'} />
             {tab === 'sheets' && <SheetView />}
             {tab === 'parts' && <PartView />}
+            {tab === 'guide' && <BuildGuide />}
           </div>
 
           <Diagnostics />

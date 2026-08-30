@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { buildProject, defaultParams, type ProjectParams, type ProjectResult } from '@cabgen/core';
 
-export type ViewTab = '3d' | 'sheets' | 'parts';
+export type ViewTab = '3d' | 'sheets' | 'parts' | 'guide';
 
 interface AppState {
   params: ProjectParams;

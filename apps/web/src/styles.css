@@ -587,3 +587,157 @@ table.parts tbody tr.selected {
 .wizard > footer .spacer {
   flex: 1;
 }
+
+/* --------------------------------------------------------------- build guide */
+.guide-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.guide-section {
+  margin-bottom: 28px;
+}
+.guide-section h2 {
+  font-size: 13px;
+  margin: 0 0 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+}
+
+.label-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+.label-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: 8px 10px;
+  break-inside: avoid;
+}
+.label-id {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 13px;
+}
+.label-desc {
+  font-size: 12px;
+  margin-top: 2px;
+}
+.label-meta,
+.label-face {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  counter-reset: step;
+}
+.step {
+  counter-increment: step;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: 10px 12px;
+  break-inside: avoid;
+}
+.step-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.step-title::before {
+  content: counter(step) '. ';
+  color: var(--accent);
+}
+.step-row {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.step-tag {
+  display: inline-block;
+  min-width: 62px;
+  color: var(--text);
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+/* Screen-only chrome: hidden the moment the page prints, so a label sheet
+   never comes out with a sidebar and a dark background wasted across it. */
+@media print {
+  .no-print,
+  .sidebar,
+  .diagnostics {
+    display: none !important;
+  }
+  html,
+  body,
+  #root {
+    height: auto;
+  }
+  body {
+    overflow: visible;
+    background: #fff;
+    color: #111;
+  }
+  .app {
+    display: block;
+  }
+  .main {
+    display: block;
+  }
+  .content {
+    display: block;
+  }
+  .view-slot {
+    position: static;
+    overflow: visible;
+  }
+  .viewport {
+    position: static;
+    overflow: visible;
+  }
+  .viewport .scroller {
+    position: static;
+    overflow: visible;
+    padding: 0;
+  }
+  .guide-section {
+    break-before: auto;
+  }
+  .guide-section + .guide-section {
+    break-before: page;
+  }
+  .label-card,
+  .step {
+    background: #fff;
+    border-color: #999;
+    color: #111;
+  }
+  .guide-section h2,
+  .step-title,
+  .label-id {
+    color: #111;
+  }
+  .label-meta,
+  .label-face,
+  .step-row {
+    color: #444;
+  }
+  .step-title::before {
+    color: #111;
+  }
+}

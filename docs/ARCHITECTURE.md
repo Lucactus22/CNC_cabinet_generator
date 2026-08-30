@@ -53,11 +53,32 @@ ProjectParams
     ├─ checkManufacturability()   machine/check.ts
     │    everything the user needs to know before cutting
     │
-    └─ buildCutList()        export/cutlist.ts
+    ├─ buildCutList()        export/cutlist.ts
+    │
+    └─ buildAssemblyPlan()   export/assembly.ts
+         a step-by-step build order, derived from the joint graph rather
+         than hand-authored — see "Assembly order" below — alongside
+         buildLabelSheet() (export/labels.ts) for a printable label sheet
 ```
 
 `buildProject(params)` in `project.ts` runs the lot. `exportProject(project)`
 turns the result into files.
+
+### Assembly order
+
+`buildParts()` records each joint as a `JointRequest { maleId, femaleId, ... }`
+— the mating panel that grows a tongue into a pocket, and the panel machined
+with that pocket, named the way `dado.ts` and `tabslot.ts` already do, whatever
+joinery style actually cuts it. `export/assembly.ts` topologically layers that
+graph, female before male — a panel is scheduled once every panel it houses
+into is already in place — and groups each layer by cabinet and carcass, so a
+step never straddles two units and a run finishes one cabinet before starting
+the next. Doors, drawer boxes and anything that never becomes a joint (an
+adjustable shelf, a drawer face screwed on from inside its own box) are
+layered in afterwards from the hinge, slide and handle requests the builder
+also produced, so a cabinet with no doors gets no door steps without this
+stage knowing that in advance. Scribe strips and wall fixing come last,
+because both happen on site rather than at the bench.
 
 It is pure and fast enough (single-digit milliseconds) that the UI re-runs the
 whole thing on every keystroke. That is why the previews and the diagnostics can

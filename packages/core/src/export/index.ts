@@ -4,3 +4,5 @@ export * from './transform.js';
 export * from './clip.js';
 export * from './sheet.js';
 export * from './cutlist.js';
+export * from './assembly.js';
+export * from './labels.js';
