@@ -28,8 +28,7 @@ const withDrawers = (
     name: '14 mm ply',
     nominalThickness: 14,
     actualThickness: 14,
-    sheetLength: 2440,
-    sheetWidth: 1220,
+    sheets: [{ length: 2440, width: 1220 }],
     hasGrain: true,
   });
   p.drawerBoxMaterialId = MATERIAL_STOCK14;

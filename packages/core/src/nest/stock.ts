@@ -56,6 +56,9 @@ export function nestStock(params: ProjectParams, parts: Part[]): NestResult {
           width: material.boardWidth,
           parts: [],
           yield: 0,
+          // A board is packed in one dimension only; there is no rectangular
+          // leftover to speak of; see nest/index.ts for the sheet-goods case.
+          remnants: [],
         };
         boards.push(board);
         sheets.push(board);

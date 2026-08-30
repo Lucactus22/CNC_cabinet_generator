@@ -68,28 +68,41 @@ export function checkManufacturability(
   const fixedTravel = m.tilingAxis === 'none' ? m.travelY : feedsAlongX ? m.travelY : m.travelX;
   const feedTravel = feedsAlongX ? m.travelX : m.travelY;
 
+  // Guillotine-nested sheets are broken down whole on a panel saw before
+  // anything reaches the router, so neither "does the raw sheet fit the bed"
+  // nor "how many tiled setups does it need" describes a real step of that
+  // workflow — only the individual parts a saw leaves behind still go on the
+  // CNC, and those are checked below regardless of strategy.
+  const sheetGoesToTheRouter = params.nesting.strategy !== 'guillotine';
+
   // --- Sheet against the machine ----------------------------------------
-  for (const material of params.materials) {
-    if (!parts.some((p) => p.materialId === material.id)) continue;
-    const across = material.sheetWidth;
-    if (m.tilingAxis === 'none') {
-      if (material.sheetLength > m.travelX + 1e-6 || across > m.travelY + 1e-6) {
-        out.push({
-          severity: 'error',
-          topic: 'machine',
-          message: `${material.name}: a ${material.sheetLength} x ${across} mm sheet does not fit a ${m.travelX} x ${m.travelY} mm machine, and tiling is switched off.`,
-          hint: 'Enable tiling, or set the sheet size to match your machine.',
-        });
+  // Every size a material comes in is checked, not only the ones nested this
+  // run: a remnant nobody currently needs is still stock someone will load.
+  if (sheetGoesToTheRouter) {
+    for (const material of params.materials) {
+      if (!parts.some((p) => p.materialId === material.id)) continue;
+      for (const size of material.sheets) {
+        const across = size.width;
+        if (m.tilingAxis === 'none') {
+          if (size.length > m.travelX + 1e-6 || across > m.travelY + 1e-6) {
+            out.push({
+              severity: 'error',
+              topic: 'machine',
+              message: `${material.name}: a ${size.length} x ${across} mm sheet does not fit a ${m.travelX} x ${m.travelY} mm machine, and tiling is switched off.`,
+              hint: 'Enable tiling, or set the sheet size to match your machine.',
+            });
+          }
+          continue;
+        }
+        if (across > fixedTravel + 1e-6) {
+          out.push({
+            severity: 'error',
+            topic: 'machine',
+            message: `${material.name}: the ${size.length} x ${across} mm sheet is ${across} mm across the feed direction but the machine only has ${fixedTravel} mm of travel there. Feeding the stock through cannot help, because that axis never moves.`,
+            hint: `Rip the sheets to ${fixedTravel} mm or less first, or set the sheet size to match your machine.`,
+          });
+        }
       }
-      continue;
-    }
-    if (across > fixedTravel + 1e-6) {
-      out.push({
-        severity: 'error',
-        topic: 'machine',
-        message: `${material.name}: the sheet is ${across} mm across the feed direction but the machine only has ${fixedTravel} mm of travel there. Feeding the stock through cannot help, because that axis never moves.`,
-        hint: `Rip the sheets to ${fixedTravel} mm or less first, or set the sheet size to match your machine.`,
-      });
     }
   }
 
@@ -132,7 +145,7 @@ export function checkManufacturability(
 
   // --- Tiling ------------------------------------------------------------
   const step = feedTravel - m.tileOverlap;
-  if (m.tilingAxis !== 'none' && step <= 0) {
+  if (sheetGoesToTheRouter && m.tilingAxis !== 'none' && step <= 0) {
     out.push({
       severity: 'error',
       topic: 'machine',
@@ -140,18 +153,20 @@ export function checkManufacturability(
       hint: 'Reduce the tile overlap.',
     });
   }
-  for (const sheet of nest.sheets) {
-    const tiles = tileCountFor(params, sheet.contentLength);
-    if (tiles > 1) {
-      out.push({
-        severity: 'warning',
-        topic: 'machine',
-        message: `Sheet ${sheet.index + 1} has parts reaching ${sheet.contentLength.toFixed(0)} mm along its length, so it needs ${tiles} setups, feeding the stock through in the ${m.tilingAxis.toUpperCase()} direction.`,
-        hint:
-          params.nesting.strategy === 'material'
-            ? 'Switch nesting to fewest setups, or set the sheet size to match your machine.'
-            : 'Set the sheet size to match your machine to avoid tiling entirely.',
-      });
+  if (sheetGoesToTheRouter) {
+    for (const sheet of nest.sheets) {
+      const tiles = tileCountFor(params, sheet.contentLength);
+      if (tiles > 1) {
+        out.push({
+          severity: 'warning',
+          topic: 'machine',
+          message: `Sheet ${sheet.index + 1} has parts reaching ${sheet.contentLength.toFixed(0)} mm along its length, so it needs ${tiles} setups, feeding the stock through in the ${m.tilingAxis.toUpperCase()} direction.`,
+          hint:
+            params.nesting.strategy === 'material'
+              ? 'Switch nesting to fewest setups, or set the sheet size to match your machine.'
+              : 'Set the sheet size to match your machine to avoid tiling entirely.',
+        });
+      }
     }
   }
 
@@ -160,9 +175,9 @@ export function checkManufacturability(
     out.push({
       severity: 'error',
       topic: 'nesting',
-      message: `${nest.unplaced.length} part(s) are too big for the sheet they are cut from.`,
+      message: `${nest.unplaced.length} part(s) will not fit on any sheet size this material offers.`,
       partIds: nest.unplaced,
-      hint: 'Use a larger sheet, or reduce the cabinet size.',
+      hint: 'Add a larger sheet size, or reduce the cabinet size.',
     });
   }
   for (const sheet of nest.sheets) {
@@ -171,6 +186,14 @@ export function checkManufacturability(
         severity: 'info',
         topic: 'nesting',
         message: `Sheet ${sheet.index + 1} is only ${(sheet.yield * 100).toFixed(0)}% used.`,
+      });
+    }
+    const sheetMaterial = params.materials.find((mat) => mat.id === sheet.materialId);
+    for (const r of sheet.remnants) {
+      out.push({
+        severity: 'info',
+        topic: 'nesting',
+        message: `Sheet ${sheet.index + 1} of ${sheetMaterial?.name ?? sheet.materialId} leaves a ${r.length.toFixed(0)} x ${r.width.toFixed(0)} mm remnant worth keeping.`,
       });
     }
   }

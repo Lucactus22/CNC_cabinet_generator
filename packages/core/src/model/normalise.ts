@@ -11,7 +11,9 @@ import {
 import type {
   Cabinet,
   Carcass,
+  Material,
   ProjectParams,
+  SheetSize,
   ShelfPinSpec,
   SurfaceEffectSpec,
   SurfaceTarget,
@@ -60,7 +62,7 @@ export function normaliseParams(raw: unknown): ProjectParams {
     },
     materials:
       Array.isArray(input.materials) && input.materials.length > 0
-        ? (input.materials as ProjectParams['materials'])
+        ? (input.materials as Record<string, unknown>[]).map(migrateMaterial)
         : base.materials,
     // A file written before R-07 has no stock list at all, because nothing
     // needed one: it opens with the one this project ships by default.
@@ -181,6 +183,23 @@ function readPinLayout(input: Record<string, unknown>, base: ShelfPinSpec): Shel
     startAbove: raw.startAbove ?? base.startAbove,
     endBelow: raw.endBelow ?? base.endBelow,
   };
+}
+
+/**
+ * A file written before R-11 has one `sheetLength`/`sheetWidth` pair per
+ * material instead of a list of sizes it can be nested from. Read as the one
+ * standard size it always was, so an old project keeps nesting the same
+ * sheets rather than losing its stock size to an empty list.
+ */
+function migrateMaterial(raw: Record<string, unknown>): Material {
+  if (Array.isArray(raw.sheets) && raw.sheets.length > 0) {
+    return raw as unknown as Material;
+  }
+  const length = raw.sheetLength;
+  const width = raw.sheetWidth;
+  const sheets: SheetSize[] =
+    typeof length === 'number' && typeof width === 'number' ? [{ length, width }] : [];
+  return { ...(raw as unknown as Material), sheets };
 }
 
 /** Whether a legacy block holds exactly the numbers a built-in entry does. */

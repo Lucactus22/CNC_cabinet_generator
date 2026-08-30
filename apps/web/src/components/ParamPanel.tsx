@@ -66,7 +66,7 @@ export function ParamPanel() {
 
       <Group title="Material">
         {params.materials.map((m, i) => (
-          <div key={m.id} style={{ display: 'grid', gap: 8, paddingBottom: 8 }}>
+          <div key={m.id} style={{ display: 'grid', gap: 8, paddingBottom: 12 }}>
             <strong style={{ fontSize: 12, color: 'var(--muted)' }}>{m.name}</strong>
             <NumberField
               label="Measured thickness"
@@ -80,26 +80,6 @@ export function ParamPanel() {
               }
               title="Measure it. Every groove width comes from this, not the nominal size."
             />
-            <NumberField
-              label="Sheet length"
-              value={m.sheetLength}
-              onChange={(v) =>
-                update((p) => {
-                  p.materials[i]!.sheetLength = v;
-                })
-              }
-              min={100}
-            />
-            <NumberField
-              label="Sheet width"
-              value={m.sheetWidth}
-              onChange={(v) =>
-                update((p) => {
-                  p.materials[i]!.sheetWidth = v;
-                })
-              }
-              min={100}
-            />
             <CheckField
               label="Directional grain"
               value={m.hasGrain}
@@ -110,18 +90,111 @@ export function ParamPanel() {
               }
               title="Stops the nester turning visible parts against the face grain."
             />
+            <Hint>Sizes this material comes in — the standard sheet, and any remnants on hand.</Hint>
+            {m.sheets.map((size, k) => (
+              <div
+                key={k}
+                style={{
+                  display: 'grid',
+                  gap: 6,
+                  padding: '8px 0',
+                  borderTop: '1px solid var(--line)',
+                }}
+              >
+                <NumberField
+                  label="Length"
+                  value={size.length}
+                  min={100}
+                  onChange={(v) =>
+                    update((p) => {
+                      p.materials[i]!.sheets[k]!.length = v;
+                    })
+                  }
+                />
+                <NumberField
+                  label="Width"
+                  value={size.width}
+                  min={100}
+                  onChange={(v) =>
+                    update((p) => {
+                      p.materials[i]!.sheets[k]!.width = v;
+                    })
+                  }
+                />
+                <CheckField
+                  label="Remnant, limited quantity"
+                  value={size.quantity !== undefined}
+                  onChange={(v) =>
+                    update((p) => {
+                      p.materials[i]!.sheets[k]!.quantity = v ? 1 : undefined;
+                    })
+                  }
+                  title="Off: a standard size, ordered as needed. On: only as many as you actually have, nested into first."
+                />
+                {size.quantity !== undefined && (
+                  <NumberField
+                    label="On hand"
+                    value={size.quantity}
+                    min={1}
+                    step={1}
+                    suffix=""
+                    onChange={(v) =>
+                      update((p) => {
+                        p.materials[i]!.sheets[k]!.quantity = Math.max(1, Math.round(v));
+                      })
+                    }
+                  />
+                )}
+                <button
+                  onClick={() =>
+                    update((p) => {
+                      p.materials[i]!.sheets.splice(k, 1);
+                    })
+                  }
+                  disabled={m.sheets.length <= 1}
+                  title={
+                    m.sheets.length <= 1
+                      ? 'A material needs at least one size'
+                      : 'Remove this size'
+                  }
+                >
+                  Remove size
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={() =>
+                update((p) => {
+                  const sheets = p.materials[i]!.sheets;
+                  const last = sheets[sheets.length - 1];
+                  sheets.push({ length: last?.length ?? 2440, width: last?.width ?? 1220 });
+                })
+              }
+            >
+              Add a size
+            </button>
           </div>
         ))}
         <button
           onClick={() =>
             update((p) => {
               for (const m of p.materials) {
-                m.sheetLength = p.machine.travelX;
-                m.sheetWidth = p.machine.travelY;
+                // A remnant's quantity is what you actually own — resizing it
+                // in place would quietly turn "I have one of these" into a
+                // different sheet nobody owns. Resize the first standard size
+                // instead, or add one if every size on this material happens
+                // to be a remnant.
+                const standard = m.sheets.find((s) => s.quantity === undefined);
+                if (standard) {
+                  standard.length = p.machine.travelX;
+                  standard.width = p.machine.travelY;
+                } else {
+                  m.sheets.push({ length: p.machine.travelX, width: p.machine.travelY });
+                }
               }
             })
           }
-          title="Nest into blanks the size of your bed, so nothing needs tiling."
+          title="Resizes each material's standard sheet to your bed, so nothing needs tiling. Remnants are left alone."
         >
           Set sheets to machine size
         </button>
@@ -467,18 +540,21 @@ export function ParamPanel() {
           options={[
             { value: 'tiling', label: 'Fewest setups' },
             { value: 'material', label: 'Least material' },
+            { value: 'guillotine', label: 'Guillotine (panel saw)' },
           ]}
           onChange={(v) =>
             update((p) => {
               p.nesting.strategy = v;
             })
           }
-          title="Fewest setups keeps each part inside one machine tile and fills the earliest tile first. Least material packs as tightly as it can and lets parts fall across seams."
+          title="Fewest setups keeps each part inside one machine tile and fills the earliest tile first. Least material packs as tightly as it can and lets parts fall across seams. Guillotine restricts every layout to straight end-to-end cuts, for a panel saw rather than a router."
         />
         <Hint>
           {params.nesting.strategy === 'tiling'
             ? 'No part is cut across a tile seam unless it is larger than the machine itself.'
-            : 'Tightest packing, but parts will be cut across tile seams.'}
+            : params.nesting.strategy === 'guillotine'
+              ? 'Every part can be freed with straight cuts across the full sheet, at some cost in yield.'
+              : 'Tightest packing, but parts will be cut across tile seams.'}
         </Hint>
         <NumberField
           label="Sheet margin"
@@ -509,6 +585,17 @@ export function ParamPanel() {
               p.nesting.allowRotation = v;
             })
           }
+        />
+        <NumberField
+          label="Remnant threshold"
+          value={params.nesting.remnantThreshold}
+          min={0}
+          onChange={(v) =>
+            update((p) => {
+              p.nesting.remnantThreshold = v;
+            })
+          }
+          title="The shorter side a sheet's leftover space needs to clear before it is reported as a usable remnant rather than scrap."
         />
       </Group>
     </aside>
