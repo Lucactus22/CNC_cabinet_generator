@@ -972,6 +972,81 @@ there is still no per-part DXF (R-22), and the interface is still dark only
 
 ---
 
+## What R-18 built, and what it measured
+
+Nineteen dropdowns of jargon became eleven galleries of rendered geometry.
+Every picture is built by `buildProject` on a small sample seeded with the live
+*workshop* — your sheet thickness, your cutter, your dado depth — so a
+thumbnail is the tool's own output at 76 pixels rather than an icon somebody
+drew once. Measured the same way as the numbers above, on **2026-08-31**.
+
+| | R-17, measured | R-18, measured |
+|---|---|---|
+| J5 change the joint | 3, cost invisible | **3**, cost stated on hover before committing, 490 px of scroll |
+| Controls the shell renders at rest | 20 | **20** — every gallery is inside a section closed at rest |
+| Cabinet's share of the window | 84.4% / 81.8% gross; 76.0% / 67.9% net | **84.4% / 80.6%** gross; **76.0% / 68.7%** net |
+| A fresh browser opens on | a set of defaults | **five renders of real cabinets to start from** |
+
+**J5 is the one this item exists for.** R-16 measured switching from a stopped
+dado to tab and slot as changing *nothing on screen*: same badge, same 21
+parts, same 4 sheets. Hovering the option now builds the whole project as that
+option would make it, puts it on the model, and says underneath:
+
+> Tab and slot: 21 parts · 4 sheets · 222 cuts (−28). 1 warning fewer.
+
+Parts and sheets really are unchanged — that was never the lie. The twenty-eight
+cuts are the screw holes a knock-down joint does not need, and the warning is
+the panel that no longer has to be turned over on the bed. Those are the
+consequence, and until now the tool knew them and said nothing.
+
+**The starter gallery is the only thing added to the resting state**, and only
+on a browser that has never held a project: five live renders, dismissed with
+Escape and never shown again. With it up the control count is 26; the moment it
+is gone it is 20, which is the number the R-17 budget is against.
+
+**What the audit table above looks like now.** Of the rows it rated *Bad* or
+*Poor* for being unexplained, these are pictures of themselves: tab-and-slot
+joinery, stopped dados, dogbone versus T-bone relief, capped versus inset tops,
+face-frame construction, the bottomless upper carcass, per-bay shelves, doors
+and drawers, adjustable shelves on a ladder, inset versus overlay doors, the
+cabinet types, and the nesting strategies (as words, deliberately — see below).
+Still weak and left to R-19: the toe kick and the hanging rail, which are
+switches rather than choices; edge banding's 24 unlabelled pills; and the
+hardware catalogue, where the picture that would help is of a hinge, not of
+geometry this tool generates.
+
+**Three places the design gave under contact with the code.**
+
+- **A picture cannot always be honest.** A nesting strategy has no shape of its
+  own — what it produces is a packing of *your* parts on *your* sheets — so
+  rendering a sample sheet would have been a picture of somebody else's
+  project. It is the one gallery with words where the pictures go, which is
+  what R-18's "text-only fallback" line is for.
+- **Corner relief does nothing under the default joinery**, and drawing it is
+  what found that out. Relief bites on tab-and-slot slots and tab roots and
+  nowhere else; under a stopped dado the cutter's own radius rounds the groove
+  ends and the control changes not one byte. Three identical thumbnails would
+  have been the honest render and a useless one, so the samples are drawn on a
+  tab-and-slot box whatever the project uses, and a line under the gallery says
+  why. See [ROADMAP.md](ROADMAP.md) R-18 and [JOINERY.md](JOINERY.md).
+- **A closed section still renders.** The same discovery R-17 made about the
+  control count, with a bigger bill: every gallery in the inspector was
+  building and projecting geometry for a section nobody had opened. `Group` now
+  says whether it is open, and a picture waits for that.
+
+**And one bug, which R-17 left and R-18 found by walking into it.** Find-by-name
+did not swallow the Enter key: the palette handled it, moved focus to the
+control it had found, and Enter's own default action then landed on whatever
+now had focus. Searching *knock-down* and pressing Enter **changed the carcass
+joint to stopped dado** without a word. It was live from the moment the palette
+shipped — `ChoiceField` was a row of buttons too — and the galleries would have
+extended it to nine more parameters. Fixed both ends: the palette eats the key,
+and the reveal focuses the option already in force rather than the first tile,
+so arriving at a gallery neither changes the design nor previews something
+nobody asked for.
+
+---
+
 ## What this does not decide
 
 Left open deliberately, for the item that hits them:

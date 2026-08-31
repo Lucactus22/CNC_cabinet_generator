@@ -73,6 +73,13 @@ export function CommandPalette() {
               e.preventDefault();
               setCursor((c) => Math.max(c - 1, 0));
             } else if (e.key === 'Enter' && results[cursor]) {
+              // The palette eats the key. Without this, Enter's default action
+              // lands on whatever `reveal` has just moved focus to — and where
+              // that is a gallery of options, the first one gets *picked*.
+              // Searching "knock-down" quietly set the carcass joint to
+              // stopped dado, which is the class of failure this app exists
+              // not to have.
+              e.preventDefault();
               go(results[cursor]!.entry);
             }
           }}

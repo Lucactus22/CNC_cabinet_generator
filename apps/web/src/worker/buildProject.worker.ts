@@ -1,5 +1,16 @@
 import { buildProject, type ProjectParams, type ProjectResult } from '@cabgen/core';
 
+/** What a caller sent, and the label it wants back with the answer. */
+export interface BuildRequest {
+  params: ProjectParams;
+  tag: string | null;
+}
+
+export interface BuildReply {
+  project: ProjectResult;
+  tag: string | null;
+}
+
 /**
  * `self` resolves to `Window` under the project's DOM lib config, whose
  * `postMessage` needs a target origin. Casting to the shape this worker
@@ -8,12 +19,12 @@ import { buildProject, type ProjectParams, type ProjectResult } from '@cabgen/co
  * of the app's single tsconfig program.
  */
 type BuildProjectWorkerScope = {
-  onmessage: ((event: MessageEvent<ProjectParams>) => void) | null;
-  postMessage(project: ProjectResult): void;
+  onmessage: ((event: MessageEvent<BuildRequest>) => void) | null;
+  postMessage(reply: BuildReply): void;
 };
 
 const ctx = self as unknown as BuildProjectWorkerScope;
 
 ctx.onmessage = (event) => {
-  ctx.postMessage(buildProject(event.data));
+  ctx.postMessage({ project: buildProject(event.data.params), tag: event.data.tag });
 };

@@ -12,6 +12,8 @@ import {
 } from '@cabgen/core';
 import { useStore } from '../../store';
 import { CheckField, Hint, NumberField, Reveal, SelectField } from '../Controls';
+import { ChoiceGallery } from '../../gallery/Gallery';
+import { EFFECT_KIND } from '../../gallery/choices';
 
 /** Surfaces worth offering by name, rather than picking a part id. */
 const ROLE_TARGETS: Array<{ role: PartRole; label: string }> = [
@@ -176,18 +178,18 @@ export function EffectList({ onlyPartId }: { onlyPartId?: string } = {}) {
               }
             />
 
-            <SelectField
-              label="Effect"
+            {/* No `param`: the whole list is already claimed by the Reveal
+                around it, and two controls answering to one catalogue path
+                would fight over find-by-name's scroll. */}
+            <ChoiceGallery
+              gallery={EFFECT_KIND}
               value={g.kind}
-              options={(Object.keys(EFFECT_LABELS) as EffectKind[]).map((k) => ({
-                value: k,
-                label: EFFECT_LABELS[k],
-              }))}
-              onChange={(v) =>
-                patch(index, (s) => {
-                  if (s.effect.kind !== v) s.effect = newEffect(v, params.tool.diameter);
-                })
-              }
+              set={(p, v) => {
+                const target = p.surfaceEffects[index];
+                if (target && target.effect.kind !== v) {
+                  target.effect = newEffect(v, p.tool.diameter);
+                }
+              }}
             />
 
             <SelectField

@@ -1499,29 +1499,95 @@ bookcase — each loading complete and cuttable, each shown as a render produced
 the same way. Editing something that works beats composing from defaults, and
 each one doubles as proof of what the tool can do.
 
+**Revised while working it.** One criterion could not be met as written and one
+finding changed the shape of another; both are recorded here rather than
+quietly worked around.
+
+- *"each generating with no diagnostics"* is not reachable and never was. The
+  `info` severity exists for things worth knowing — *"21 parts on 4 sheets,
+  averaging 71% yield"* — so a project with no diagnostics at all is a project
+  the checker declined to describe. Worse, the shipped default workshop raises
+  two **errors** for every project there has ever been, because a 2440 × 1220 mm
+  sheet does not fit a 1000 mm bed; that is the shop's problem, not the
+  starter's, and R-21 owns moving it to where it can be fixed. Read as
+  *"nothing blocking that the design itself causes"*, which is what the test
+  asserts, on a workshop big enough for the sheets.
+- **Corner relief does nothing at all under stopped-dado joinery**, which is
+  the default. Relief is applied to tab-and-slot slots and to the roots of the
+  tabs, and to nothing else — a dado's groove ends are rounded by the cutter's
+  own radius and want no relief, which `JOINERY.md` says twice without ever
+  saying the consequence. So the control has been sitting there changing not
+  one byte of the output for every default project. Drawing it forced the
+  question. The gallery renders its samples on a tab-and-slot box whatever the
+  project uses, and the joinery section says in a line why, rather than showing
+  three identical pictures of nothing happening.
+
 **Acceptance criteria.**
-- [ ] A thumbnail renderer that builds its samples through the real pipeline
-- [ ] Every geometric choice presented as pictures with a one-line trade-off
-- [ ] Cutaway thumbnails where the difference is internal
-- [ ] Hover previews the choice on the actual design; click commits
-- [ ] Starter projects chosen from a gallery of live renders, each generating
-      with no diagnostics
-- [ ] Thumbnails cached, and never stale after a joinery change
-- [ ] Options that do not currently apply are shown, greyed, with the reason —
-      an option hidden is an option nobody learns exists
-- [ ] Text-only fallback for anything genuinely non-visual
-- [ ] Each gallery titled as the question it answers, not as the parameter name
-- [ ] The consequence of a choice visible before it is committed — measured
-      against the baseline that changing the carcass joint currently changes
-      nothing on screen
+- [x] A thumbnail renderer that builds its samples through the real pipeline
+- [x] Every geometric choice presented as pictures with a one-line trade-off —
+      eleven galleries: the carcass joint, corner relief, the top, the back,
+      where a stacked box gets its floor, frameless against face frame, the
+      cabinet types, what fronts a bay, what is inside it, how the fronts sit,
+      and which effect is cut into a face
+- [x] Cutaway thumbnails where the difference is internal — a real plane
+      through the assembly, with the pockets, slots and hinge cups taken out of
+      the material it crosses, for the top, the back, the floor, the door fit
+      and the inside of a bay
+- [x] Hover previews the choice on the actual design; click commits
+- [x] Starter projects chosen from a gallery of live renders — five of them,
+      each building with nothing blocking that the design causes (see the
+      revision above), and each carrying this browser's workshop rather than
+      the one it was written on
+- [x] Thumbnails cached, and never stale after a joinery change — keyed on the
+      sample's own parameters, which is the only key that cannot go stale
+- [x] Options that do not currently apply are shown, greyed, with the reason —
+      the bottom panel a box on the floor cannot leave out, and the shelf a
+      bank of drawers has nowhere to put
+- [x] Text-only fallback for anything genuinely non-visual — the nesting
+      strategy, whose output is a packing of *your* parts, so a rendered sample
+      would be a picture of somebody else's project
+- [x] Each gallery titled as the question it answers, not as the parameter name
+- [x] The consequence of a choice visible before it is committed — hovering
+      tab and slot on the default project now reads *"21 parts · 4 sheets ·
+      222 cuts (−28). 1 warning fewer."* against R-16's measured baseline of
+      nothing changing on screen at all
 
 **Tests.** Every choice in every gallery, and every starter project, builds
 without error — that catches a stale sample after a model change, which is
 exactly the failure this design exists to prevent.
 
+*Landed as `apps/web/test/gallery.test.ts`, 64 tests. Three of them earn their
+keep beyond "it built": every option in a gallery has to draw a **different**
+picture from its siblings, because a gallery of one picture with several names
+is worse than the dropdown it replaced; the section through a dado-jointed side
+panel has to come out exactly one dado depth thinner across the groove, which
+is what separates a cutaway from a rectangle; and the cache has to miss on a
+changed dado depth and hit on a changed cabinet width, which is the risk below
+stated as an assertion.*
+
 **Risks.** Rendering a dozen thumbnails on every keystroke. They depend on
 material thickness and tool diameter but not on cabinet size; key the cache on
 what they actually use.
+
+*Measured with fourteen thumbnails on screen and a dimension being dragged:
+1.9 ms per edit with the galleries closed, 2.5 ms with them open. Two things
+were needed beyond the cache. A closed `details` still renders its
+children, so every gallery in the inspector was building and projecting
+geometry for a section nobody had opened; `Group` now says whether it is open
+and a picture waits for that. And the hover preview runs on a **second**
+worker, so considering an option never delays the build the user's own typing
+is waiting on, and a preview abandoned mid-flight cannot land as the design —
+each request carries a tag, because coalescing means some never run at all.*
+
+**A bug found on the way, and it was not R-18's.** Find-by-name did not
+`preventDefault` on Enter. The palette handled the key, `reveal` moved focus to
+the control it had found, and then Enter's own default action landed on
+whatever now had focus — so searching **knock-down** and pressing Enter set the
+carcass joint to stopped dado and said nothing. It has been there since R-17,
+because `ChoiceField` was a row of buttons too; galleries would have made it
+happen on nine more parameters. The palette now eats the key, and the reveal
+focuses the option *already in force* rather than the first one, so landing on
+a gallery neither changes the design nor previews a choice nobody asked for.
 
 ---
 

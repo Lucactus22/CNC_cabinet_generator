@@ -29,6 +29,7 @@ export function TopBar() {
   const diagnosticsOpen = useStore((s) => s.diagnosticsOpen);
   const setDiagnosticsOpen = useStore((s) => s.setDiagnosticsOpen);
   const setPaletteOpen = useStore((s) => s.setPaletteOpen);
+  const setStartersOpen = useStore((s) => s.setStartersOpen);
   const past = useStore((s) => s.past);
   const future = useStore((s) => s.future);
   const undo = useStore((s) => s.undo);
@@ -86,6 +87,7 @@ export function TopBar() {
       <ProjectMenu
         open={menuOpen}
         setOpen={setMenuOpen}
+        onStartFrom={() => setStartersOpen(true)}
         onOpenFile={() => fileInput.current?.click()}
         onSaveFile={() =>
           saveText(JSON.stringify(params, null, 2), 'cabinet-project.json', 'application/json')
@@ -182,11 +184,13 @@ export function TopBar() {
 function ProjectMenu({
   open,
   setOpen,
+  onStartFrom,
   onOpenFile,
   onSaveFile,
 }: {
   open: boolean;
   setOpen: (v: boolean) => void;
+  onStartFrom: () => void;
   onOpenFile: () => void;
   onSaveFile: () => void;
 }) {
@@ -205,6 +209,15 @@ function ProjectMenu({
       {open && (
         <div className="panel">
           <div className="row">
+            <button
+              onClick={() => {
+                setOpen(false);
+                onStartFrom();
+              }}
+              title="Real cabinets to start from, shown as renders of what each one makes"
+            >
+              Start from a design…
+            </button>
             <button
               onClick={() => {
                 setOpen(false);
@@ -308,6 +321,7 @@ export function useShortcuts(): void {
   const select = useStore((s) => s.select);
   const setDiagnosticsOpen = useStore((s) => s.setDiagnosticsOpen);
   const setWorkshopOpen = useStore((s) => s.setWorkshopOpen);
+  const setStartersOpen = useStore((s) => s.setStartersOpen);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -320,6 +334,7 @@ export function useShortcuts(): void {
         setDiagnosticsOpen(false);
         setWorkshopOpen(false);
         setPaletteOpen(false);
+        setStartersOpen(false);
         if (!typing) select({ kind: 'run' });
         return;
       }
@@ -339,5 +354,5 @@ export function useShortcuts(): void {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [undo, redo, setPaletteOpen, select, setDiagnosticsOpen, setWorkshopOpen]);
+  }, [undo, redo, setPaletteOpen, select, setDiagnosticsOpen, setWorkshopOpen, setStartersOpen]);
 }

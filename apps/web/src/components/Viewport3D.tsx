@@ -10,7 +10,7 @@ import {
   type Part,
   type ProjectResult,
 } from '@cabgen/core';
-import { selectedPartId, useStore } from '../store';
+import { displayedProject, selectedPartId, useStore } from '../store';
 
 const COLOURS = {
   panel: 0xc8a578,
@@ -34,7 +34,9 @@ const HOVER_OPACITY = 0.45;
  * would look no clearer and would cost the frame budget for nothing.
  */
 export function Viewport3D({ hidden = false }: { hidden?: boolean }) {
-  const project = useStore((s) => s.project);
+  // The option under the pointer when a gallery is offering one, otherwise the
+  // design itself. This is the only place a preview is allowed to show.
+  const project = useStore(displayedProject);
   const selected = useStore(selectedPartId);
   const select = useStore((s) => s.select);
   const exploded = useStore((s) => s.exploded);

@@ -160,6 +160,13 @@ otherwise be visible and a shoulder can cover it.
 `none` is for the case where you would rather round the mating part's corners by
 hand. The joints will not close otherwise.
 
+**Relief only ever applies to tab and slot.** The slots get it and so do the tab
+roots, for the reasons above; a stopped dado does not, because the cutter's own
+radius already rounds the ends of a groove and the notch's inside corner sits
+inside that groove (see "Stopped dado"); a half lap does not either. So with the
+default joinery `joinery.reliefStyle` changes nothing at all in the output. The
+app says so where the choice is made rather than leaving it silent.
+
 ## Capped vs inset tops
 
 A **capped** top lies over the side panels and spans the full width of the

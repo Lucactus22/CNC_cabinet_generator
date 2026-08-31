@@ -3,6 +3,7 @@ import type { WorkshopProfile, WorkshopSettings } from './workshop';
 
 const AUTOSAVE_KEY = 'cabgen:autosave';
 const LIBRARY_KEY = 'cabgen:library';
+const STARTERS_KEY = 'cabgen:starters-seen';
 
 export interface LibraryEntry {
   id: string;
@@ -44,6 +45,30 @@ export function saveAutosave(params: ProjectParams): void {
   } catch {
     // Storage full or disabled (private browsing). Losing the autosave is
     // not worth interrupting a woodworker mid-edit to report.
+  }
+}
+
+/**
+ * Whether the gallery of starter designs has been past this browser before.
+ *
+ * Kept apart from the autosave because dismissing it without touching
+ * anything writes no project, and a front door that reappears every reload is
+ * the kind of thing this interface has a rule against.
+ */
+export function startersSeen(): boolean {
+  try {
+    return localStorage.getItem(STARTERS_KEY) === 'yes';
+  } catch {
+    // Storage disabled: show it, once per session, rather than never.
+    return false;
+  }
+}
+
+export function markStartersSeen(): void {
+  try {
+    localStorage.setItem(STARTERS_KEY, 'yes');
+  } catch {
+    // Nothing to do; it will offer itself again next time.
   }
 }
 

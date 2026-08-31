@@ -1,13 +1,8 @@
 import { useState } from 'react';
-import {
-  CABINET_TYPES,
-  cabinetPositions,
-  layoutBays,
-  newCabinetOfType,
-  resolveWidths,
-  type CabinetType,
-} from '@cabgen/core';
+import { cabinetPositions, layoutBays, newCabinetOfType, resolveWidths } from '@cabgen/core';
 import { useStore } from '../store';
+import { ChoiceGallery } from '../gallery/Gallery';
+import { CABINET_TYPE } from '../gallery/choices';
 import { sameSelection, type Selection } from '../selection';
 
 /**
@@ -183,28 +178,30 @@ export function RunStrip() {
         </button>
         {adding && (
           <div className="run-add-menu">
-            {CABINET_TYPES.map((t) => (
-              <button
-                key={t.id}
-                title={t.description}
-                onClick={() => {
-                  setAdding(false);
-                  // Built before the update so its id is known outside the
-                  // draft: `select` settles against the store's parameters,
-                  // which do not have the new cabinet in them until `update`
-                  // has returned — selecting from inside would resolve to the
-                  // run instead of to what was just added.
-                  const made = newCabinetOfType(t.id as CabinetType, params.cabinets);
-                  update((p) => {
-                    p.cabinets.push(made);
-                  });
-                  select({ kind: 'cabinet', cabinetId: made.id });
-                }}
-              >
-                <b>{t.label}</b>
-                <span>{t.description}</span>
-              </button>
-            ))}
+            {/* Hovering one puts that cabinet on the end of the real run, at
+                your own dimensions, before it is added — which is a better
+                answer to "what is a tall unit" than four words in a menu. */}
+            <ChoiceGallery
+              gallery={CABINET_TYPE}
+              param="cabinets[].name"
+              wide
+              set={(draft, type) => {
+                draft.cabinets.push(newCabinetOfType(type, draft.cabinets));
+              }}
+              onPick={(type) => {
+                setAdding(false);
+                // Built before the update so its id is known outside the
+                // draft: `select` settles against the store's parameters,
+                // which do not have the new cabinet in them until `update`
+                // has returned — selecting from inside would resolve to the
+                // run instead of to what was just added.
+                const made = newCabinetOfType(type, params.cabinets);
+                update((p) => {
+                  p.cabinets.push(made);
+                });
+                select({ kind: 'cabinet', cabinetId: made.id });
+              }}
+            />
           </div>
         )}
       </div>
