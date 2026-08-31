@@ -1,0 +1,34 @@
+Part ID,Description,Cabinet,Carcass,Role,Material,Thickness (mm),Length (mm),Width (mm),Qty,Sheet,Grain,Pockets,Holes,Cut length (mm)
+C1-B-SIDE-L,"Base cabinet base side, left",Base cabinet,Base,side,18 mm birch plywood,17.8,886.2,600,1,1,fixed,3,11,5977.1
+C1-B-SIDE-R,"Base cabinet base side, right",Base cabinet,Base,side,18 mm birch plywood,17.8,886.2,600,1,2,fixed,3,41,5977.1
+C1-B-TOP,Base cabinet base top,Base cabinet,Base,top,18 mm birch plywood,17.8,900,600,1,1,fixed,4,15,8376.8
+C1-B-BOTTOM,Base cabinet base bottom,Base cabinet,Base,bottom,18 mm birch plywood,17.8,876.4,600,1,2,fixed,2,5,5897.8
+C1-B-TOERAIL,Base cabinet base toe kick rail,Base cabinet,Base,toe-rail,18 mm birch plywood,17.8,876.4,100,1,1,fixed,0,0,1952.8
+C1-B-DIV-1,Base cabinet base divider 1,Base cabinet,Base,divider,18 mm birch plywood,17.8,776.4,576.1,1,1,fixed,0,38,2705
+C1-B-SHELF-ADJ-2,"Base cabinet base adjustable shelf, bay 2",Base cabinet,Base,shelf,18 mm birch plywood,17.8,574.1,421.3,1,1,fixed,0,0,1990.8
+C1-B-DOOR-2,"Base cabinet base door, bay 2",Base cabinet,Base,door,18 mm birch plywood,17.8,711.2,401,1,2,fixed,2,4,2444.1
+C1-B-DRAWER-1-1-FACE,"Base cabinet base drawer 1, bay 1",Base cabinet,Base,drawer-face,18 mm birch plywood,17.8,401,352.6,1,1,fixed,0,0,1507.2
+C1-B-DRAWER-1-1-SIDE-L,"Base cabinet base drawer 1, bay 1, left side",Base cabinet,Base,drawer-side,14 mm ply,14,517,346.6,1,4,fixed,1,6,2793.5
+C1-B-DRAWER-1-1-SIDE-R,"Base cabinet base drawer 1, bay 1, right side",Base cabinet,Base,drawer-side,14 mm ply,14,517,346.6,1,4,fixed,1,6,2793.5
+C1-B-DRAWER-1-1-FRONT,"Base cabinet base drawer 1, bay 1, sub-front",Base cabinet,Base,drawer-front,14 mm ply,14,370,346.6,1,4,fixed,2,6,2876.2
+C1-B-DRAWER-1-1-BACK,"Base cabinet base drawer 1, bay 1, back",Base cabinet,Base,drawer-back,14 mm ply,14,370,332.6,1,4,fixed,2,6,2792.2
+C1-B-DRAWER-1-1-BOTTOM,"Base cabinet base drawer 1, bay 1, bottom",Base cabinet,Base,drawer-bottom,14 mm ply,14,519,354,1,4,fixed,0,0,1746
+C1-B-DRAWER-1-2-FACE,"Base cabinet base drawer 2, bay 1",Base cabinet,Base,drawer-face,18 mm birch plywood,17.8,401,352.6,1,2,fixed,0,0,1507.2
+C1-B-DRAWER-1-2-SIDE-L,"Base cabinet base drawer 2, bay 1, left side",Base cabinet,Base,drawer-side,14 mm ply,14,517,346.6,1,4,fixed,1,6,2793.5
+C1-B-DRAWER-1-2-SIDE-R,"Base cabinet base drawer 2, bay 1, right side",Base cabinet,Base,drawer-side,14 mm ply,14,517,346.6,1,4,fixed,1,6,2793.5
+C1-B-DRAWER-1-2-FRONT,"Base cabinet base drawer 2, bay 1, sub-front",Base cabinet,Base,drawer-front,14 mm ply,14,370,346.6,1,4,fixed,2,6,2876.2
+C1-B-DRAWER-1-2-BACK,"Base cabinet base drawer 2, bay 1, back",Base cabinet,Base,drawer-back,14 mm ply,14,370,332.6,1,4,fixed,2,6,2792.2
+C1-B-DRAWER-1-2-BOTTOM,"Base cabinet base drawer 2, bay 1, bottom",Base cabinet,Base,drawer-bottom,14 mm ply,14,519,354,1,4,fixed,0,0,1746
+C1-B-BACK,Base cabinet base back,Base cabinet,Base,back,12 mm birch plywood,11.9,876.4,776.4,1,5,any,0,0,3305.6
+C2-B-SIDE-L,"Wall cabinet wall side, left",Wall cabinet,Wall,side,18 mm birch plywood,17.8,700,325,1,3,fixed,4,34,4770.6
+C2-B-SIDE-R,"Wall cabinet wall side, right",Wall cabinet,Wall,side,18 mm birch plywood,17.8,700,325,1,3,fixed,4,34,4770.6
+C2-B-TOP,Wall cabinet wall top,Wall cabinet,Wall,top,18 mm birch plywood,17.8,876.4,325,1,3,fixed,2,3,4797.8
+C2-B-BOTTOM,Wall cabinet wall bottom,Wall cabinet,Wall,bottom,18 mm birch plywood,17.8,876.4,325,1,3,fixed,2,3,4797.8
+C2-B-DIV-1,Wall cabinet wall divider 1,Wall cabinet,Wall,divider,18 mm birch plywood,17.8,676.4,301.1,1,3,fixed,2,48,2426.8
+C2-B-HANGRAIL-1,"Wall cabinet wall hanging rail, bay 1",Wall cabinet,Wall,hanging-rail,18 mm birch plywood,17.8,435.3,100,1,2,fixed,0,2,1070.6
+C2-B-HANGRAIL-2,"Wall cabinet wall hanging rail, bay 2",Wall cabinet,Wall,hanging-rail,18 mm birch plywood,17.8,435.3,100,1,1,fixed,0,2,1070.6
+C2-B-SHELF-ADJ-1,"Wall cabinet wall adjustable shelf, bay 1",Wall cabinet,Wall,shelf,18 mm birch plywood,17.8,421.3,299.1,1,2,fixed,0,0,1440.8
+C2-B-SHELF-ADJ-2,"Wall cabinet wall adjustable shelf, bay 2",Wall cabinet,Wall,shelf,18 mm birch plywood,17.8,421.3,299.1,1,3,fixed,0,0,1440.8
+C2-B-DOOR-1,"Wall cabinet wall door, bay 1",Wall cabinet,Wall,door,18 mm birch plywood,17.8,679.2,447,1,1,fixed,2,4,2472.1
+C2-B-DOOR-2,"Wall cabinet wall door, bay 2",Wall cabinet,Wall,door,18 mm birch plywood,17.8,679.2,447,1,2,fixed,2,4,2472.1
+C2-B-BACK,Wall cabinet wall back,Wall cabinet,Wall,back,12 mm birch plywood,11.9,876.4,676.4,1,5,any,0,0,3105.6

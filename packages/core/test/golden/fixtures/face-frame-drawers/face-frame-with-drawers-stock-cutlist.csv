@@ -1,0 +1,6 @@
+Part ID,Description,Cabinet,Carcass,Role,Material,Thickness (mm),Length (mm),Width (mm),Qty,Board,Grain,Pockets,Holes,Cut length (mm)
+C1-B-STILE-L,"Base cabinet base stile, left",Base cabinet,Base,stile,19 mm (3/4 in) solid stock,19,782.2,44,1,2,fixed,2,0,2004.4
+C1-B-STILE-R,"Base cabinet base stile, right",Base cabinet,Base,stile,19 mm (3/4 in) solid stock,19,782.2,44,1,2,fixed,2,4,2004.4
+C1-B-STILE-M1,Base cabinet base mid-stile 1,Base cabinet,Base,stile,19 mm (3/4 in) solid stock,19,782.2,44,1,2,fixed,2,0,2004.4
+C1-B-RAIL-TOP,Base cabinet base top rail,Base cabinet,Base,rail,19 mm (3/4 in) solid stock,19,900,44,1,1,fixed,3,0,2416
+C1-B-RAIL-BOTTOM,Base cabinet base bottom rail,Base cabinet,Base,rail,19 mm (3/4 in) solid stock,19,900,44,1,1,fixed,3,0,2416
