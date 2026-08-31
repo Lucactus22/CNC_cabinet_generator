@@ -33,6 +33,18 @@ full of symmetric pairs and there is currently no way to say so.
 `S` · "Four of these, side by side." Common enough in a kitchen that doing it
 one cabinet at a time is noticeable friction.
 
+### AI "design a cabinet for me".
+`L` · have an MCP server, or API to an AI provider be able to generate cabinets based on you desires. 
+
+### more surface effects.
+`L` ·  expand the surface effects feature to be more robust and better, add a load more surface effects and the possibility to add custom ones (maybe based on a 2D black and white PNG or an in software editor?, idk)
+
+### beautify designs through ornaments
+`L` ·  add a new feature where ornaments can be added to the cabinet, come with a standard libary of beautifull ornaments
+
+### more door options
+`L` ·  add more door design options in different interior styles. (maybe synergy with expanding the surface effects feature)
+
 ---
 
 ## Understanding what you are making
@@ -108,19 +120,23 @@ and answers "what did I actually build?" six months later.
 moderation, which contradicts the no-backend constraint. Listed so the trade-off
 is visible rather than rediscovered.
 
+### Export to CAD software.
+`XXL` ·  make it possible to export to CAD software like onshape, soldiworks and fusion360. 
+
 ---
+
+## SW Architecture
+
+### Redesign as a hosted platform
+`XXL` · Have it be a SAAS (but free) product with the possibility (but never a requirement) to make an account, save and share your designs.
+
+### extensibility
+`XXL` · make it possible to easily extend the platform with new features (similar to onshapes feature scripts) this would synergize with the feature idea of an AI integration 
+
 
 ## Deliberately rejected
 
 Recorded so nobody proposes them again without new information.
 
-- **Freeform 3D modelling.** This is a *cabinet* generator; the constraints are
-  what make the output trustworthy. Anything that needs arbitrary shapes wants a
-  different tool.
-- **Cloud sync and accounts.** Directly contradicts staying a static site with
-  no backend, which is what keeps it free, private and simple to run.
-- **AI "design a cabinet for me".** The users already know what they want. The
-  bottleneck is translation, not ideation, so this would optimise the wrong end
-  of the problem.
 - **A materials database with live pricing.** Sheet prices are local, volatile,
   and vary by supplier; a stale number is worse than asking the user for theirs.
