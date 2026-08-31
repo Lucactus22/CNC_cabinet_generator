@@ -10,8 +10,8 @@ import {
   type SurfaceEffectSpec,
   type SurfaceTarget,
 } from '@cabgen/core';
-import { useStore } from '../store';
-import { CheckField, Group, Hint, NumberField, SelectField } from './Controls';
+import { useStore } from '../../store';
+import { CheckField, Hint, NumberField, Reveal, SelectField } from '../Controls';
 
 /** Surfaces worth offering by name, rather than picking a part id. */
 const ROLE_TARGETS: Array<{ role: PartRole; label: string }> = [
@@ -65,23 +65,40 @@ function newEffect(kind: EffectKind, toolDiameter: number): SurfaceEffect {
   };
 }
 
-export function EffectsPanel() {
+/**
+ * Decorative machining, listed and edited.
+ *
+ * Shown twice: on the run, where every effect in the project is, and on a
+ * selected panel, where only the ones landing on that panel are and a new one
+ * targets it by default. An effect only ever *adds* features, which is why it
+ * can be pointed at a role across the whole run without anything else in the
+ * pipeline needing to know.
+ */
+export function EffectList({ onlyPartId }: { onlyPartId?: string } = {}) {
   const params = useStore((s) => s.params);
-  const update = useStore((s) => s.update);
   const project = useStore((s) => s.project);
-  const selected = useStore((s) => s.selectedPartId);
+  const update = useStore((s) => s.update);
 
-  const effects = params.surfaceEffects ?? [];
+  const effects = params.surfaceEffects;
+  // Index into the real list, so removing the second effect landing on a panel
+  // removes that one and not the second effect in the project.
+  const shown = effects
+    .map((spec, index) => ({ spec, index }))
+    .filter(
+      ({ spec }) =>
+        onlyPartId === undefined ||
+        resolveTarget(project.parts, spec.target).some((p) => p.id === onlyPartId),
+    );
 
   const add = (): void =>
     update((p) => {
       p.surfaceEffects = [
-        ...(p.surfaceEffects ?? []),
+        ...p.surfaceEffects,
         {
           id: `fx${Date.now().toString(36)}`,
           enabled: true,
-          target: selected
-            ? { select: 'part', partId: selected }
+          target: onlyPartId
+            ? { select: 'part', partId: onlyPartId }
             : { select: 'role', role: 'back' },
           face: 'inside',
           effect: newEffect('grooves', p.tool.diameter),
@@ -91,13 +108,12 @@ export function EffectsPanel() {
 
   const patch = (i: number, fn: (spec: SurfaceEffectSpec) => void): void =>
     update((p) => {
-      const list = p.surfaceEffects ?? [];
-      if (list[i]) fn(list[i]!);
+      if (p.surfaceEffects[i]) fn(p.surfaceEffects[i]!);
     });
 
   const remove = (i: number): void =>
     update((p) => {
-      p.surfaceEffects = (p.surfaceEffects ?? []).filter((_, k) => k !== i);
+      p.surfaceEffects = p.surfaceEffects.filter((_, k) => k !== i);
     });
 
   // Only offer surfaces this project actually has.
@@ -117,7 +133,7 @@ export function EffectsPanel() {
   );
 
   const surfaceOptions = [
-    ...(selected ? [{ value: `part:${selected}`, label: `Selected part: ${selected}` }] : []),
+    ...(onlyPartId ? [{ value: `part:${onlyPartId}`, label: `This panel: ${onlyPartId}` }] : []),
     ...ROLE_TARGETS.filter((r) => availableRoles.has(r.role)).flatMap((r) => [
       { value: `role:${r.role}::`, label: `${r.label}, everywhere` },
       ...places.map((place) => ({
@@ -128,37 +144,24 @@ export function EffectsPanel() {
   ];
 
   return (
-    <Group
-      title={`Surface effects${effects.length ? ` (${effects.length})` : ''}`}
-      open={effects.length > 0}
-    >
-      {effects.length === 0 && (
+    <Reveal param="surfaceEffects">
+      {shown.length === 0 && (
         <Hint>
-          Decorative machining on a chosen face: vertical grooves on a back panel give the beadboard
-          look. Select a panel first to target just that one.
+          Grooves for beadboard, panelling or fluting, and a frame line for a shaker front — cut
+          into a face you choose, inside the area that stays visible once it is assembled.
         </Hint>
       )}
 
-      {effects.map((spec, i) => {
+      {shown.map(({ spec, index }) => {
         const g = spec.effect;
         const targeted = resolveTarget(project.parts, spec.target);
         return (
-          <div
-            key={spec.id}
-            style={{
-              borderTop: '1px solid var(--line)',
-              paddingTop: 10,
-              marginTop: 4,
-              display: 'grid',
-              gap: 8,
-              opacity: spec.enabled ? 1 : 0.55,
-            }}
-          >
-            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <strong style={{ fontSize: 12, color: 'var(--muted)' }}>
-                Effect {i + 1} · {targeted.length} panel{targeted.length === 1 ? '' : 's'}
+          <div key={spec.id} className={spec.enabled ? 'effect' : 'effect off'}>
+            <div className="effect-head">
+              <strong>
+                {EFFECT_LABELS[g.kind]} · {targeted.length} panel{targeted.length === 1 ? '' : 's'}
               </strong>
-              <button onClick={() => remove(i)} title="Remove this effect">
+              <button onClick={() => remove(index)} title="Remove this effect">
                 Remove
               </button>
             </div>
@@ -167,7 +170,7 @@ export function EffectsPanel() {
               label="Enabled"
               value={spec.enabled}
               onChange={(v) =>
-                patch(i, (s) => {
+                patch(index, (s) => {
                   s.enabled = v;
                 })
               }
@@ -181,8 +184,8 @@ export function EffectsPanel() {
                 label: EFFECT_LABELS[k],
               }))}
               onChange={(v) =>
-                patch(i, (spec) => {
-                  if (spec.effect.kind !== v) spec.effect = newEffect(v, params.tool.diameter);
+                patch(index, (s) => {
+                  if (s.effect.kind !== v) s.effect = newEffect(v, params.tool.diameter);
                 })
               }
             />
@@ -206,8 +209,8 @@ export function EffectsPanel() {
                 ...surfaceOptions,
               ]}
               onChange={(v) =>
-                patch(i, (spec) => {
-                  spec.target = parseTargetKey(v);
+                patch(index, (s) => {
+                  s.target = parseTargetKey(v);
                 })
               }
             />
@@ -220,8 +223,8 @@ export function EffectsPanel() {
                 { value: 'outside', label: 'Outside' },
               ]}
               onChange={(v) =>
-                patch(i, (spec) => {
-                  spec.face = v;
+                patch(index, (s) => {
+                  s.face = v;
                 })
               }
               title="Pick the face already being machined where you can. A door is the exception: its design belongs on the front, and the hinge boring is on the back either way."
@@ -237,8 +240,8 @@ export function EffectsPanel() {
                     { value: 'horizontal', label: 'Horizontal' },
                   ]}
                   onChange={(v) =>
-                    patch(i, (spec) => {
-                      (spec.effect as GrooveEffect).direction = v;
+                    patch(index, (s) => {
+                      (s.effect as GrooveEffect).direction = v;
                     })
                   }
                 />
@@ -247,8 +250,8 @@ export function EffectsPanel() {
                   value={g.spacing}
                   min={1}
                   onChange={(v) =>
-                    patch(i, (spec) => {
-                      (spec.effect as GrooveEffect).spacing = v;
+                    patch(index, (s) => {
+                      (s.effect as GrooveEffect).spacing = v;
                     })
                   }
                 />
@@ -260,8 +263,8 @@ export function EffectsPanel() {
                     { value: 'exact', label: 'Exact spacing (centred)' },
                   ]}
                   onChange={(v) =>
-                    patch(i, (spec) => {
-                      (spec.effect as GrooveEffect).fit = v;
+                    patch(index, (s) => {
+                      (s.effect as GrooveEffect).fit = v;
                     })
                   }
                 />
@@ -273,8 +276,8 @@ export function EffectsPanel() {
               value={g.margin}
               min={0}
               onChange={(v) =>
-                patch(i, (spec) => {
-                  (spec.effect as GrooveEffect | FrameEffect).margin = v;
+                patch(index, (s) => {
+                  (s.effect as GrooveEffect | FrameEffect).margin = v;
                 })
               }
               title={
@@ -289,8 +292,8 @@ export function EffectsPanel() {
               step={0.5}
               min={0.5}
               onChange={(v) =>
-                patch(i, (spec) => {
-                  (spec.effect as GrooveEffect | FrameEffect).width = v;
+                patch(index, (s) => {
+                  (s.effect as GrooveEffect | FrameEffect).width = v;
                 })
               }
               title="Cannot be narrower than the cutter."
@@ -301,8 +304,8 @@ export function EffectsPanel() {
               step={0.5}
               min={0.1}
               onChange={(v) =>
-                patch(i, (spec) => {
-                  (spec.effect as GrooveEffect | FrameEffect).depth = v;
+                patch(index, (s) => {
+                  (s.effect as GrooveEffect | FrameEffect).depth = v;
                 })
               }
             />
@@ -310,9 +313,7 @@ export function EffectsPanel() {
         );
       })}
 
-      <button onClick={add} style={{ marginTop: effects.length ? 10 : 0 }}>
-        {selected ? `Add effect to ${selected}` : 'Add effect'}
-      </button>
-    </Group>
+      <button onClick={add}>{onlyPartId ? 'Add an effect to this panel' : 'Add an effect'}</button>
+    </Reveal>
   );
 }

@@ -1,4 +1,5 @@
 import { normaliseParams, type ProjectParams } from '@cabgen/core';
+import type { WorkshopProfile, WorkshopSettings } from './workshop';
 
 const AUTOSAVE_KEY = 'cabgen:autosave';
 const LIBRARY_KEY = 'cabgen:library';
@@ -79,6 +80,67 @@ export function loadLibrary(): LibraryEntry[] {
 export function saveLibrary(entries: LibraryEntry[]): void {
   try {
     localStorage.setItem(LIBRARY_KEY, JSON.stringify(entries));
+  } catch {
+    // See saveAutosave.
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Workshop profiles
+// ---------------------------------------------------------------------------
+
+const PROFILES_KEY = 'cabgen:workshops';
+
+/**
+ * Saved workshop profiles. Same store as the project library, and the same
+ * limit: this is `localStorage`, so it is per-browser and per-device. A
+ * profile does not follow you from the laptop at the bench to the tablet at
+ * the machine — see docs/UX.md, question 3.
+ */
+export function loadProfiles(): WorkshopProfile[] {
+  try {
+    const raw = localStorage.getItem(PROFILES_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.flatMap((entry: unknown) => {
+      if (typeof entry !== 'object' || entry === null) return [];
+      const { id, name, savedAt, settings } = entry as Record<string, unknown>;
+      if (typeof id !== 'string' || typeof name !== 'string' || typeof savedAt !== 'string') {
+        return [];
+      }
+      if (!isWorkshopShaped(settings)) return [];
+      return [{ id, name, savedAt, settings }];
+    });
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Enough of a shape check that a half-written profile cannot reach
+ * `applyWorkshop` and leave a project with no materials at all. It does not
+ * validate every field: a profile is written by this app, and the failure
+ * being guarded against is a truncated or hand-edited entry, not a hostile one.
+ */
+function isWorkshopShaped(raw: unknown): raw is WorkshopSettings {
+  if (typeof raw !== 'object' || raw === null) return false;
+  const r = raw as Record<string, unknown>;
+  return Boolean(
+    r.machine &&
+    r.tool &&
+    r.nesting &&
+    Array.isArray(r.materials) &&
+    r.materials.length > 0 &&
+    Array.isArray(r.stockMaterials) &&
+    Array.isArray(r.bandingMaterials) &&
+    r.hardware,
+  );
+}
+
+export function saveProfiles(entries: WorkshopProfile[]): void {
+  try {
+    localStorage.setItem(PROFILES_KEY, JSON.stringify(entries));
   } catch {
     // See saveAutosave.
   }

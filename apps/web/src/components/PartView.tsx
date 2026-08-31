@@ -9,13 +9,13 @@ import {
   type DxfDrawing,
   type Part,
 } from '@cabgen/core';
-import { useStore } from '../store';
+import { selectedPartId, useStore } from '../store';
 import { DrawingSvg } from './drawing';
 
 /** Every part, with the selected one drawn full size. */
 export function PartView() {
   const project = useStore((s) => s.project);
-  const selected = useStore((s) => s.selectedPartId);
+  const selected = useStore(selectedPartId);
   const select = useStore((s) => s.select);
 
   const part = project.parts.find((p) => p.id === selected) ?? project.parts[0] ?? null;
@@ -24,53 +24,51 @@ export function PartView() {
   const rows = project.cutList.concat(project.stockCutList);
 
   return (
-    <div className="viewport">
-      <div className="scroller" style={{ display: 'grid', gridTemplateRows: 'auto 1fr', gap: 18 }}>
-        {part && <PartDrawing part={part} />}
-        <div>
-          <table className="parts">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Description</th>
-                <th>Length</th>
-                <th>Width</th>
-                <th>Thick</th>
-                <th>Sheet</th>
-                <th>Grain</th>
-                <th>Pockets</th>
-                <th>Holes</th>
+    <>
+      {part && <PartDrawing part={part} />}
+      <div>
+        <table className="parts">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Description</th>
+              <th>Length</th>
+              <th>Width</th>
+              <th>Thick</th>
+              <th>Sheet</th>
+              <th>Grain</th>
+              <th>Pockets</th>
+              <th>Holes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr
+                key={row.id}
+                className={row.id === part?.id ? 'selected' : ''}
+                onClick={() => select({ kind: 'part', partId: row.id })}
+              >
+                <td>{row.id}</td>
+                <td>{row.label}</td>
+                <td>{row.length}</td>
+                <td>{row.width}</td>
+                <td>{row.thickness}</td>
+                <td>{row.sheet}</td>
+                <td>{row.grain}</td>
+                <td>{row.pockets}</td>
+                <td>{row.holes}</td>
               </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className={row.id === part?.id ? 'selected' : ''}
-                  onClick={() => select(row.id)}
-                >
-                  <td>{row.id}</td>
-                  <td>{row.label}</td>
-                  <td>{row.length}</td>
-                  <td>{row.width}</td>
-                  <td>{row.thickness}</td>
-                  <td>{row.sheet}</td>
-                  <td>{row.grain}</td>
-                  <td>{row.pockets}</td>
-                  <td>{row.holes}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {project.banding.length > 0 && (
-            <p className="hint" style={{ margin: '8px 0 0' }}>
-              Banding to order:{' '}
-              {project.banding.map((b) => `${b.length} mm ${b.material}`).join(', ')}
-            </p>
-          )}
-        </div>
+            ))}
+          </tbody>
+        </table>
+        {project.banding.length > 0 && (
+          <p className="hint" style={{ margin: '8px 0 0' }}>
+            Banding to order:{' '}
+            {project.banding.map((b) => `${b.length} mm ${b.material}`).join(', ')}
+          </p>
+        )}
       </div>
-    </div>
+    </>
   );
 }
 

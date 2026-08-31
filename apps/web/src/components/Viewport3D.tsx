@@ -10,7 +10,7 @@ import {
   type Part,
   type ProjectResult,
 } from '@cabgen/core';
-import { useStore } from '../store';
+import { selectedPartId, useStore } from '../store';
 
 const COLOURS = {
   panel: 0xc8a578,
@@ -35,7 +35,7 @@ const HOVER_OPACITY = 0.45;
  */
 export function Viewport3D({ hidden = false }: { hidden?: boolean }) {
   const project = useStore((s) => s.project);
-  const selected = useStore((s) => s.selectedPartId);
+  const selected = useStore(selectedPartId);
   const select = useStore((s) => s.select);
   const exploded = useStore((s) => s.exploded);
   const setExploded = useStore((s) => s.setExploded);
@@ -48,8 +48,13 @@ export function Viewport3D({ hidden = false }: { hidden?: boolean }) {
     if (!mount.current) return;
     const e = createEngine(mount.current, {
       // Clicking the isolated panel again, or the background, brings the rest
-      // of the cabinet back.
-      onPick: (id) => select(useStore.getState().selectedPartId === id ? null : id),
+      // of the cabinet back — which means selecting the run, because selection
+      // always resolves to something.
+      onPick: (id) => {
+        const current = useStore.getState().selection;
+        const same = current.kind === 'part' && current.partId === id;
+        select(id === null || same ? { kind: 'run' } : { kind: 'part', partId: id });
+      },
       onHover: setHover,
     });
     engine.current = e;

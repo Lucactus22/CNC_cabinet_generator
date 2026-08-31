@@ -2,6 +2,7 @@
   --bg: #14161a;
   --panel: #1b1e24;
   --panel-2: #22262e;
+  --float: #1e222a;
   --line: #2f353f;
   --text: #e6e9ef;
   --muted: #98a1b3;
@@ -12,8 +13,15 @@
   --info: #6ba8ef;
   --ok: #6fc48a;
   --radius: 6px;
+  --shadow: 0 12px 32px rgb(0 0 0 / 45%);
   --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
   --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* The two bands of chrome the model does not get. Kept as variables
+     because docs/UX.md's "share of the window given to the cabinet" is
+     measured against them, and a change here moves that number. */
+  --topbar-h: 44px;
+  --strip-h: 96px;
+  --inspector-w: 300px;
 }
 
 * {
@@ -40,7 +48,7 @@ button {
   background: var(--panel-2);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 6px 10px;
+  padding: 5px 9px;
   cursor: pointer;
 }
 button:hover {
@@ -58,6 +66,18 @@ button.primary {
 }
 button.primary:hover {
   filter: brightness(1.08);
+}
+button.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+button.link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  text-decoration: underline;
+  font-size: 12px;
 }
 
 input,
@@ -81,87 +101,114 @@ input[type='checkbox'] {
   width: auto;
   accent-color: var(--accent);
 }
+kbd {
+  font-family: var(--mono);
+  font-size: 10px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0 3px;
+  color: var(--muted);
+}
 
-/* ---------------------------------------------------------------- layout */
+/* ---------------------------------------------------------------- the bench
+   The cabinet is the surface. One row of chrome above it, the run drawn to
+   scale below it, and everything else floating over the top. */
 .app {
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto 1fr auto;
   height: 100%;
+}
+
+.stage {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .topbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 8px;
+  padding: 6px 12px;
+  height: var(--topbar-h);
   border-bottom: 1px solid var(--line);
   background: var(--panel);
 }
 .topbar h1 {
-  font-size: 15px;
+  font-size: 14px;
   margin: 0;
   font-weight: 600;
-  letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 24ch;
 }
 .topbar .spacer {
   flex: 1;
 }
 .topbar .badge {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--muted);
+  white-space: nowrap;
+}
+.topbar .badge.warn {
+  color: var(--warn);
+}
+.topbar .find {
+  color: var(--muted);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.chip.error {
+  border-color: var(--error);
+  color: var(--error);
+}
+.chip.warning {
+  border-color: var(--accent-dim);
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot.error {
+  background: var(--error);
+}
+.dot.warning {
+  background: var(--warn);
+}
+.dot.ok {
+  background: var(--ok);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--muted);
+}
+.pill.toggle {
   border: 1px solid var(--line);
   border-radius: 20px;
-  padding: 2px 10px;
+  padding: 2px 9px;
+  cursor: pointer;
 }
 
-.main {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  min-height: 0;
-}
-
-.sidebar {
-  border-right: 1px solid var(--line);
-  background: var(--panel);
-  overflow-y: auto;
-  padding-bottom: 40px;
-}
-
-.content {
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  min-height: 0;
-  min-width: 0;
-}
-
-.tabs {
-  display: flex;
-  gap: 2px;
-  padding: 8px 12px 0;
-  border-bottom: 1px solid var(--line);
-}
-.tabs button {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  padding: 6px 12px;
-  color: var(--muted);
-}
-.tabs button[aria-selected='true'] {
-  color: var(--text);
-  border-bottom-color: var(--accent);
-}
-
-/* One grid cell that every view fills absolutely, so switching tabs cannot
-   collapse the height out from under the WebGL canvas. */
-.view-slot {
-  position: relative;
-  min-height: 0;
-  min-width: 0;
-  overflow: hidden;
-}
+/* ------------------------------------------------------------- the viewport */
 .viewport {
   position: absolute;
   inset: 0;
@@ -172,11 +219,97 @@ input[type='checkbox'] {
   width: 100%;
   height: 100%;
 }
-.viewport .scroller {
+.overlay {
   position: absolute;
-  inset: 0;
-  overflow: auto;
-  padding: 16px;
+  left: 12px;
+  bottom: 12px;
+  background: rgb(20 22 26 / 82%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--muted);
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  max-width: 46ch;
+}
+.overlay b {
+  color: var(--text);
+  font-weight: 600;
+}
+.slider-row {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgb(20 22 26 / 82%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  backdrop-filter: blur(4px);
+}
+.slider-row input[type='range'] {
+  width: 100px;
+  accent-color: var(--accent);
+}
+
+/* ------------------------------------------------------------- the inspector
+   A floating card, only as tall as what is selected needs. That is what keeps
+   the cabinet's share of the window up: at rest it holds three controls, not a
+   column the height of the screen. */
+.inspector {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: var(--inspector-w);
+  max-height: calc(100% - 24px);
+  display: flex;
+  flex-direction: column;
+  background: var(--float);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.inspector-body {
+  overflow-y: auto;
+}
+.crumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  background: var(--panel);
+}
+.crumbs b {
+  font-size: 12px;
+}
+.crumbs .sep {
+  color: var(--muted);
+  font-style: normal;
+  padding: 0 3px;
+}
+.crumb {
+  background: none;
+  border: none;
+  padding: 0 1px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.crumb:hover {
+  color: var(--accent);
+}
+.crumb.dismiss {
+  margin-left: auto;
+  padding: 0 4px;
 }
 
 /* --------------------------------------------------------------- controls */
@@ -185,9 +318,9 @@ input[type='checkbox'] {
 }
 .group > summary {
   cursor: pointer;
-  padding: 10px 14px;
+  padding: 8px 12px;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11.5px;
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--muted);
@@ -210,20 +343,35 @@ input[type='checkbox'] {
 .group > summary:hover {
   color: var(--text);
 }
-.group .body {
-  padding: 2px 14px 14px;
+.group > summary .count {
+  margin-left: auto;
+  font-family: var(--mono);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--accent);
+  font-size: 11px;
+}
+.group > .body {
+  display: none;
+}
+/* Stated rather than left to the browser: a page rule that sets `display` on
+   a details' own content beats the user agent's rule for hiding it, so a
+   closed section would otherwise still lay out — and a control nobody can see
+   is still a control on the page. */
+.group[open] > .body {
+  padding: 2px 12px 12px;
   display: grid;
   gap: 8px;
 }
 
 .field {
   display: grid;
-  grid-template-columns: 1fr 92px;
+  grid-template-columns: 1fr 88px;
   align-items: center;
   gap: 8px;
 }
 .field > label {
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--muted);
 }
 .field.wide {
@@ -246,43 +394,378 @@ input[type='checkbox'] {
   color: var(--muted);
   pointer-events: none;
 }
+/* Where find-by-name landed. Long enough to see, short enough not to nag. */
+.found {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.choice > label {
+  font-size: 12.5px;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 5px;
+}
+.choice-options {
+  display: grid;
+  gap: 4px;
+}
+.choice-option {
+  text-align: left;
+  display: grid;
+  gap: 1px;
+  padding: 6px 9px;
+}
+.choice-option b {
+  font-weight: 600;
+  font-size: 12.5px;
+}
+.choice-option span {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.choice-option.on {
+  border-color: var(--accent);
+  background: rgb(240 160 75 / 10%);
+}
+
 .hint {
   font-size: 12px;
   color: var(--muted);
-  margin: -2px 0 6px;
+  margin: -2px 0 4px;
+}
+.hint code {
+  font-family: var(--mono);
+  font-size: 11px;
 }
 .row {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
 }
+.actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+}
+.derived {
+  border-left: 2px solid var(--line);
+  padding-left: 8px;
+}
+.derived-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.derived-row b {
+  font-family: var(--mono);
+  color: var(--text);
+}
+.derived-row b.unmeasured {
+  color: var(--warn);
+}
 
-/* ------------------------------------------------------------ diagnostics */
-.diagnostics {
+.stack-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.stack-item {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+.stack-item span {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.stack-block,
+.sheet-size {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.roles {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.roles strong,
+.effect-head strong,
+.bay-head b {
+  font-size: 11.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bay-card {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.bay-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.drawer-list {
+  display: grid;
+  gap: 8px;
+}
+
+.effect {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.effect.off {
+  opacity: 0.55;
+}
+.effect-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ------------------------------------------------------------- the run strip
+   A scale elevation of the run: one column per cabinet, boxes for its
+   carcasses, cells for their bays. The structure panel and a picture of the
+   project at once — and the only thing that makes a bay clickable at all. */
+.runstrip {
+  height: var(--strip-h);
   border-top: 1px solid var(--line);
   background: var(--panel);
-  max-height: 34vh;
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 6px 10px;
+}
+.run-scale {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+}
+/* A grid, not a flex column: the stack's height is a percentage of the run's
+   tallest, and a percentage needs a row with a definite height to resolve
+   against — in a flex column it collapses to a few pixels and the elevation
+   stops being to scale. */
+.cab {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  height: 100%;
+  min-width: 22px;
+  cursor: grab;
+}
+.cab-stack {
+  align-self: end;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.cab-head {
+  background: none;
+  border: none;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  padding: 1px 0 0;
+  font-size: 10.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.cab.on .cab-head {
+  color: var(--accent);
+  border-top-color: var(--accent);
+}
+.carc {
+  position: relative;
+  border: 1px solid var(--line);
+  border-bottom: none;
+  background: var(--panel-2);
+  display: flex;
+  min-height: 8px;
+}
+.carc:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.carc.on {
+  border-color: var(--accent);
+  background: rgb(240 160 75 / 12%);
+}
+.carc-tab {
+  background: none;
+  border: none;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  padding: 0 3px;
+  font-size: 9px;
+  color: var(--muted);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  white-space: nowrap;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.carc.on .carc-tab {
+  color: var(--accent);
+}
+.bays {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+.bay {
+  background: none;
+  border: none;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  min-width: 6px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bay:first-child {
+  border-left: none;
+}
+.bay:hover {
+  background: rgb(240 160 75 / 10%);
+}
+.bay.on {
+  background: rgb(240 160 75 / 26%);
+  color: var(--text);
+}
+.carc-remove {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  padding: 0 4px;
+  font-size: 10px;
+  line-height: 1.4;
+  background: var(--panel);
+  color: var(--muted);
+}
+.carc-remove:hover {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.run-add {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+}
+.run-add-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  width: 280px;
+  background: var(--float);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 6px;
+  display: grid;
+  gap: 4px;
+}
+.run-add-menu button {
+  text-align: left;
+  display: grid;
+  gap: 2px;
+  background: none;
+  border-color: transparent;
+}
+.run-add-menu button:hover {
+  background: var(--panel-2);
+  border-color: var(--line);
+}
+.run-add-menu span {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* -------------------------------------------------------------- the doors */
+.workshop {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 380px;
+  max-width: 100%;
+  z-index: 25;
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
 }
-.diagnostics header {
+.workshop > header,
+.diagnostics-sheet > header {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--muted);
-  cursor: pointer;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
 }
-.diagnostics ul {
-  list-style: none;
-  margin: 0;
-  padding: 0 8px 10px;
+.workshop-body {
   overflow-y: auto;
 }
-.diagnostics li {
+.applied {
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+.applied p {
+  margin: 0;
+}
+
+.diagnostics-sheet {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 26;
+  width: min(640px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  background: var(--float);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+.diagnostics-sheet ul {
+  list-style: none;
+  margin: 0;
+  padding: 6px 8px 10px;
+  overflow-y: auto;
+}
+.diagnostics-sheet li {
   display: grid;
   grid-template-columns: 64px 1fr;
   gap: 10px;
@@ -290,13 +773,31 @@ input[type='checkbox'] {
   border-radius: 4px;
   align-items: baseline;
 }
-.diagnostics li:hover {
+.diagnostics-sheet li:hover {
   background: var(--panel-2);
 }
-.diagnostics li.clickable {
+.diagnostics-sheet li.clickable .msg {
   cursor: pointer;
 }
-.diagnostics .tag {
+.diagnostics-sheet .msg {
+  font-size: 13px;
+}
+.diagnostics-sheet .msg.repeat {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 3px;
+}
+.diagnostics-sheet .links {
+  display: flex;
+  gap: 14px;
+  margin-top: 3px;
+}
+.diagnostics-sheet .fix {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.tag {
   font-family: var(--mono);
   font-size: 10px;
   text-transform: uppercase;
@@ -306,89 +807,125 @@ input[type='checkbox'] {
   padding: 2px 0;
 }
 .tag.error {
-  background: rgba(239, 107, 107, 0.16);
+  background: rgb(239 107 107 / 16%);
   color: var(--error);
 }
 .tag.warning {
-  background: rgba(230, 180, 83, 0.16);
+  background: rgb(230 180 83 / 16%);
   color: var(--warn);
 }
 .tag.info {
-  background: rgba(107, 168, 239, 0.14);
+  background: rgb(107 168 239 / 14%);
   color: var(--info);
 }
-.diagnostics .msg {
-  font-size: 13px;
+
+/* The way out of a blocking diagnostic, with what it costs on the button. */
+.fixes {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
 }
-.diagnostics .fix {
+.fixes strong {
+  font-size: 11.5px;
   color: var(--muted);
-  font-size: 12px;
-  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.fix-button {
+  text-align: left;
+  display: grid;
+  gap: 2px;
+}
+.fix-button span {
+  font-size: 11.5px;
+  color: var(--muted);
 }
 
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
+/* --------------------------------------------------------- find by name */
+.palette-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(8 9 12 / 62%);
+  z-index: 60;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  padding-top: 12vh;
+}
+.palette {
+  width: min(620px, calc(100% - 32px));
+  background: var(--float);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+.palette input {
+  font-family: var(--sans);
+  font-size: 15px;
+  padding: 8px 10px;
+}
+.palette ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+.palette li button {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border-color: transparent;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+}
+.palette li button.on {
+  background: var(--panel-2);
+  border-color: var(--line);
+}
+.palette .where {
+  font-size: 11px;
+  color: var(--accent);
   font-family: var(--mono);
 }
-.dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  display: inline-block;
-}
-.dot.error {
-  background: var(--error);
-}
-.dot.warning {
-  background: var(--warn);
-}
-.dot.ok {
-  background: var(--ok);
+.palette .about {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--muted);
 }
 
-/* A topbar button that opens a small panel under itself — the project
-   library today, and the natural place for anything else the topbar grows
-   that is too much for a single click but not worth its own page. */
+/* ------------------------------------------------------------- the menu */
 .menu {
   position: relative;
-}
-.menu > summary {
-  list-style: none;
-  cursor: pointer;
-  font: inherit;
-  color: inherit;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 6px 10px;
-}
-.menu > summary::-webkit-details-marker {
-  display: none;
-}
-.menu > summary:hover {
-  border-color: var(--accent-dim);
-}
-.menu[open] > summary {
-  border-color: var(--accent-dim);
 }
 .menu > .panel {
   position: absolute;
   top: calc(100% + 6px);
-  right: 0;
-  z-index: 20;
-  width: 260px;
-  max-height: 320px;
+  left: 0;
+  z-index: 40;
+  width: 280px;
+  max-height: 60vh;
   overflow-y: auto;
-  background: var(--panel);
+  background: var(--float);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 10px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow);
   display: grid;
   gap: 8px;
+}
+.menu .panel strong {
+  font-size: 11.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 .menu-save {
   display: flex;
@@ -426,7 +963,37 @@ input[type='checkbox'] {
   border-color: var(--error);
 }
 
-/* ------------------------------------------------------------ sheet view */
+/* ---------------------------------------------------------- the output pack
+   Sheets, cut list, part drawings, labels and assembly steps, in one run, in
+   the order a workshop uses them. It is one document because that is how it is
+   read with a panel in your hands. */
+.pack {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--bg);
+}
+.pack-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.pack-section {
+  margin-bottom: 30px;
+}
+.pack-section > h2,
+.guide-section h2 {
+  font-size: 12px;
+  margin: 0 0 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+}
+
 .sheet-card {
   margin-bottom: 22px;
 }
@@ -437,6 +1004,7 @@ input[type='checkbox'] {
   display: flex;
   align-items: baseline;
   gap: 10px;
+  flex-wrap: wrap;
 }
 .sheet-card h3 .meta {
   font-family: var(--mono);
@@ -451,7 +1019,17 @@ input[type='checkbox'] {
   border: 1px solid var(--line);
   border-radius: var(--radius);
 }
-
+/* On screen a full sheet at full width is a screen and a half each, so the
+   pack is four screens before the cut list starts. It is printed at its own
+   size, where that is exactly what you want. */
+@media screen {
+  .sheet-svg {
+    max-height: 62vh;
+  }
+}
+.pack-toolbar .spacer {
+  flex: 1;
+}
 .legend {
   display: flex;
   gap: 14px;
@@ -501,7 +1079,7 @@ table.parts tbody tr:hover {
   background: var(--panel-2);
 }
 table.parts tbody tr.selected {
-  background: rgba(240, 160, 75, 0.14);
+  background: rgb(240 160 75 / 14%);
 }
 
 .empty {
@@ -510,54 +1088,84 @@ table.parts tbody tr.selected {
   text-align: center;
 }
 
-.overlay {
-  position: absolute;
-  left: 12px;
-  bottom: 12px;
-  background: rgba(20, 22, 26, 0.82);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 8px 10px;
-  font-family: var(--mono);
-  font-size: 11.5px;
-  color: var(--muted);
-  pointer-events: none;
-  backdrop-filter: blur(4px);
+.guide-section {
+  margin-bottom: 28px;
 }
-.overlay b {
-  color: var(--text);
-  font-weight: 600;
-}
-
-.slider-row {
-  position: absolute;
-  right: 12px;
-  top: 12px;
-  display: flex;
-  align-items: center;
+.label-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 8px;
-  background: rgba(20, 22, 26, 0.82);
+}
+.label-card {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 6px 10px;
+  background: var(--panel);
+  padding: 8px 10px;
+  break-inside: avoid;
+}
+.label-id {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 13px;
+}
+.label-desc {
+  font-size: 12px;
+  margin-top: 2px;
+}
+.label-meta,
+.label-face {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  counter-reset: step;
+}
+.step {
+  counter-increment: step;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: 10px 12px;
+  break-inside: avoid;
+}
+.step-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.step-title::before {
+  content: counter(step) '. ';
+  color: var(--accent);
+}
+.step-row {
   font-size: 12px;
   color: var(--muted);
-  backdrop-filter: blur(4px);
+  margin-top: 3px;
 }
-.slider-row input[type='range'] {
-  width: 110px;
-  accent-color: var(--accent);
+.step-tag {
+  display: inline-block;
+  min-width: 62px;
+  color: var(--text);
+  font-weight: 600;
+  margin-right: 4px;
 }
 
 /* The measurement walkthrough: a modal, because it is a job you do standing in
-   a room rather than something to squeeze into the sidebar. */
+   a room rather than something to squeeze into a panel. */
 .wizard-backdrop {
   position: fixed;
   inset: 0;
   background: rgb(8 9 12 / 72%);
   display: grid;
   place-items: center;
-  z-index: 40;
+  z-index: 70;
   padding: 24px;
 }
 .wizard {
@@ -568,7 +1176,7 @@ table.parts tbody tr.selected {
   max-height: 100%;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 18px 48px rgb(0 0 0 / 45%);
+  box-shadow: var(--shadow);
 }
 .wizard > header {
   display: flex;
@@ -665,99 +1273,23 @@ table.parts tbody tr.selected {
   flex: 1;
 }
 
-/* --------------------------------------------------------------- build guide */
-.guide-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
+/* A short window puts the run strip and the inspector in each other's way
+   before it puts either in the model's. */
+@media (max-height: 620px) {
+  :root {
+    --strip-h: 62px;
+  }
 }
 
-.guide-section {
-  margin-bottom: 28px;
-}
-.guide-section h2 {
-  font-size: 13px;
-  margin: 0 0 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--muted);
-}
-
-.label-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 8px;
-}
-.label-card {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-  padding: 8px 10px;
-  break-inside: avoid;
-}
-.label-id {
-  font-family: var(--mono);
-  font-weight: 700;
-  font-size: 13px;
-}
-.label-desc {
-  font-size: 12px;
-  margin-top: 2px;
-}
-.label-meta,
-.label-face {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 3px;
-}
-
-.steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 10px;
-  counter-reset: step;
-}
-.step {
-  counter-increment: step;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-  padding: 10px 12px;
-  break-inside: avoid;
-}
-.step-title {
-  font-weight: 600;
-  font-size: 13px;
-  margin-bottom: 6px;
-}
-.step-title::before {
-  content: counter(step) '. ';
-  color: var(--accent);
-}
-.step-row {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 3px;
-}
-.step-tag {
-  display: inline-block;
-  min-width: 62px;
-  color: var(--text);
-  font-weight: 600;
-  margin-right: 4px;
-}
-
-/* Screen-only chrome: hidden the moment the page prints, so a label sheet
-   never comes out with a sidebar and a dark background wasted across it. */
+/* Screen-only chrome: hidden the moment the page prints, so the pack never
+   comes out with a run strip and a dark background wasted across it. */
 @media print {
   .no-print,
-  .sidebar,
-  .diagnostics {
+  .inspector,
+  .workshop,
+  .diagnostics-sheet,
+  .runstrip,
+  .viewport {
     display: none !important;
   }
   html,
@@ -770,40 +1302,32 @@ table.parts tbody tr.selected {
     background: #fff;
     color: #111;
   }
-  .app {
+  .app,
+  .stage {
     display: block;
-  }
-  .main {
-    display: block;
-  }
-  .content {
-    display: block;
-  }
-  .view-slot {
     position: static;
     overflow: visible;
   }
-  .viewport {
-    position: static;
-    overflow: visible;
-  }
-  .viewport .scroller {
+  .pack {
     position: static;
     overflow: visible;
     padding: 0;
+    background: #fff;
   }
-  .guide-section {
+  .pack-section {
     break-before: auto;
   }
-  .guide-section + .guide-section {
+  .pack-section + .pack-section {
     break-before: page;
   }
   .label-card,
-  .step {
+  .step,
+  .sheet-svg {
     background: #fff;
     border-color: #999;
     color: #111;
   }
+  .pack-section > h2,
   .guide-section h2,
   .step-title,
   .label-id {

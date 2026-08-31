@@ -4,22 +4,43 @@ import { createProjectWorkerClient } from './worker/projectWorkerClient';
 import {
   loadAutosave,
   loadLibrary,
+  loadProfiles,
   saveAutosave,
   saveLibrary,
+  saveProfiles,
   type LibraryEntry,
 } from './persistence';
+import { RUN, settleSelection, type Selection } from './selection';
+import { applyWorkshop, workshopOf, type WorkshopProfile } from './workshop';
 
-export type ViewTab = '3d' | 'sheets' | 'parts' | 'guide';
+/**
+ * Two surfaces, split by whether you are standing at the machine: the bench is
+ * everything you touch while designing, the output pack is everything you
+ * print or read with a panel in your hands. See docs/UX.md, question 4.
+ */
+export type Surface = 'bench' | 'output';
 
 interface AppState {
   params: ProjectParams;
   project: ProjectResult;
   /** True from the moment `params` changes until the worker's rebuild for it lands. */
   building: boolean;
-  tab: ViewTab;
-  selectedPartId: string | null;
-  /** Which cabinet in the run the parameter panel is editing. */
-  selectedCabinetId: string;
+  surface: Surface;
+  /** The workshop settings, open over whichever surface is showing. */
+  workshopOpen: boolean;
+  paletteOpen: boolean;
+  diagnosticsOpen: boolean;
+  /** What the inspector is pointed at. Always resolves; see selection.ts. */
+  selection: Selection;
+  /** Set by the command palette so the control it found can scroll itself in and take focus. */
+  focusParam: string | null;
+  /**
+   * Write POCKET_D6P35 instead of POCKET_D6.35, for importers that dislike
+   * dots. On the store rather than beside the checkbox because export can be
+   * started from two places, and a toggle only one of them reads is a file
+   * written to a setting nobody chose.
+   */
+  safeNames: boolean;
   exploded: number;
   /** Parameter sets an `undo` would step back to, oldest first. */
   past: ProjectParams[];
@@ -27,9 +48,24 @@ interface AppState {
   future: ProjectParams[];
   /** Designs saved to this browser under a name, so they can be reopened later. */
   library: LibraryEntry[];
-  setTab: (tab: ViewTab) => void;
-  select: (partId: string | null) => void;
-  selectCabinet: (cabinetId: string) => void;
+  /** Workshops saved to this browser, applied to a project as an undoable update. */
+  profiles: WorkshopProfile[];
+  /** What applying a profile had to repoint, shown once and dismissed. */
+  workshopNotes: string[];
+  setSurface: (surface: Surface) => void;
+  setWorkshopOpen: (open: boolean) => void;
+  setPaletteOpen: (open: boolean) => void;
+  setSafeNames: (v: boolean) => void;
+  setDiagnosticsOpen: (open: boolean) => void;
+  select: (selection: Selection) => void;
+  /** Show a parameter: switch to wherever it lives and focus it. */
+  reveal: (opts: {
+    surface?: Surface;
+    workshop?: boolean;
+    selection?: Selection;
+    param?: string;
+  }) => void;
+  clearFocusParam: () => void;
   setExploded: (v: number) => void;
   /** Apply a change to the parameters and rebuild. */
   update: (fn: (draft: ProjectParams) => void) => void;
@@ -40,6 +76,10 @@ interface AppState {
   saveToLibrary: (name: string) => void;
   loadFromLibrary: (id: string) => void;
   deleteFromLibrary: (id: string) => void;
+  saveWorkshop: (name: string) => void;
+  applyProfile: (id: string) => void;
+  deleteProfile: (id: string) => void;
+  dismissWorkshopNotes: () => void;
 }
 
 const worker = createProjectWorkerClient();
@@ -55,8 +95,10 @@ const worker = createProjectWorkerClient();
 // read as continuing that same burst and pushes nothing further.
 const HISTORY_DEBOUNCE_MS = 500;
 const AUTOSAVE_DEBOUNCE_MS = 500;
+/** Long enough for the control to mount and mark itself, short enough not to linger. */
+const FOCUS_TIMEOUT_MS = 2000;
 
-function makeLibraryId(): string {
+function makeId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
@@ -71,13 +113,26 @@ function makeLibraryId(): string {
 export const useStore = create<AppState>((set, get) => {
   const initial = loadAutosave() ?? defaultParams();
 
-  worker.subscribe((project) => set({ project, building: worker.isBusy() }));
+  worker.subscribe((project) =>
+    set((s) => ({
+      project,
+      building: worker.isBusy(),
+      // A part that has stopped existing cannot stay selected: the inspector
+      // would be describing a panel that is no longer cut. Settled against the
+      // *current* parameters rather than the ones this build came from — a
+      // build lands behind what is on screen, and settling a just-created bay
+      // away because the build predates it would take the selection off what
+      // the user is looking at.
+      selection: settleSelection(s.params, project.parts, s.selection),
+    })),
+  );
 
   const rebuild = (params: ProjectParams) => {
     set({ building: true });
     worker.request(params);
   };
 
+  let focusTimer: ReturnType<typeof setTimeout> | null = null;
   let autosaveTimer: ReturnType<typeof setTimeout> | null = null;
   const scheduleAutosave = (params: ProjectParams) => {
     if (autosaveTimer !== null) clearTimeout(autosaveTimer);
@@ -115,15 +170,14 @@ export const useStore = create<AppState>((set, get) => {
   };
 
   /** Every path that swaps `params` wholesale — undo, redo, Reset, Open. */
-  const jumpTo = (params: ProjectParams, wantedCabinetId: string) => {
+  const jumpTo = (params: ProjectParams, keep: Selection) => {
     endBurst();
     const prev = get().params;
     set((s) => ({
       past: [...s.past, prev],
       future: [],
       params,
-      selectedPartId: null,
-      ...settled(params, wantedCabinetId),
+      selection: settleSelection(params, s.project.parts, keep),
     }));
     rebuild(params);
     scheduleAutosave(params);
@@ -133,16 +187,54 @@ export const useStore = create<AppState>((set, get) => {
     params: initial,
     project: buildProject(initial),
     building: false,
-    tab: '3d',
-    selectedPartId: null,
-    selectedCabinetId: initial.cabinets[0]?.id ?? '',
+    surface: 'bench',
+    workshopOpen: false,
+    paletteOpen: false,
+    diagnosticsOpen: false,
+    selection: RUN,
+    focusParam: null,
+    safeNames: false,
     exploded: 0,
     past: [],
     future: [],
     library: loadLibrary(),
-    setTab: (tab) => set({ tab }),
-    select: (selectedPartId) => set({ selectedPartId }),
-    selectCabinet: (selectedCabinetId) => set({ selectedCabinetId }),
+    profiles: loadProfiles(),
+    workshopNotes: [],
+    setSurface: (surface) => set({ surface }),
+    setWorkshopOpen: (workshopOpen) => set({ workshopOpen }),
+    setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+    setSafeNames: (safeNames) => set({ safeNames }),
+    setDiagnosticsOpen: (diagnosticsOpen) => set({ diagnosticsOpen }),
+    // Deliberately leaves the surface alone: picking a part out of the cut
+    // list is how you look at its drawing, and being thrown back to the bench
+    // for it would make the table unusable. Anything that does want to change
+    // surface says so through `reveal`.
+    select: (selection) =>
+      set((s) => ({ selection: settleSelection(s.params, s.project.parts, selection) })),
+    reveal: ({ surface, workshop, selection, param }) => {
+      // Cleared on a timer as well as by whichever control claims it: a
+      // conditionally rendered parameter — the reveal that is only shown for
+      // an overlay door, say — never mounts to claim it, and a stale one
+      // would grab the scroll and the focus off the next control that did.
+      if (focusTimer !== null) clearTimeout(focusTimer);
+      focusTimer = setTimeout(() => {
+        focusTimer = null;
+        set({ focusParam: null });
+      }, FOCUS_TIMEOUT_MS);
+      set((s) => ({
+        surface: surface ?? s.surface,
+        workshopOpen: workshop ?? false,
+        paletteOpen: false,
+        diagnosticsOpen: false,
+        selection: selection ? settleSelection(s.params, s.project.parts, selection) : s.selection,
+        focusParam: param ?? null,
+      }));
+    },
+    clearFocusParam: () => {
+      if (focusTimer !== null) clearTimeout(focusTimer);
+      focusTimer = null;
+      set({ focusParam: null });
+    },
     setExploded: (exploded) => set({ exploded }),
     update: (fn) => {
       const prevParams = get().params;
@@ -164,13 +256,13 @@ export const useStore = create<AppState>((set, get) => {
         // redoing into a branch that no longer follows from `params` would
         // silently reapply a change the user has since typed over.
         future: s.future.length > 0 ? [] : s.future,
-        ...settled(params, s.selectedCabinetId),
+        selection: settleSelection(params, s.project.parts, s.selection),
       }));
       rebuild(params);
       scheduleAutosave(params);
     },
-    reset: () => jumpTo(defaultParams(), ''),
-    load: (params) => jumpTo(params, ''),
+    reset: () => jumpTo(defaultParams(), RUN),
+    load: (params) => jumpTo(params, RUN),
     undo: () => {
       endBurst();
       const { past } = get();
@@ -181,8 +273,7 @@ export const useStore = create<AppState>((set, get) => {
         past: s.past.slice(0, -1),
         future: [params, ...s.future],
         params: previous,
-        selectedPartId: null,
-        ...settled(previous, s.selectedCabinetId),
+        selection: settleSelection(previous, s.project.parts, s.selection),
       }));
       rebuild(previous);
       scheduleAutosave(previous);
@@ -197,8 +288,7 @@ export const useStore = create<AppState>((set, get) => {
         future: s.future.slice(1),
         past: [...s.past, params],
         params: next,
-        selectedPartId: null,
-        ...settled(next, s.selectedCabinetId),
+        selection: settleSelection(next, s.project.parts, s.selection),
       }));
       rebuild(next);
       scheduleAutosave(next);
@@ -207,7 +297,7 @@ export const useStore = create<AppState>((set, get) => {
       const trimmed = name.trim();
       if (!trimmed) return;
       const entry: LibraryEntry = {
-        id: makeLibraryId(),
+        id: makeId(),
         name: trimmed,
         savedAt: new Date().toISOString(),
         params: get().params,
@@ -219,26 +309,50 @@ export const useStore = create<AppState>((set, get) => {
     loadFromLibrary: (id) => {
       const entry = get().library.find((e) => e.id === id);
       if (!entry) return;
-      jumpTo(entry.params, '');
+      jumpTo(entry.params, RUN);
     },
     deleteFromLibrary: (id) => {
       const library = get().library.filter((e) => e.id !== id);
       set({ library });
       saveLibrary(library);
     },
+    saveWorkshop: (name) => {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      const profile: WorkshopProfile = {
+        id: makeId(),
+        name: trimmed,
+        savedAt: new Date().toISOString(),
+        settings: workshopOf(get().params),
+      };
+      const profiles = [...get().profiles, profile];
+      set({ profiles });
+      saveProfiles(profiles);
+    },
+    // Loud and undoable: the profile's numbers are copied into this project,
+    // and anything the copy had to repoint is reported rather than absorbed.
+    applyProfile: (id) => {
+      const profile = get().profiles.find((p) => p.id === id);
+      if (!profile) return;
+      let notes: string[] = [];
+      get().update((p) => {
+        notes = applyWorkshop(p, profile.settings);
+      });
+      set({
+        workshopNotes: [`Applied the "${profile.name}" workshop. Undo puts it back.`, ...notes],
+      });
+    },
+    deleteProfile: (id) => {
+      const profiles = get().profiles.filter((p) => p.id !== id);
+      set({ profiles });
+      saveProfiles(profiles);
+    },
+    dismissWorkshopNotes: () => set({ workshopNotes: [] }),
   };
 });
 
-/**
- * Keep the panel pointed at a cabinet that still exists.
- *
- * Removing the selected cabinet, or opening a different project, would
- * otherwise leave the panel editing an id nothing answers to and the whole
- * sidebar blank.
- */
-function settled(params: ProjectParams, wanted: string): { selectedCabinetId: string } {
-  const stillThere = params.cabinets.some((c) => c.id === wanted);
-  return { selectedCabinetId: stillThere ? wanted : (params.cabinets[0]?.id ?? '') };
-}
-
 export const severityRank = { error: 0, warning: 1, info: 2 } as const;
+
+/** The part the inspector, the sheet view and the 3D view all highlight. */
+export const selectedPartId = (s: { selection: Selection }): string | null =>
+  s.selection.kind === 'part' ? s.selection.partId : null;

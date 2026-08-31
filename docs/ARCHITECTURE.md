@@ -308,9 +308,61 @@ Every diagnostic should name the part it is about (`partIds`, so the previews
 can highlight it) and the parameter most likely to fix it (`hint`). Messages are
 written as sentences a woodworker would say, not as error codes.
 
+## The web app
+
+`apps/web` is the bench: the cabinet is the surface and everything else floats
+over it, appears because something is selected, or lives behind a door. The
+argument for that shape, the alternative it was chosen over, and the measured
+journeys it has to beat are all in [UX.md](UX.md); this is where the pieces are.
+
+```
+App.tsx                the shell: top bar, stage, run strip
+components/RunStrip    a scale map of the run — cabinets, carcasses, bays
+components/Inspector   what applies to the selection, and only that
+components/WorkshopDrawer   the machine, tooling, sheets, tape and hardware
+components/OutputPack  sheets, cut list, part drawings, labels, assembly steps
+components/CommandPalette   find by name, over the trade's words as well as ours
+components/DiagnosticsPanel a chip that opens a list, with verified fixes
+```
+
+Four pieces carry the design:
+
+**`selection.ts` — selection always resolves.** A `Selection` is the run, a
+cabinet, a carcass, a bay or a part; nothing narrower selected means the run is
+selected, so there is no empty inspector to design. `settleSelection` narrows
+back up the hierarchy whenever the thing selected stops existing — undo past a
+bay, remove a carcass, open a different project — so the inspector is never
+pointed at an id nothing answers to.
+
+**`catalog.ts` — every parameter, by name and by place.** One entry per
+parameter: its dotted path into `ProjectParams`, the words a woodworker would
+search for, and where it lives. It is what the command palette searches, and
+what `apps/web/test/catalog.test.ts` walks the real parameters against in both
+directions — every parameter must be claimed by an entry (or by an explicit
+"not a control, because…"), and every entry's path must appear as a `param` on
+a control in the source. A parameter that loses its control fails the build,
+which is the only thing that would have caught the eight docs/UX.md found with
+no control at all.
+
+**`fixes.ts` — a fix is run before it is offered.** Each candidate's parameters
+go through the whole pipeline; one that does not reduce the blocking errors is
+not shown, and what it costs in sheets and yield is read off the same build and
+put on the button. That is the answer to the worst thing R-16 found: the app's
+own suggested fix traded two errors for a different blocking error.
+
+**`workshop.ts` — the shop is a value, never a pointer.** A profile is the half
+of `ProjectParams` that describes the workshop rather than the furniture, saved
+under a name in the same browser store as the project library. Applying one is
+an ordinary undoable parameter update that reports every material reference it
+had to repoint. A project that silently re-cut itself to whoever opened it
+would be the "silently producing a wrong cabinet" failure `CLAUDE.md` calls the
+worst outcome available.
+
 ## Testing
 
-Tests live in `packages/core/test`. The web app has none yet — see the roadmap.
+Tests live in `packages/core/test`, with the web app's own in
+`apps/web/test` — today the catalogue pair above. The end-to-end pass over the
+journeys is R-24.
 
 `test/golden/default-0.1/` holds the sheet DXF the 0.1 default project exported,
 before R-03 turned two hardcoded carcasses into a run of cabinets. `golden.test.ts`
@@ -349,4 +401,5 @@ person will delete.
 
 Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
-- the web app has no automated tests
+- the web app has only the catalogue tests; no component or end-to-end coverage
+- a bay can be selected in the run strip but not by clicking the cabinet itself

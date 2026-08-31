@@ -1374,40 +1374,63 @@ wrong cabinet" failure `CLAUDE.md` calls the worst outcome available. Applying a
 profile is a loud, ordinary, undoable parameter update — never a pointer.
 
 **Acceptance criteria.** The numbers below are R-16's measurements; the method
-for reproducing them is in [UX.md](UX.md).
-- [ ] The architecture from [UX.md](UX.md) implemented as the app's shell
-- [ ] Design and workshop settings clearly separated; workshop settings saved
+for reproducing them is in [UX.md](UX.md), and what R-17 measured against them
+is recorded there too.
+- [x] The architecture from [UX.md](UX.md) implemented as the app's shell
+- [x] Design and workshop settings clearly separated; workshop settings saved
       and reusable across projects, applied as an undoable update rather than
       referenced live
-- [ ] Selecting something in the model brings up its controls, in context —
+- [x] Selecting something in the model brings up its controls, in context —
       against a measured baseline of 14 characters of sidebar
-- [ ] The cabinet occupies **≥ 70%** of the window at 1440 × 900 and **≥ 60%**
-      at 1024 × 768, against 42.7% and 34.6% today
-- [ ] Everything reachable by name from a command palette or equivalent,
+- [x] The cabinet occupies **≥ 70%** of the window at 1440 × 900 and **≥ 60%**
+      at 1024 × 768, against 42.7% and 34.6% today — **84.4% / 81.8%** of the
+      window is the model's own rectangle, **76.0% / 67.9%** once the floating
+      inspector's card is subtracted from it
+- [x] Everything reachable by name from a command palette or equivalent,
       including by the trade's own words
-- [ ] Controls rendered in the shell at rest **≤ 20**, all of them about the
+- [x] Controls rendered in the shell at rest **≤ 20**, all of them about the
       selection, against 39 rendered at rest today and 129 with every group
-      open; the figure recorded
-- [ ] Interaction counts improved against R-16's table: J1 ≤ 8 (11), J4 ≤ 3
+      open; the figure recorded — **20**, counted over the whole page rather
+      than one panel, and broken down in [UX.md](UX.md)
+- [x] Interaction counts improved against R-16's table: J1 ≤ 8 (11), J4 ≤ 3
       (5), J6 ≤ 2 and offered (3, off the beaten path), scroll ≤ one screen per
       journey (664–2682 px today) — **except J3**, where the target is that no
-      route accepts a guessed corner angle, even if that makes it longer
-- [ ] No regression in what the tool can express: every parameter behind
+      route accepts a guessed corner angle, even if that makes it longer.
+      Measured: **J1 8, J4 2, J6 2** with the cost on the button, **0 px** of
+      scrolling on either walk, and no route that accepts a typed angle at all
+- [x] No regression in what the tool can express: every parameter behind
       today's controls still reachable — 129 on the default project, **243**
       with every branch switched on — **and the eight that are not reachable
       today**, which UX.md lists (the five material-role assignments, unequal
       bay widths, and the two shelf-pin ladder limits). One of them is named as
       the fix in a diagnostic the app already raises
-- [ ] `packages/core` unchanged, or the reason it had to change written down
+- [x] `packages/core` unchanged, or the reason it had to change written down —
+      unchanged; `apps/web` grew four modules and the core kept its shape
 
 **Tests.** Every parameter still reachable — worth an explicit test, because the
 easiest way to score well on the other criteria is to quietly drop controls.
 Playwright coverage of the journeys, which then guards the counts.
 
+*Landed as a pair of catalogue tests in `apps/web/test`, both directions:
+every parameter of a project with every branch switched on must be claimed by a
+catalogue entry (or by an explicit "not a control, because…"), and every
+catalogue entry's path must appear as a `param` on a control in the source.
+The journeys were walked with Playwright and the counts recorded in
+[UX.md](UX.md), but not landed as tests — the harness for that is R-24, which
+exists so it is built once against the shape the redesign actually shipped.*
+
 **Risks.** The largest item on the roadmap and the easiest to half-finish,
 leaving two interfaces at once. Land the shell and the navigation first, migrate
 every panel, then delete the old one in the same pass. A half-migrated sidebar
 is worse than the one we have.
+
+*Retired: `ParamPanel.tsx`, `ExportBar.tsx`, `Diagnostics.tsx`,
+`EffectsPanel.tsx`, `BandingPanel.tsx` and `ProjectLibrary.tsx` were deleted in
+the same pass that added the shell, so there was never a second interface to
+keep working.* Three places where the design gave under contact with the code —
+the run strip's scaling, the bay controls appearing on the carcass as well, and
+find-by-name having to open the section it lands in — are written up in
+[UX.md](UX.md) rather than quietly absorbed.
 
 ---
 

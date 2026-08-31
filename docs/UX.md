@@ -904,6 +904,74 @@ number would be a worse tool.
 
 ---
 
+## What R-17 built, and what it measured
+
+R-17 executed architecture A. The numbers below were taken the same way as the
+ones above — Playwright against `vite preview` on the production build, from a
+cleared `localStorage` — on **2026-08-31**, and they replace the targets as the
+figures the next item has to beat.
+
+| | Today (R-16) | Target | R-17, measured |
+|---|---|---|---|
+| J1 build the thing in my head | 11 | ≤ 8 | **8**, no scrolling |
+| J2 reach three capabilities *and be told what they are* | 6, no explanation | ≤ 6, each explained | **6**, each explained where it lands |
+| J3 fit a real room, by hand | 9, two angles guessed | no guessed angle at any count | **no angle can be typed at all** |
+| J4 drawers in that bay | 5 | ≤ 3 | **2** |
+| J6 first cuttable export from a fresh project | 3, off the beaten path | ≤ 2, offered, cost stated | **2**, offered first, cost on the button |
+| Controls the shell renders at rest | 39 | ≤ 20 | **20** |
+| Cabinet's share of the window | 42.7% / 34.6% | ≥ 70% / ≥ 60% | **84.4% / 81.8%** gross; **76.0% / 67.9%** net of the inspector |
+| Diagnostics entries on a fresh project | 14 | repeats collapsed | **7** |
+| Scroll per journey | 664–2682 px | ≤ 1 screen | **0 px** on J1 and J4 |
+
+**How the counts are taken now.** Controls at rest counts every `input`,
+`select`, `textarea` and `button` in the whole page whose rectangle is on
+screen, not only the ones in a panel — the shell has no sidebar to scope it
+to any more, and scoping it to the inspector alone would flatter it by eight.
+It is 8 in the top bar, 8 in the run strip (one cabinet, two carcasses, four
+bays, and the `+`), 3 in the inspector and the explode slider. The share of the
+window is given twice because the inspector floats over the model rather than
+dividing the window: gross is the model's own rectangle, net subtracts the
+inspector's card, and the honest comparison against 42.7% is the net one.
+
+**J1 came in at 8 only because removing a carcass selects its neighbour.**
+Selection costs an interaction the old sidebar did not charge — it rendered
+every carcass's controls at once — so the floor for J1 under this architecture
+is one select, three dimensions, one bay count, three bay choices and one
+removal. Nine. What takes it to eight is that removing the upper carcass leaves
+the base *selected*, the way every list behaves, so the walk starts with the
+removal and never spends an interaction saying which box it means. That is a
+real behaviour, not an accounting trick, and it is worth knowing that the
+margin here is one.
+
+**Three things the architecture said that the code disagreed with.**
+
+- **The run strip is not a true scale elevation.** Its two axes are scaled
+  independently: cabinet widths are in proportion to each other and carcass
+  heights to each other, but the run fills the strip either way. A true
+  elevation of a 900 × 2000 mm unit in a 96 px strip is 30 px wide, and a bay
+  in it is 15 px — unusable as the thing that makes bays clickable, which is
+  the strip's main job. The model above it is the drawing; the strip is a map.
+- **The bay controls are on the carcass as well as on the bay.** Laying out a
+  box is one job, and making each bay cost a selection would have put J1 back
+  where it started. A bay selected in the strip still narrows to it alone —
+  that is J4's route — and the bay's own inspector is where each option gets a
+  sentence explaining it. The carcass's copies are dropdowns for the same
+  reason: five explained options per bay is three screens to lay out one box.
+- **Find-by-name has to open what it lands in.** A closed section keeps its
+  controls in the page, just hidden, so the first version of the palette
+  scrolled to a heading and called that an answer. It now opens every section
+  above whatever it found. The same discovery: a closed `details` still lays
+  its contents out unless the page says otherwise, which is why the "controls
+  at rest" count was 22 before it was 20.
+
+**What R-17 deliberately did not do**, so the next items are not surprised:
+bays are still not clickable in the *model* (R-20 owns that; the run strip is
+the stand-in), choices are still words rather than rendered pictures (R-18),
+there is still no per-part DXF (R-22), and the interface is still dark only
+(R-23).
+
+---
+
 ## What this does not decide
 
 Left open deliberately, for the item that hits them:
