@@ -17,6 +17,39 @@ npm test
 [docs/ROADMAP.md](docs/ROADMAP.md) for the path to 1.0, and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it works inside.
 
+## Using it
+
+The cabinet is the workspace, not a picture next to a form.
+
+**The run strip** along the bottom is the project drawn out: a column per
+cabinet, a box per carcass, a cell per bay. Click any of them to work on it,
+drag a cabinet to move it along the wall, `+` to add one.
+
+**The inspector** floats at the right and shows only what applies to whatever
+is selected — a bay's shelves and drawers, a carcass's size and panels, a
+panel's banding and effects. Click a panel in the 3D view and it comes up
+there. Nothing selected means the run is selected, which is the project itself:
+its name, and the room it has to fit.
+
+**Workshop** holds the machine, the tooling, the sheets, the tape and the
+hardware — the shop rather than the cabinet. Save it under a name and the next
+design starts already knowing your machine. Applying a saved workshop is an
+ordinary undoable change that says what it altered; a project always keeps its
+own full parameters, because the sheet thickness a design was cut to sets every
+groove in it.
+
+**Output** is the pack you take to the machine: sheet layouts, the cut list,
+part drawings, the label sheet and the assembly steps, in one printable run.
+
+**The readiness chip** in the top bar is the single answer to "can this be
+cut". Click it for the list, with repeats collapsed and — where one exists — a
+fix that has been run through the whole pipeline before being offered, with
+what it costs in sheets and yield written on the button.
+
+**Find…** (Ctrl/Cmd+K) searches every setting by name, including the words a
+woodworker uses rather than the ones on the labels: *kickboard* finds the toe
+kick, *rebate* the rabbet, *knock-down* tab and slot, *beadboard* the grooves.
+
 ## What it makes
 
 A **run of cabinets** standing side by side along a wall. Each cabinet is a
@@ -282,8 +315,9 @@ Full spec: [docs/DXF.md](docs/DXF.md).
 
 ## Build guide
 
-The **Build guide** tab is a printable pack: a label for every part — id,
-size, material and which face is up — and a step-by-step assembly order.
+The **Output** surface is a printable pack: sheet layouts, the cut list, a
+drawing of the selected part, a label for every part — id, size, material and
+which face is up — and a step-by-step assembly order.
 
 The order is never hand-authored. It falls out of the same joint graph the
 builder used to decide what meets what: a panel is only ever scheduled once
@@ -304,10 +338,10 @@ one per keystroke, and **Reset counts as a change too**: a stray click gets you
 back in one Undo.
 
 The open project autosaves to this browser as you work, so closing the tab or
-reloading picks up exactly where you left off, with nothing to click. **Save**
-still writes a project file you can put anywhere; **Library** is a shelf of
-designs saved to this browser under a name, for the ones you want to reopen
-later without hunting through downloads.
+reloading picks up exactly where you left off, with nothing to click. The
+project menu (**☰**, top left) writes a project file you can put anywhere, and
+keeps a shelf of designs in this browser under a name, for the ones you want to
+reopen later without hunting through downloads.
 
 ## Before you cut
 
@@ -315,7 +349,7 @@ later without hunting through downloads.
    is usually 17.4–17.8 mm, and every groove width is derived from it.
 2. **Cut one test joint** before committing a full sheet. If it is tight, raise
    the fit clearance; if sloppy, lower it.
-3. Check the diagnostics panel is not showing anything blocking.
+3. Check the readiness chip says *ready to cut* rather than *n blocking*.
 
 ## Layout
 
@@ -347,7 +381,10 @@ testable on its own and reusable from a CLI or a different front end.
 
 ## Known gaps
 
-Honest list, all tracked in the roadmap: the web app has no automated tests.
+Honest list, all tracked in the roadmap: the web app's only tests are the ones
+that guard every parameter having a control; component and end-to-end coverage
+is still to come. A bay can be picked in the run strip, but not by clicking the
+cabinet itself.
 
 Millimetres only, deliberately.
 

@@ -12,37 +12,30 @@ export function BuildGuide() {
   const { labels, assembly } = project;
 
   return (
-    <div className="viewport">
-      <div className="scroller">
-        <div className="guide-toolbar no-print">
-          <button className="primary" onClick={() => window.print()}>
-            Print
-          </button>
-          <span className="hint" style={{ margin: 0 }}>
-            {labels.length} labels · {assembly.steps.length} assembly steps · use your browser's
-            print dialogue to save as PDF
-          </span>
+    <>
+      <p className="hint">
+        {labels.length} labels · {assembly.steps.length} assembly steps · use your browser's print
+        dialogue to save the pack as a PDF.
+      </p>
+
+      <section className="guide-section">
+        <h2>Label sheet</h2>
+        <div className="label-grid">
+          {labels.map((l) => (
+            <LabelCard key={l.id} label={l} />
+          ))}
         </div>
+      </section>
 
-        <section className="guide-section">
-          <h2>Label sheet</h2>
-          <div className="label-grid">
-            {labels.map((l) => (
-              <LabelCard key={l.id} label={l} />
-            ))}
-          </div>
-        </section>
-
-        <section className="guide-section">
-          <h2>Assembly steps</h2>
-          <ol className="steps">
-            {assembly.steps.map((step, i) => (
-              <StepCard key={i} step={step} labels={labels} />
-            ))}
-          </ol>
-        </section>
-      </div>
-    </div>
+      <section className="guide-section">
+        <h2>Assembly steps</h2>
+        <ol className="steps">
+          {assembly.steps.map((step, i) => (
+            <StepCard key={i} step={step} labels={labels} />
+          ))}
+        </ol>
+      </section>
+    </>
   );
 }
 

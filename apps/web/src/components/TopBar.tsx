@@ -1,0 +1,343 @@
+import { useEffect, useRef, useState } from 'react';
+import {
+  cabinetPositions,
+  defaultExportOptions,
+  exportProject,
+  normaliseParams,
+} from '@cabgen/core';
+import { useStore } from '../store';
+import { saveBlob, saveText, zipFiles } from '../download';
+import { summarise } from './DiagnosticsPanel';
+
+/**
+ * The one row that is always there: what this is, whether it can be cut, and
+ * the two doors off the bench.
+ *
+ * The readiness chip is the whole of what used to be a permanently open
+ * diagnostics panel taking a quarter of the window. It is global — it says
+ * what is blocking wherever you are — and it opens the list over the model
+ * rather than beside it.
+ */
+export function TopBar() {
+  const params = useStore((s) => s.params);
+  const project = useStore((s) => s.project);
+  const building = useStore((s) => s.building);
+  const surface = useStore((s) => s.surface);
+  const setSurface = useStore((s) => s.setSurface);
+  const workshopOpen = useStore((s) => s.workshopOpen);
+  const setWorkshopOpen = useStore((s) => s.setWorkshopOpen);
+  const diagnosticsOpen = useStore((s) => s.diagnosticsOpen);
+  const setDiagnosticsOpen = useStore((s) => s.setDiagnosticsOpen);
+  const setPaletteOpen = useStore((s) => s.setPaletteOpen);
+  const past = useStore((s) => s.past);
+  const future = useStore((s) => s.future);
+  const undo = useStore((s) => s.undo);
+  const redo = useStore((s) => s.redo);
+  const load = useStore((s) => s.load);
+  const safeNames = useStore((s) => s.safeNames);
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const errors = project.diagnostics.filter((d) => d.severity === 'error').length;
+  const warnings = project.diagnostics.filter((d) => d.severity === 'warning').length;
+  // `project` runs a build behind `params` while the worker is still catching
+  // up (R-12), so exporting mid-build would cut whatever the previous params
+  // produced — wrong dimensions, or a blocking error the new params would
+  // have raised that this stale `project` does not carry yet.
+  const blocked = building || errors > 0;
+
+  const runWidth = cabinetPositions(params.cabinets).reduce((a, c) => a + c.w, 0);
+  const height = Math.max(
+    0,
+    ...params.cabinets.map((c) => c.carcasses.reduce((a, k) => a + k.height, 0)),
+  );
+
+  const doExport = (): void => {
+    const bundle = exportProject(project, { ...defaultExportOptions(), safeNames });
+    const slug =
+      params.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || 'cabinet';
+    saveBlob(
+      zipFiles(bundle.files.map((f) => ({ name: f.name, content: f.dxf }))),
+      `${slug}-cnc.zip`,
+    );
+  };
+
+  const openProject = async (file: File): Promise<void> => {
+    try {
+      const parsed = JSON.parse(await file.text()) as Record<string, unknown>;
+      // A 0.1 file has `base` and `top` where a current one has `cabinets`.
+      // Both open: normaliseParams turns the old pair into one cabinet.
+      const looksLikeAProject = parsed.cabinets || parsed.base || parsed.top;
+      if (!parsed.materials || !looksLikeAProject) throw new Error('not a project file');
+      // Merged over the defaults, so a file saved before a setting existed
+      // still opens instead of producing NaNs downstream.
+      load(normaliseParams(parsed));
+    } catch (e) {
+      alert(`Could not open that project file: ${(e as Error).message}`);
+    }
+  };
+
+  return (
+    <header className="topbar no-print">
+      <ProjectMenu
+        open={menuOpen}
+        setOpen={setMenuOpen}
+        onOpenFile={() => fileInput.current?.click()}
+        onSaveFile={() =>
+          saveText(JSON.stringify(params, null, 2), 'cabinet-project.json', 'application/json')
+        }
+      />
+      <input
+        ref={fileInput}
+        type="file"
+        accept="application/json,.json"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void openProject(f);
+          e.target.value = '';
+        }}
+      />
+
+      <h1>{params.name}</h1>
+      <span className="badge">
+        {runWidth.toFixed(0)} × {height.toFixed(0)} mm · {project.parts.length} parts ·{' '}
+        {project.nest.sheets.length} sheets{building ? ' · updating…' : ''}
+      </span>
+
+      <span className="spacer" />
+
+      <button
+        className="find"
+        onClick={() => setPaletteOpen(true)}
+        title="Find any setting by name (Ctrl+K)"
+      >
+        Find… <kbd>⌘K</kbd>
+      </button>
+
+      <button onClick={undo} disabled={past.length === 0} title="Undo (Ctrl+Z)" aria-label="Undo">
+        ↶
+      </button>
+      <button
+        onClick={redo}
+        disabled={future.length === 0}
+        title="Redo (Ctrl+Shift+Z)"
+        aria-label="Redo"
+      >
+        ↷
+      </button>
+
+      <button
+        className={`chip ${errors ? 'error' : warnings ? 'warning' : 'ok'}`}
+        aria-expanded={diagnosticsOpen}
+        onClick={() => setDiagnosticsOpen(!diagnosticsOpen)}
+        title="What stands between this and the machine"
+      >
+        <i className={`dot ${errors ? 'error' : warnings ? 'warning' : 'ok'}`} />
+        {summarise(project.diagnostics)}
+      </button>
+
+      <button
+        aria-pressed={workshopOpen}
+        className={workshopOpen ? 'on' : undefined}
+        onClick={() => setWorkshopOpen(!workshopOpen)}
+        title="The machine, the tooling, the sheets and the hardware — the shop, not the cabinet"
+      >
+        Workshop
+      </button>
+      <button
+        aria-pressed={surface === 'output'}
+        className={surface === 'output' ? 'on' : undefined}
+        onClick={() => setSurface(surface === 'output' ? 'bench' : 'output')}
+        title="Sheets, cut list, part drawings, labels and assembly steps — the pack you take to the machine"
+      >
+        Output
+      </button>
+      <button
+        className="primary"
+        onClick={doExport}
+        disabled={blocked}
+        title={
+          building
+            ? 'Still catching up to your last change — wait a moment and try again.'
+            : blocked
+              ? 'Fix the blocking diagnostics first, or the files will not be cuttable.'
+              : 'Sheet DXFs, per-tile DXFs and the cut list, as one zip.'
+        }
+      >
+        Export DXF
+      </button>
+    </header>
+  );
+}
+
+/**
+ * Everything about the file rather than the design: opening, saving, the
+ * library of designs kept in this browser, and starting again.
+ */
+function ProjectMenu({
+  open,
+  setOpen,
+  onOpenFile,
+  onSaveFile,
+}: {
+  open: boolean;
+  setOpen: (v: boolean) => void;
+  onOpenFile: () => void;
+  onSaveFile: () => void;
+}) {
+  const library = useStore((s) => s.library);
+  const saveToLibrary = useStore((s) => s.saveToLibrary);
+  const loadFromLibrary = useStore((s) => s.loadFromLibrary);
+  const deleteFromLibrary = useStore((s) => s.deleteFromLibrary);
+  const reset = useStore((s) => s.reset);
+  const [name, setName] = useState('');
+
+  return (
+    <div className="menu">
+      <button aria-expanded={open} onClick={() => setOpen(!open)} title="Open, save and reset">
+        ☰
+      </button>
+      {open && (
+        <div className="panel">
+          <div className="row">
+            <button
+              onClick={() => {
+                setOpen(false);
+                onOpenFile();
+              }}
+            >
+              Open a file…
+            </button>
+            <button
+              onClick={() => {
+                setOpen(false);
+                onSaveFile();
+              }}
+            >
+              Save a file
+            </button>
+            <button
+              onClick={() => {
+                setOpen(false);
+                reset();
+              }}
+            >
+              Start again
+            </button>
+          </div>
+
+          <strong>Designs kept in this browser</strong>
+          <div className="menu-save">
+            <input
+              placeholder="Name this design…"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && name.trim()) {
+                  saveToLibrary(name);
+                  setName('');
+                  setOpen(false);
+                }
+              }}
+            />
+            <button
+              disabled={!name.trim()}
+              onClick={() => {
+                saveToLibrary(name);
+                setName('');
+                setOpen(false);
+              }}
+            >
+              Keep
+            </button>
+          </div>
+          {library.length === 0 ? (
+            <p className="hint">
+              Nothing kept here yet. This is a shelf, not a backup — Save a file still writes a
+              project you can keep anywhere.
+            </p>
+          ) : (
+            <ul className="menu-list">
+              {[...library].reverse().map((entry) => (
+                <li key={entry.id}>
+                  <button
+                    className="menu-item"
+                    title={new Date(entry.savedAt).toLocaleString()}
+                    onClick={() => {
+                      loadFromLibrary(entry.id);
+                      setOpen(false);
+                    }}
+                  >
+                    {entry.name}
+                  </button>
+                  <button
+                    className="menu-delete"
+                    title={`Delete "${entry.name}"`}
+                    onClick={() => {
+                      if (confirm(`Delete "${entry.name}" from your saved designs?`)) {
+                        deleteFromLibrary(entry.id);
+                      }
+                    }}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The keyboard, everywhere except inside a field with its own native undo — a
+ * stray project-level undo mid-keystroke would be far more surprising than
+ * doing nothing.
+ */
+export function useShortcuts(): void {
+  const undo = useStore((s) => s.undo);
+  const redo = useStore((s) => s.redo);
+  const setPaletteOpen = useStore((s) => s.setPaletteOpen);
+  const select = useStore((s) => s.select);
+  const setDiagnosticsOpen = useStore((s) => s.setDiagnosticsOpen);
+  const setWorkshopOpen = useStore((s) => s.setWorkshopOpen);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const typing =
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.tagName === 'SELECT';
+      if (e.key === 'Escape') {
+        setDiagnosticsOpen(false);
+        setWorkshopOpen(false);
+        setPaletteOpen(false);
+        if (!typing) select({ kind: 'run' });
+        return;
+      }
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      if (key === 'k') {
+        e.preventDefault();
+        setPaletteOpen(true);
+      } else if (!typing && key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      } else if (!typing && key === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [undo, redo, setPaletteOpen, select, setDiagnosticsOpen, setWorkshopOpen]);
+}

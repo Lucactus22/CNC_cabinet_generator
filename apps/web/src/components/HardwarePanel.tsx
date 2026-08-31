@@ -15,7 +15,7 @@ import {
   type ShelfPinEntry,
   type SlideEntry,
 } from '@cabgen/core';
-import { Group, Hint, NumberField, SelectField, TextField } from './Controls';
+import { Group, Hint, NumberField, Reveal, SelectField, TextField } from './Controls';
 
 const MEASURE_LABELS: Record<HardwareMeasure, string> = {
   'door thickness': 'Door thickness',
@@ -98,6 +98,7 @@ export function HardwarePanel() {
     <Group title="Hardware">
       <SelectField
         label="Hinges"
+        param="hardware.hingeId"
         value={hw.hingeId}
         options={options('hinge')}
         wide
@@ -224,6 +225,7 @@ export function HardwarePanel() {
 
       <SelectField
         label="Shelf pins"
+        param="hardware.shelfPinId"
         value={hw.shelfPinId}
         options={options('shelf-pin')}
         wide
@@ -263,6 +265,7 @@ export function HardwarePanel() {
 
       <SelectField
         label="Drawer slides"
+        param="hardware.slideId"
         value={hw.slideId}
         options={options('slide')}
         wide
@@ -350,6 +353,7 @@ export function HardwarePanel() {
 
       <SelectField
         label="Handles"
+        param="hardware.handleId"
         value={hw.handleId}
         options={[{ value: '', label: 'None — no holes bored' }, ...options('handle')]}
         wide
@@ -362,6 +366,7 @@ export function HardwarePanel() {
           <About entry={handle} onCopy={() => copy(handle)} onRemove={() => remove(handle, '')} />
           <SelectField
             label="Runs"
+            param="hardware.handlePlacement"
             value={hw.handlePlacement.orientation}
             options={[
               { value: 'vertical', label: 'Up the door' },
@@ -487,10 +492,10 @@ function About({
       {entry.requires.map((r, i) => (
         <Hint key={i}>{describeRequirement(r)}</Hint>
       ))}
-      <div className="row">
+      <Reveal className="row" param="hardware.custom">
         <button onClick={onCopy}>Copy and edit…</button>
         {entry.custom && <button onClick={onRemove}>Remove</button>}
-      </div>
+      </Reveal>
     </>
   );
 }
