@@ -980,7 +980,7 @@ the running app instead — see the definition of done in `CLAUDE.md`.
 ---
 
 ### R-14 — Test the web app
-`Milestone E` · `Depends on: R-02` · `Size: M`
+`Milestone E` · `Depends on: R-02` · `Size: M` · **Deferred — see R-24**
 
 **Problem.** `apps/web` has no automated tests. Every UI regression so far has
 been caught by a human looking at a screenshot.
@@ -988,6 +988,20 @@ been caught by a human looking at a screenshot.
 **Goal.** Component tests for the parameter panel and the export bar, plus a
 handful of Playwright end-to-end tests over the flows that matter: change a
 parameter and see the preview update, add an effect, export a zip.
+
+**Deliberately not worked here.** Milestone F is about to rebuild the shell
+this item would test: R-17 expects to dissolve `ParamPanel.tsx` outright, and
+Milestone F's own opening line is that nothing in the current UI is
+load-bearing except the geometry it displays. Component tests written against
+today's sidebar and export bar would be exercising code with a known short
+remaining life — thrown away days after landing, not months — and the
+Playwright flows this item also wants are worth writing once, against whatever
+shape the redesign actually ships, rather than now and again after the
+rebuild.
+
+Skip this item in its Milestone E slot. It resumes as **R-24**, once R-16
+through R-23 have landed and the interface has a shape worth writing tests
+against.
 
 ---
 
@@ -1518,7 +1532,7 @@ and answers a real, frequent problem.
 ---
 
 ### R-23 — Visual and interaction polish, and accessibility
-`Milestone F` · `Depends on: R-16, R-14` · `Size: M`
+`Milestone F` · `Depends on: R-16` · `Size: M`
 
 **Problem.** The interface is consistent but was never designed: spacing, type
 scale and colour were each decided in passing. It is dark-only, which is poor
@@ -1557,14 +1571,34 @@ checklist; tick them there when it lands.
 - [ ] Motion respects `prefers-reduced-motion`
 - [ ] Contrast meets WCAG AA in both themes
 
-**Tests.** Keyboard navigation through the main flows on the R-14 harness; an
-automated contrast check over both palettes.
+**Tests.** Keyboard navigation through the main flows, checked by hand in the
+running app for now — the automated version waits for R-24's harness, held
+back for the same reason R-14 itself was (see that item). An automated
+contrast check over both palettes.
+
+---
+
+### R-24 — Test the web app
+`Milestone F` · `Depends on: R-02, R-23` · `Size: M`
+
+**Problem.** `apps/web` still has no automated tests. R-14 named this gap back
+in Milestone E and was deliberately left unworked there — see that item —
+because the redesign this milestone carries out was always going to replace
+the components R-14 would have tested. Building the safety net now, against
+whatever shape the redesign actually shipped, means building it once instead
+of twice.
+
+**Goal.** Component tests for the panels the redesign landed — whatever R-17
+named the inspector and the workshop-settings surface — plus a handful of
+Playwright end-to-end tests over the flows that matter: change a parameter and
+see the preview update, add an effect, export a zip. Also covers the automated
+keyboard-navigation pass R-23 deferred to here, for the same reason.
 
 ---
 
 ## Milestone G — Release
 
-### R-24 — 1.0 release
+### R-25 — 1.0 release
 `Milestone G` · `Depends on: everything above` · `Size: S`
 
 - [ ] Sample projects that load from the UI
@@ -1626,3 +1660,11 @@ drift from the part. R-17 carries that idea and most of the rest lean on it.
 R-16 comes first deliberately: the others are only worth as much as the
 understanding of the journeys they are built on. The release item moved to R-23
 to keep the numbering in reading order.
+
+**Third revision.** R-14 turned out to be premature: Milestone F was already
+going to dissolve the very component it would have tested (R-17 expects to
+remove `ParamPanel.tsx` entirely), so testing today's sidebar first would have
+meant testing it once and rewriting those tests again right after. Deferred to
+a new R-24, sitting at the end of Milestone F once the redesign has a shape
+worth testing, rather than worked twice. The release item moved to R-25 to
+keep the numbering in reading order.
