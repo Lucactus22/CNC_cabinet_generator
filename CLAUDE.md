@@ -9,6 +9,7 @@ Parametric cabinet designer that outputs CNC-ready DXF. Read this first, then
 |---|---|
 | Understand how it fits together | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | Know what to build next | [docs/ROADMAP.md](docs/ROADMAP.md) |
+| Understand who it is for, and why the interface is shaped that way | [docs/UX.md](docs/UX.md) |
 | Understand a joint | [docs/JOINERY.md](docs/JOINERY.md) |
 | Understand the output format | [docs/DXF.md](docs/DXF.md) |
 | Understand doors and hinges | [docs/DOORS.md](docs/DOORS.md) |
@@ -104,9 +105,12 @@ nothing. Build, serve, and drive it:
 cd apps/web && npx vite build && npx vite preview --port 4173 --strictPort
 ```
 
-Then drive it with Playwright (Chromium is at `/opt/pw-browsers/chromium`),
-screenshot the area you changed, and read the screenshot. Watch the console for
-errors while you are there.
+Then drive it with Playwright (Chromium is at `/opt/pw-browsers/chromium`, which
+is the executable itself, not a directory), screenshot the area you changed, and
+read the screenshot. Watch the console for errors while you are there.
+
+[docs/UX.md](docs/UX.md) records how the interface was measured and driven this
+way, and the interaction counts any change to the shell has to beat.
 
 ## Git
 

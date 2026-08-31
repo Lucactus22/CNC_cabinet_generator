@@ -334,6 +334,7 @@ testable on its own and reusable from a CLI or a different front end.
 |---|---|
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | How the pipeline fits together, the invariants, where to add things |
 | [ROADMAP](docs/ROADMAP.md) | What 1.0 means and the work orders to get there |
+| [UX](docs/UX.md) | Who this is for, the journeys measured, and the interface architecture chosen |
 | [FEATURE SUGGESTIONS](docs/feature_suggestions.md) | Ideas considered but not committed to |
 | [JOINERY](docs/JOINERY.md) | Every joint, with the geometry and the reasoning |
 | [DOORS](docs/DOORS.md) | Doors, hinge boring, handles, face designs |
