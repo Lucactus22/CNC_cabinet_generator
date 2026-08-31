@@ -25,6 +25,14 @@ class of mistakes. Cheap, and disproportionately liked wherever it appears.
 drop it into the next project. Turns the starter gallery from a fixed set into
 something that grows with the user.
 
+### Name the bays
+`S` · Bays are addressed by number and counted left to right in your head, which
+R-20 fixes by making them clickable — but across a run of eight cabinets people
+still talk about "the bin bay", not "C3-B bay 2". A name would carry through to
+the label sheet and the assembly steps, where it is worth more than the number
+is. Came out of the R-16 walks: bay numbering was a guess point in two separate
+journeys.
+
 ### Mirror and symmetry
 `S` · Flip a cabinet, or link two so editing one edits the other. Kitchens are
 full of symmetric pairs and there is currently no way to say so.
@@ -65,6 +73,28 @@ resize fifteen parts and add a sheet, and right now nothing says so.
 `S` · Machine time from the cut length already computed, plus a rough assembly
 estimate from the joint count. Useful for deciding whether a design is worth it
 before committing a Saturday.
+
+### Accept an info, and stop being told
+`S` · Seven of the fourteen diagnostics on a fresh project are `info`, and four
+of those are the same "spans more than one tile" note against a different part.
+Worth reading once; noise for the rest of the job. Let an info be accepted so it
+stops competing with the warning that matters. **Only info** — a dismissible
+warning or error is how a wrong cabinet gets cut. The other three infos are the
+yield summary and the all-clear, which are not repetition and should stay; and
+R-21's deduplication may remove the want entirely, so measure after R-21 before
+building this.
+
+### Keep the tape readings, not just the answer
+`S` · `OpeningSpec` already stores the triangle a corner angle was derived from
+and drops it the moment somebody types the angle instead. Carry the same idea
+across every measured field: what was held a tape across, not only what it came
+to. Six months later, when the fillers do not fit, the question is always "what
+did I actually measure?" and the project cannot currently answer it.
+
+### Notes on a cabinet, carried to the bench
+`S` · Free text on a cabinet — "goes under the window, watch the pipe at 400" —
+printed on its label sheet and its assembly steps. The design already travels to
+the workshop as paper; the one thing that does not travel with it is why.
 
 ---
 

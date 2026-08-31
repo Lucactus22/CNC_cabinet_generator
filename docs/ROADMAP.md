@@ -1098,29 +1098,53 @@ either a wall of jargon or a patronising wizard.
 
 ### The measured state of the interface today
 
-Recorded from the running app so nobody has to re-derive it:
+Recorded from the running app so nobody has to re-derive it. Re-measured under
+R-16 against `2647912`; the method is in [UX.md](UX.md) so these can be beaten
+rather than argued with. The first-draft figures are kept alongside, because
+what grew is itself informative.
 
-| | |
-|---|---|
-| Sidebar groups | **15** |
-| Controls when fully expanded | **80** (47 numeric, 19 dropdowns) |
-| Sidebar height when expanded | **4853 px — 5.5 screens** in a 320 px column |
-| Share of the window given to the cabinet | roughly **40%**, squeezed between a sidebar and a diagnostics panel |
+| | Now | First draft |
+|---|---|---|
+| Sidebar groups | **17** | 15 |
+| Groups open at rest | **5** of 17 | — |
+| Controls when fully expanded | **129** (41 numeric, 25 dropdowns, 40 checkboxes, 4 text, 19 buttons) | 80 (47 numeric, 19 dropdowns) |
+| Controls with every conditional branch on | **243** | — |
+| Controls actually on screen at rest | **18** | — |
+| Sidebar height when expanded | **6813 px — 8.1 screens** in a 320 px column (11798 px, 14 screens, with every branch on) | 4853 px |
+| Share of the window given to the cabinet | **42.7%** at 1440 × 900, **34.6%** at 1024 × 768 | roughly 40% |
+| Share given to the diagnostics panel | **26.4%** — more than the sidebar's 20.8% | — |
+| Labelled fields carrying any explanation | **43 of 86** | — |
+
+Numeric fields plus dropdowns are unchanged at 66. The rest of the growth is
+R-09's edge-banding matrix — 24 unlabelled checkbox pills, six roles by four
+edges — and the buttons, which the first count excluded and this one includes,
+because a button that changes the design is a control.
 
 And, by inspection:
 
 - **Selection drives nothing.** Clicking a panel isolates it in 3D, and the
-  sidebar does not react. The model and the controls are strangers.
+  sidebar changes by **14 characters** — one button's label, 5224 px down the
+  column. The model and the controls are strangers.
 - **Everything weighs the same.** A cabinet's width — changed constantly — sits
   at the same size and prominence as a hinge dowel offset, changed once.
 - **Design settings and workshop settings are mixed.** Machine travel, tool
   diameter, hinge boring, nesting margins and *safe layer names* are properties
   of a workshop, set once and reused forever. They currently occupy the same
-  space, and the same attention, as the design itself.
-- **Primary actions are buried.** "Add cabinet" is mid-scroll in an accordion.
-- **The diagnostics panel is a third of the screen and largely repeats itself** —
-  three near-identical tiling warnings — while the two permanent errors are
-  about workshop setup rather than anything the user just did.
+  space, and the same attention, as the design itself — **3403 px of the 6813,
+  half the column**, interleaved with it.
+- **Primary actions are buried.** "Add cabinet" is mid-scroll in an accordion,
+  424 px down.
+- **The diagnostics panel is a quarter of the screen and largely repeats
+  itself** — four tiling warnings differing only in the sheet number, and four
+  tile-span notes differing only in the part, out of fourteen entries — while
+  the two permanent errors are about workshop setup rather than anything the
+  user just did. It takes 26.4% of the window against the sidebar's 20.8%.
+- **Capabilities are unreachable without their name.** Tab-and-slot joinery is
+  3550 px down inside a group that is closed at rest, with no explanation on
+  the control at all; surface effects are at 5224 px; the guillotine nesting
+  strategy is at 6538 px. Twelve of the seventeen groups are closed at rest and
+  a closed group renders nothing, so the only thing naming any of it is a
+  one-word heading.
 
 ### Design principles
 
@@ -1206,24 +1230,70 @@ Sketch at least two genuinely different architectures before choosing. Say what
 you rejected and why — the next person will want to know whether their idea was
 already considered.
 
+**What it found.** [UX.md](UX.md) carries the argument; the findings that
+changed the plan are worth having here too.
+
+**The app already contains its own answer, applied once.** `CabinetList` and
+`CarcassGroups` narrow the sidebar to the *selected* cabinet, which is why the
+column grows by only 143 px per extra cabinet in the run. Part selection
+raycasts, isolates and highlights — and changes exactly **14 characters** of the
+sidebar, one button's label, 5224 px down. R-17 is finishing a mechanism that is
+already half built, not inventing one.
+
+**The measured state had moved and was re-measured.** 17 groups, not 15; 129
+sidebar controls on the default project and 243 with every branch on, not 80;
+6813 px and 8.1 screens, not 4853. The numeric-and-dropdown count is unchanged
+at 66 — the growth is the edge-banding matrix R-09 added and the buttons the
+first count left out. The preamble table above now holds the re-measured
+figures. The diagnostics panel takes **more of the window than the sidebar
+does**: 26.4% against 20.8%.
+
+**Two findings are defects, not frictions.** On a fresh project the only fix the
+app offers for its only blocking errors — *Set sheets to machine size* — trades
+two errors for a different blocking error whose hint contradicts the button that
+was just pressed, and export stays disabled either way. The route that works is
+the other half of the same diagnostic's sentence and is offered nowhere. That is
+now R-21's headline rather than a note in a document.
+
+And **eight parameters have no control anywhere in the app** — the five
+material-role assignments (carcass, shelves, drawer boxes, doors, backs),
+unequal bay widths, and the two shelf-pin ladder limits. One is named as the fix
+in a diagnostic the app already raises: a three-drawer bay produces six
+identical warnings that the box material is 11.9 mm against a slide needing 12,
+and says to change the drawer box material, which cannot be done. R-17's "no
+regression, every parameter still reachable" therefore starts from a baseline
+that already fails, and now says so.
+
 **Acceptance criteria.**
-- [ ] `docs/UX.md` names the users and journeys, with the reasoning
-- [ ] Each journey walked in the running app, written up as it really is, with
+- [x] `docs/UX.md` names the users and journeys, with the reasoning
+- [x] Each journey walked in the running app, written up as it really is, with
       interaction counts recorded as a baseline R-17 must beat
-- [ ] A prioritised friction list, each entry naming the journey it came from
-- [ ] Every architectural question above answered, with the alternatives
+- [x] A prioritised friction list, each entry naming the journey it came from
+- [x] Every architectural question above answered, with the alternatives
       considered and the reason for the choice
-- [ ] At least two architectures sketched, one rejected in writing
-- [ ] The rest of this milestone reconciled against the findings: confirmed,
+- [x] At least two architectures sketched, one rejected in writing
+- [x] The rest of this milestone reconciled against the findings: confirmed,
       re-scoped, or dropped with a reason
-- [ ] A discovery audit: for each significant capability, how a user would find
+- [x] A discovery audit: for each significant capability, how a user would find
       it today, and whether that route is good enough
-- [ ] Any idea that is good but out of scope added to
+- [x] Any idea that is good but out of scope added to
       [feature_suggestions.md](feature_suggestions.md)
 
 **Risks.** Producing a document that flatters what already exists. If a journey
 comes out fine on the first walk, be suspicious: watch somebody who has never
 seen the tool try it, and time them.
+
+*Not fully retired.* No first-time user was watched. The walks are scripted, so
+every count and every time is the shortest route a person who already knows the
+interface would take — floors, and the document says so. Two mitigations were
+applied instead of the watching. **Look for the failure rather than the
+success:** J6 was walked down the path the app itself recommends, which is how
+the defect above was found. **And do not let the target flatter the tool:** the
+first version of J1 asked for a cabinet close to the shipped default, so most of
+its interactions were typing values that were already there. It was rediscovered
+in review, and the journey re-walked against a target that differs from
+`defaultParams()` in almost every field. Any future re-walk should check that
+first.
 
 ---
 
@@ -1231,13 +1301,32 @@ seen the tool try it, and time them.
 `Milestone F` · `Depends on: R-16` · `Size: XL`
 
 **Problem.** The interface is a form with a picture next to it. It should be a
-cabinet you can work on. Fifteen groups and eighty controls are presented at a
-flat, equal weight in a column narrower than a phone, while the thing being
-designed gets less than half the window and cannot be edited by touching it.
+cabinet you can work on. Seventeen groups and 129 controls — 243 with every
+branch switched on — are presented at a flat, equal weight in a column narrower
+than a phone, while the thing being designed gets 42.7% of the window and cannot
+be edited by touching it.
 
-**Goal.** Execute the architecture R-16 chose. This is a rebuild of the shell,
-not a reskin: layout, navigation, where settings live, what selection means, and
-how the project's structure is represented.
+**Goal.** Execute the architecture R-16 chose — **"the bench"**, sketched in
+full in [UX.md](UX.md) along with the alternative that was rejected. This is a
+rebuild of the shell, not a reskin: layout, navigation, where settings live,
+what selection means, and how the project's structure is represented.
+
+**Confirmed by R-16, with three changes.** The direction below survived contact
+with the measurements; what R-16 added is:
+
+- **A run strip** as the structural spine — a scale elevation of the run along
+  the bottom, a column per cabinet, click to select, drag to reorder. The
+  project's structure is three nested *linear* orders that each correspond to a
+  direction in the room, not a tree, and a tree widget would carry less
+  information than the model already on screen.
+- **Selection always resolves**, so there is no empty inspector to design:
+  nothing narrower selected means the run is selected, and the run has plenty
+  to show.
+- **Find-by-name ships with the shell**, pulled forward out of R-19. It is the
+  cheapest fix for the discovery failure and this item cannot deliver
+  "everything reachable by name" without it. It must match the words a
+  woodworker uses, not only the field labels: *kickboard* → toe kick,
+  *beadboard* → grooves, *knock-down* → tab and slot, *rebate* → rabbet.
 
 **Where.** `apps/web/src/App.tsx`, `ParamPanel.tsx` (likely dissolved),
 `styles.css`, and a new set of shell components. `packages/core` should need no
@@ -1277,19 +1366,38 @@ belongs inline, at the moment of the decision. `MeasureWizard` is the exception
 that proves it — measuring a room is a genuinely sequential task with a defined
 end. Almost nothing else here is.
 
-**Acceptance criteria.**
-- [ ] The architecture from `docs/UX.md` implemented as the app's shell
+**The workshop profile must not become a live reference.** A project file keeps
+its own full parameters, exactly as it does now. The measured thickness of the
+sheet a design was cut to sets every groove width in it, so a project that
+silently re-cut itself to whoever opened it would be the "silently producing a
+wrong cabinet" failure `CLAUDE.md` calls the worst outcome available. Applying a
+profile is a loud, ordinary, undoable parameter update — never a pointer.
+
+**Acceptance criteria.** The numbers below are R-16's measurements; the method
+for reproducing them is in [UX.md](UX.md).
+- [ ] The architecture from [UX.md](UX.md) implemented as the app's shell
 - [ ] Design and workshop settings clearly separated; workshop settings saved
-      and reusable across projects
-- [ ] Selecting something in the model brings up its controls, in context
-- [ ] The cabinet occupies the majority of the window at every size
-- [ ] Everything reachable by name from a command palette or equivalent
-- [ ] Number of controls visible at rest is a small fraction of eighty, and the
-      figure is recorded
-- [ ] Interaction counts for every R-16 journey measurably improved, and the
-      before and after recorded in `docs/UX.md`
-- [ ] No regression in what the tool can express: every parameter still
-      reachable
+      and reusable across projects, applied as an undoable update rather than
+      referenced live
+- [ ] Selecting something in the model brings up its controls, in context —
+      against a measured baseline of 14 characters of sidebar
+- [ ] The cabinet occupies **≥ 70%** of the window at 1440 × 900 and **≥ 60%**
+      at 1024 × 768, against 42.7% and 34.6% today
+- [ ] Everything reachable by name from a command palette or equivalent,
+      including by the trade's own words
+- [ ] Controls rendered in the shell at rest **≤ 20**, all of them about the
+      selection, against 39 rendered at rest today and 129 with every group
+      open; the figure recorded
+- [ ] Interaction counts improved against R-16's table: J1 ≤ 8 (11), J4 ≤ 3
+      (5), J6 ≤ 2 and offered (3, off the beaten path), scroll ≤ one screen per
+      journey (664–2682 px today) — **except J3**, where the target is that no
+      route accepts a guessed corner angle, even if that makes it longer
+- [ ] No regression in what the tool can express: every parameter behind
+      today's controls still reachable — 129 on the default project, **243**
+      with every branch switched on — **and the eight that are not reachable
+      today**, which UX.md lists (the five material-role assignments, unequal
+      bay widths, and the two shelf-pin ladder limits). One of them is named as
+      the fix in a diagnostic the app already raises
 - [ ] `packages/core` unchanged, or the reason it had to change written down
 
 **Tests.** Every parameter still reachable — worth an explicit test, because the
@@ -1347,6 +1455,17 @@ R-20 wants the same section rendering for its plane; build it once.
 one line, in the user's terms: *"No fasteners needed. Joints show on the
 outside."* Not a restatement of the option's name.
 
+**R-16 raised this line from nice to load-bearing.** Measured: switching from a
+stopped dado to tab and slot changes *nothing on screen* — same badge, same 21
+parts, same 4 sheets. The cost of a construction choice is currently invisible,
+so the trade-off line is not decoration around the picture, it is the only place
+the consequence is stated at all.
+
+**Label the gallery with the question, not the field.** "How should the boxes go
+together?" reads to somebody who does not yet know the answer; "Carcass joint"
+only reads to somebody who does. This is the one idea worth keeping from the
+architecture R-16 rejected, and it costs a string.
+
 Then: **hovering a choice previews it on the actual design** and reverts on
 leave. Seeing the change on your own cabinet, at your own dimensions, beats any
 thumbnail — the thumbnail is how you know what to hover.
@@ -1368,6 +1487,10 @@ each one doubles as proof of what the tool can do.
 - [ ] Options that do not currently apply are shown, greyed, with the reason —
       an option hidden is an option nobody learns exists
 - [ ] Text-only fallback for anything genuinely non-visual
+- [ ] Each gallery titled as the question it answers, not as the parameter name
+- [ ] The consequence of a choice visible before it is committed — measured
+      against the baseline that changing the carcass joint currently changes
+      nothing on screen
 
 **Tests.** Every choice in every gallery, and every starter project, builds
 without error — that catches a stale sample after a model change, which is
@@ -1398,6 +1521,19 @@ R-18, a small content layer keyed to features.
 
 **Design notes.** R-18 does most of the heavy lifting by turning options into
 pictures. This item covers what that leaves.
+
+**One part has moved to R-17.** *Find by name* — searching parameters, options
+and the trade's own synonyms — shipped with the shell instead, because it is
+small, it is the cheapest fix for the discovery failure R-16 measured, and R-17
+cannot honestly claim "everything reachable by name" without it. What stays here
+is everything that reaches somebody who does not have a word to search for.
+
+**R-16's discovery audit is the target list.** Three rows in it are a clear yes
+today: two in the top bar or a tab, and reordering the run at the top of the
+sidebar. Everything else geometric sits 500–6800 px down the column, fifteen of
+those inside groups that are closed at rest and so render nothing until opened.
+The audit table in [UX.md](UX.md) names each one and how bad its route is;
+work it.
 
 **Explain in place, on demand.** Hover or select a joint in the 3D view and get
 a section through it, the clearances, and one line on why it is shaped that way.
@@ -1457,6 +1593,15 @@ to see how it actually goes together.
 **Design notes.** Selection and isolation already work and the raycasting is in
 place, so this is the next step from what exists rather than a rewrite.
 
+**R-16 pulled "click a bay to configure it" forward into R-17.** It is not
+polish on top of the new shell; it *is* that shell's selection model applied at
+the bay level, and the journey it serves — "drawers in that bay", the one people
+repeat — does not improve without it. Measured today at 5 interactions and 664
+px of scroll, of which the first two are wasted: clicking the bay in the model
+isolates a panel and changes nothing else, so the click has to be undone before
+the real route starts. Target 2. Dragging, click-to-restyle and the section
+plane stay here, and making bays addressable at all is still the real work.
+
 Start with **click to configure**, which is most of the value for a fraction of
 the work: select a bay, get its controls in a popover near what you clicked,
 using R-17's galleries. Add **dragging** afterwards, and only where a millimetre
@@ -1501,14 +1646,39 @@ when it could be a picture of the part next to the machine's envelope.
 
 **Where.** `Diagnostics.tsx`, `machine/check.ts`.
 
+**R-16 found a defect here, and it is now this item's headline.** On the default
+project the app's only offered fix for its only blocking errors makes things
+worse:
+
+| | Errors | Warnings | Export |
+|---|---|---|---|
+| Fresh project | 2 | 5 | blocked |
+| After pressing **Set sheets to machine size** | 1 (a *different* one) | 1 | still blocked |
+
+The two sheet-versus-travel errors become *"4 part(s) will not fit on any sheet
+size this material offers"*, whose hint reads *"Add a larger sheet size, or
+reduce the cabinet size"* — contradicting the button just pressed. The default
+cabinet has 1100 mm parts and the bed is 1000 mm square, so shrinking the sheet
+to the bed makes four parts unnestable. The route that works is the *other* half
+of the same diagnostic's own sentence — rip the sheets, i.e. width 1000 on both
+materials, three interactions — and nothing offers it.
+
 **Design notes.** The `hint` field already names the parameter that fixes each
 diagnostic, in prose. Where the fix is a single unambiguous parameter change,
-make it a button: **"Set sheets to machine size" already proves the pattern**,
-and the diagnostic recommending it should carry it rather than leaving the user
-to find it in the Material group. That means `Diagnostic` grows an optional
-structured fix — a parameter path and a value — applied through the normal
-update path so it is undoable like anything else. Only where it is genuinely
-unambiguous; a button that guesses is worse than a sentence that explains.
+make it a button — but the pattern the first draft of this item pointed at as
+proof is the counter-example, so the mechanism has to be built with that in
+mind. `Diagnostic` grows an optional structured fix — a parameter path and a
+value — applied through the normal update path so it is undoable like anything
+else. Only where it is genuinely unambiguous; a button that guesses is worse
+than a sentence that explains, and **a fix that would raise a new blocking
+error is not a fix**: check the result before offering it, the same way the
+pipeline is cheap enough to run twice.
+
+**Two errors about the machine are the first thing a new user sees**, before
+they have designed anything, because a fresh project's sheets do not fit a
+default bed. Route workshop-setup diagnostics to R-17's workshop surface, with a
+badge, rather than putting them in front of somebody who has not been asked what
+machine they own yet.
 
 Then **show the failure**. A part that will not fit gets a small diagram of the
 part against the machine envelope with the overhang shaded. A tiling warning
@@ -1525,9 +1695,19 @@ the top. "Ready to cut" is currently inferred from the colour of a dot; say it.
 - [ ] A readiness summary answering "can this be cut" in words
 - [ ] Clicking a diagnostic still highlights the part everywhere
 - [ ] Export explains why it is blocked rather than only being disabled
+- [ ] Workshop-setup diagnostics shown where they are fixable, not in front of
+      somebody who has not chosen a machine yet
+- [ ] The default project reaches an exportable state in **≤ 2 interactions**,
+      both of them offered
+- [ ] No view is permanently reduced by the panel. Today it holds 26.4% of the
+      window — more than the sidebar gets — on every tab including the Build
+      guide, and on the Parts tab that is why only 2 of 21 rows are visible
+      while the drawing is up, and why the drawing is gone by the time row 15
+      can be reached
 
-**Tests.** Each structured fix clears the diagnostic that offered it — one test
-each, because a fix that does not fix is worse than none.
+**Tests.** Each structured fix clears the diagnostic that offered it **and
+raises no new error** — one test each, because a fix that does not fix is worse
+than none, and this item's own first draft cited a fix that does exactly that.
 
 ---
 
@@ -1555,7 +1735,15 @@ show the parts it needs as pictures rather than part numbers — `B-DOOR-1` mean
 nothing with a panel in your hands.
 
 Take "re-cut one part" seriously here: exporting a single part's DXF is small
-and answers a real, frequent problem.
+and answers a real, frequent problem. **R-16 makes it the highest-value line in
+this item, not an afterthought** — of the seven journeys walked, it is the only
+one that cannot be completed at all. Today the route to one ruined panel is the
+whole-project zip and another program.
+
+**Nothing may be explained only in a `title`.** Forty-three of the 86 labelled
+fields carry a hover tooltip and it is the only explanation they have. A tablet
+at arm's length cannot hover, which makes half the tool's help invisible in
+exactly the place this item is designing for.
 
 **Acceptance criteria.**
 - [ ] Export preview with sheet thumbnails, tiles and materials before download
@@ -1564,6 +1752,7 @@ and answers a real, frequent problem.
 - [ ] A workshop view legible at arm's length, steps illustrated, progress
       surviving a reload
 - [ ] The designer usable on a tablet, even if it is not the focus
+- [ ] No explanation reachable only by hovering
 
 ---
 
@@ -1629,6 +1818,11 @@ named the inspector and the workshop-settings surface — plus a handful of
 Playwright end-to-end tests over the flows that matter: change a parameter and
 see the preview update, add an effect, export a zip. Also covers the automated
 keyboard-navigation pass R-23 deferred to here, for the same reason.
+
+**R-16 gave this item something concrete to pin.** The seven journeys in
+[UX.md](UX.md) are already scripted walks with recorded interaction counts.
+Landing them as Playwright tests that assert the counts is what stops R-17's
+numbers rotting the first time somebody adds a control back.
 
 ---
 
@@ -1704,3 +1898,28 @@ meant testing it once and rewriting those tests again right after. Deferred to
 a new R-24, sitting at the end of Milestone F once the redesign has a shape
 worth testing, rather than worked twice. The release item moved to R-25 to
 keep the numbering in reading order.
+
+**Fourth revision.** R-16's research landed as [UX.md](UX.md), and the rest of
+Milestone F was reconciled against it in place. Nothing was dropped; three
+things moved and one thing changed meaning.
+
+- **Find-by-name moved from R-19 to R-17**, and **click-a-bay-to-configure moved
+  from R-20 to R-17**. Both turned out to be parts of the shell rather than
+  things built on top of it: R-17 cannot claim "everything reachable by name"
+  without the first, and the most-repeated journey does not improve without the
+  second.
+- **R-21 gained a defect as its headline.** The fix the app offers for the only
+  blocking errors a fresh project has swaps them for a different blocking error
+  whose hint contradicts the button. The item's first draft cited that button as
+  the pattern to follow; it is the counter-example, and structured fixes now
+  have to prove they raise no new error.
+- **"Interaction counts measurably improved" stopped being the target for one
+  journey.** Fitting a crooked room takes 21 interactions through the wizard and
+  9 by hand, and the 9 is the one that silently accepts a guessed corner angle.
+  The target there is no guessed angle at any count, even if that makes it
+  longer. Measuring fewer things is not the same as measuring them faster.
+
+The milestone preamble's measured figures were re-measured at the same time and
+had grown — 129 sidebar controls rather than 80, 8.1 screens rather than 5.5 —
+mostly through R-09's edge-banding matrix. The numeric-and-dropdown count is
+unchanged at 66.
