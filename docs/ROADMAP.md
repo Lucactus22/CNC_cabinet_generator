@@ -1014,6 +1014,42 @@ The geometry is well tested; the file format is tested only in fragments.
 **Goal.** A small set of committed reference DXF files with a test that
 regenerates and compares them, and a documented way to update them deliberately.
 
+**Revised while working it.** The item had a goal but no acceptance criteria,
+like R-13 before it — written below from the goal's own sentence rather than
+found pre-written. It also did not say whether to extend the existing
+`golden.test.ts`/`default-0.1` fixture or add beside it; extending was not
+possible without breaking its own promise, so this adds a second, separate
+mechanism instead. That fixture is pinned to the 0.1 default project
+byte-for-byte specifically *because* nothing about it has changed since before
+R-03 — folding new configurations into the same file and directory would have
+meant either widening what "byte-identical to 0.1" means (weakening the
+promise `ARCHITECTURE.md` documents) or forking its comparison logic in place
+(harder to read than a second file). `golden-fixtures.ts` and
+`golden-fixtures.test.ts` sit beside it instead, comparing a small, varied set
+of *current* configurations against `test/golden/fixtures/<name>/`, regenerated
+deliberately with `UPDATE_GOLDEN=1 npm test -- golden-fixtures`. See
+`ARCHITECTURE.md`'s Testing section for the mechanics.
+
+**Acceptance criteria.**
+- [x] A small set of committed reference DXF (and cut list) files, covering
+      configurations the 0.1 fixture cannot reach: tab-and-slot joinery, a
+      face frame with a drawer stack, and a rabbet back with banded doors
+      under a crooked opening
+- [x] A test that regenerates each configuration and compares every file
+      `exportProject` produces against the committed copy, byte for byte and
+      in order, and fails if a file goes missing, a new one appears
+      uncommitted, or the order changes
+- [x] A documented way to update them deliberately — an environment variable
+      that writes instead of comparing, named in both the test file's own
+      header comment and `ARCHITECTURE.md`
+- [x] A fixture with nothing committed yet fails with the exact command to
+      run, not a bare diff
+
+**Tests.** The tests *are* the deliverable here; the round trip itself was
+checked by running `UPDATE_GOLDEN=1` to write each fixture, then running
+normally to confirm the freshly written files compare equal, before committing
+either.
+
 ---
 
 ## Milestone F — Design, and the people using it

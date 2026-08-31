@@ -1,0 +1,22 @@
+Part ID,Description,Cabinet,Carcass,Role,Material,Thickness (mm),Length (mm),Width (mm),Qty,Sheet,Grain,Pockets,Holes,Cut length (mm)
+C1-B-SIDE-L,"Base side, left",Stacked unit,Base,side,18 mm birch plywood,17.8,886.2,600,1,2,fixed,2,6,5642
+C1-B-SIDE-R,"Base side, right",Stacked unit,Base,side,18 mm birch plywood,17.8,886.2,600,1,2,fixed,2,6,6346.6
+C1-B-TOP,Base top,Stacked unit,Base,top,18 mm birch plywood,17.8,900,600,1,1,fixed,3,10,7913.3
+C1-B-BOTTOM,Base bottom,Stacked unit,Base,bottom,18 mm birch plywood,17.8,900,600,1,1,fixed,1,0,6042.1
+C1-B-TOERAIL,Base toe kick rail,Stacked unit,Base,toe-rail,18 mm birch plywood,17.8,876.4,100,1,1,fixed,0,0,1952.8
+C1-B-DIV-1,Base divider 1,Stacked unit,Base,divider,18 mm birch plywood,17.8,800,576.1,1,1,fixed,0,0,3910.3
+C1-B-SHELF-2-1,"Base shelf, bay 2 no 1",Stacked unit,Base,shelf,18 mm birch plywood,17.8,576.1,458.9,1,1,fixed,0,0,2523.4
+C1-B-DOOR-1,"Base door, bay 1",Stacked unit,Base,door,18 mm birch plywood,17.8,779.2,447,1,3,fixed,2,4,2672.1
+C1-B-DOOR-2,"Base door, bay 2",Stacked unit,Base,door,18 mm birch plywood,17.8,779.2,447,1,3,fixed,2,4,2672.1
+C1-B-BACK,Base back,Stacked unit,Base,back,12 mm birch plywood,11.9,876.4,776.4,1,4,any,0,0,3305.6
+C1-T-SIDE-L,"Upper side, left",Stacked unit,Upper,side,18 mm birch plywood,17.8,1100,400,1,1,fixed,1,0,8323.7
+C1-T-SIDE-R,"Upper side, right",Stacked unit,Upper,side,18 mm birch plywood,17.8,1100,400,1,2,fixed,1,54,6209.8
+C1-T-TOP,Upper top,Stacked unit,Upper,top,18 mm birch plywood,17.8,900,400,1,3,fixed,1,0,5203.6
+C1-T-BOTTOM,Upper bottom,Stacked unit,Upper,bottom,18 mm birch plywood,17.8,900,400,1,3,fixed,1,0,5203.6
+C1-T-DIV-1,Upper divider 1,Stacked unit,Upper,divider,18 mm birch plywood,17.8,1100,376.1,1,2,fixed,0,54,5388.4
+C1-T-SHELF-1-1,"Upper shelf, bay 1 no 1",Stacked unit,Upper,shelf,18 mm birch plywood,17.8,458.9,376.1,1,1,fixed,0,0,1992.3
+C1-T-SHELF-1-2,"Upper shelf, bay 1 no 2",Stacked unit,Upper,shelf,18 mm birch plywood,17.8,458.9,376.1,1,2,fixed,0,0,1992.3
+C1-T-SHELF-1-3,"Upper shelf, bay 1 no 3",Stacked unit,Upper,shelf,18 mm birch plywood,17.8,458.9,376.1,1,3,fixed,0,0,1992.3
+C1-T-SHELF-1-4,"Upper shelf, bay 1 no 4",Stacked unit,Upper,shelf,18 mm birch plywood,17.8,458.9,376.1,1,3,fixed,0,0,1992.3
+C1-T-SHELF-ADJ-2,"Upper adjustable shelf, bay 2",Stacked unit,Upper,shelf,18 mm birch plywood,17.8,421.3,374.1,1,3,fixed,0,0,1590.8
+C1-T-BACK,Upper back,Stacked unit,Upper,back,12 mm birch plywood,11.9,1076.4,876.4,1,4,any,0,0,3905.6

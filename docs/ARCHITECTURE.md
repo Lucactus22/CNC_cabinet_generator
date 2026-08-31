@@ -316,8 +316,21 @@ Tests live in `packages/core/test`. The web app has none yet — see the roadmap
 before R-03 turned two hardcoded carcasses into a run of cabinets. `golden.test.ts`
 regenerates and compares it byte for byte, so a refactor that quietly moves a
 dimension cannot pass. Update those files only when a change to the geometry is
-the point, and say so in the commit. **R-15** generalises this to more
-configurations.
+the point, and say so in the commit.
+
+`golden-fixtures.test.ts` generalises that promise beyond the one 0.1 case
+(R-15). The 0.1 fixture is dado-jointed, frameless and square by construction,
+so it is silent about everything since: `golden-fixtures.ts` lists a small,
+deliberately varied set of configurations — tab-and-slot joinery, a face frame
+with a drawer stack, and a rabbet back with banded doors under a crooked
+opening — and the test compares every file `exportProject` produces for each
+one, byte for byte and in order, against `test/golden/fixtures/<name>/`; a
+generated `_files.txt` in each fixture's directory records that order, the
+sequence a workshop sets sheets up in. A fixture with no committed directory
+yet fails with the exact command to run rather than a bare diff. Update
+deliberately with `UPDATE_GOLDEN=1 npm test -- golden-fixtures`, review the
+diff under `test/golden/fixtures/` like any other change, and say in the
+commit why the geometry moved.
 
 The philosophy is to pin **behaviour that would be expensive to get wrong in
 plywood**, not implementation details:
