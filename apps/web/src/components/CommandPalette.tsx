@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { search, selectionFor, type CatalogEntry } from '../catalog';
+import { search, type CatalogEntry } from '../catalog';
+import { searchTopics, type Topic } from '../explain/topics';
+import { useGoTo } from '../navigate';
 import { useStore } from '../store';
 
 /**
@@ -15,9 +17,8 @@ import { useStore } from '../store';
 export function CommandPalette() {
   const open = useStore((s) => s.paletteOpen);
   const setOpen = useStore((s) => s.setPaletteOpen);
-  const params = useStore((s) => s.params);
-  const selection = useStore((s) => s.selection);
-  const reveal = useStore((s) => s.reveal);
+  const setShowroom = useStore((s) => s.setShowroom);
+  const { toEntry } = useGoTo();
 
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
@@ -31,21 +32,16 @@ export function CommandPalette() {
     }
   }, [open]);
 
-  const results = useMemo(() => search(query).slice(0, 12), [query]);
+  const results = useMemo(() => search(query).slice(0, 10), [query]);
+  const topics = useMemo(() => searchTopics(query).slice(0, 4), [query]);
 
   if (!open) return null;
 
-  const go = (entry: CatalogEntry): void => {
-    if (entry.where.surface === 'workshop') {
-      reveal({ surface: 'bench', workshop: true, param: entry.path });
-      return;
-    }
-    reveal({
-      surface: 'bench',
-      workshop: false,
-      selection: selectionFor(entry.where, params, selection),
-      param: entry.path,
-    });
+  // `reveal` shuts the palette itself, so there is nothing to close here.
+  const go = (entry: CatalogEntry): void => toEntry(entry);
+  const explain = (topic: Topic): void => {
+    setOpen(false);
+    setShowroom({ topicId: topic.id });
   };
 
   return (
@@ -84,7 +80,7 @@ export function CommandPalette() {
             }
           }}
         />
-        {query.trim() !== '' && results.length === 0 && (
+        {query.trim() !== '' && results.length === 0 && topics.length === 0 && (
           <p className="hint">Nothing by that name. Try the word you would use at the bench.</p>
         )}
         <ul>
@@ -102,6 +98,19 @@ export function CommandPalette() {
             </li>
           ))}
         </ul>
+        {topics.length > 0 && (
+          <ul className="palette-topics">
+            {topics.map(({ topic }) => (
+              <li key={topic.id}>
+                <button onClick={() => explain(topic)}>
+                  <b>{topic.title}</b>
+                  <span className="where">What it is</span>
+                  <span className="about">{topic.what}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

@@ -7,6 +7,7 @@ import { WorkshopDrawer } from './components/WorkshopDrawer';
 import { CommandPalette } from './components/CommandPalette';
 import { DiagnosticsPanel } from './components/DiagnosticsPanel';
 import { StarterGallery } from './gallery/StarterGallery';
+import { Showroom } from './components/Showroom';
 import { useStore } from './store';
 
 /**
@@ -23,6 +24,7 @@ export function App() {
   const workshopOpen = useStore((s) => s.workshopOpen);
   const diagnosticsOpen = useStore((s) => s.diagnosticsOpen);
   const startersOpen = useStore((s) => s.startersOpen);
+  const showroom = useStore((s) => s.showroom);
   useShortcuts();
 
   return (
@@ -39,6 +41,7 @@ export function App() {
         {diagnosticsOpen && <DiagnosticsPanel />}
         {workshopOpen && <WorkshopDrawer />}
         {startersOpen && <StarterGallery />}
+        {showroom !== null && <Showroom />}
       </div>
 
       {surface === 'bench' && <RunStrip />}

@@ -98,6 +98,16 @@ export interface SectionView {
   axis: Axis;
   at?: number;
   crop?: Crop;
+  /**
+   * Zoom the finished section onto one point of the assembly.
+   *
+   * A dado is six millimetres deep in a cabinet two metres tall, so a section
+   * of the whole thing puts the joint somebody asked about under a pixel.
+   * Given in assembly space rather than in the projected drawing so a caller
+   * can hand over the feature's own position without knowing which way the
+   * section is looked at.
+   */
+  focus?: { at: Vec3; window: number };
 }
 
 /** One flat blank in its machining coordinates, optionally zoomed to a detail. */
@@ -356,7 +366,15 @@ function drawSection(result: ProjectResult, view: SectionView): Drawing {
     }
   }
 
-  return compose(facets);
+  const drawing = compose(facets);
+  if (!view.focus) return drawing;
+  const centre = project(basis, view.focus.at);
+  const half = view.focus.window / 2;
+  return {
+    ...drawing,
+    viewBox: `${round(centre.x - half)} ${round(centre.y - half)} ${round(2 * half)} ${round(2 * half)}`,
+    span: view.focus.window,
+  };
 }
 
 /**

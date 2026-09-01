@@ -4,6 +4,7 @@ import { applyWorkshop, workshopOf } from '../workshop';
 import { cachedBuild } from './samples';
 import { Thumbnail } from './Thumbnail';
 import { STARTERS, type Starter } from './starters';
+import { topicById } from '../explain/topics';
 import type { View } from './render';
 
 /**
@@ -27,6 +28,7 @@ export function StarterGallery() {
   const params = useStore((s) => s.params);
   const startFrom = useStore((s) => s.startFrom);
   const close = useStore((s) => s.setStartersOpen);
+  const setShowroom = useStore((s) => s.setShowroom);
 
   return (
     <div className="scrim" onClick={() => close(false)} role="presentation">
@@ -44,7 +46,16 @@ export function StarterGallery() {
         <p className="hint">
           Each of these loads complete and cuttable, on the machine and the sheets this browser
           already knows about. Taking one apart is a faster way to find out what this tool can make
-          than reading about it.
+          than reading about it — and each one says underneath what it is there to show you.{' '}
+          <button
+            className="link"
+            onClick={() => {
+              close(false);
+              setShowroom({ topicId: null });
+            }}
+          >
+            Or see everything it can make.
+          </button>
         </p>
         <div className="starter-grid">
           {STARTERS.map((starter) => {
@@ -63,6 +74,11 @@ export function StarterGallery() {
                 <Thumbnail project={project} view={STARTER_VIEW} className="starter-pic" />
                 <b>{starter.name}</b>
                 <span>{starter.about}</span>
+                <span className="demonstrates">
+                  {starter.demonstrates.map((id) => (
+                    <i key={id}>{topicById(id)?.title ?? id}</i>
+                  ))}
+                </span>
                 <em>
                   {project.parts.length} parts · {project.nest.sheets.length} sheets
                 </em>

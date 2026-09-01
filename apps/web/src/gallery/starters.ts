@@ -29,6 +29,16 @@ export interface Starter {
   name: string;
   /** What this one is, and what it demonstrates. One line. */
   about: string;
+  /**
+   * The capabilities this design is here to show, as topic ids from
+   * `explain/topics.ts`.
+   *
+   * Named rather than described, and checked: `explain.test.ts` builds the
+   * starter and asserts each claimed capability is genuinely in the geometry.
+   * A lesson that stopped being true the moment somebody changed a default
+   * would be worse than no lesson, because it was believed.
+   */
+  demonstrates: string[];
   build: () => ProjectParams;
 }
 
@@ -71,6 +81,7 @@ export const STARTERS: Starter[] = [
     name: 'The reference unit',
     about:
       'What this tool was built from: a deep base with doors under a shallower shelved box, capped top, toe kick.',
+    demonstrates: ['stopped-dado', 'capped-top', 'toe-kick', 'hinge-boring', 'back-panel'],
     build: () => defaultParams(),
   },
   {
@@ -78,6 +89,7 @@ export const STARTERS: Starter[] = [
     name: 'A run of base units',
     about:
       'Three boxes along a wall, one of them a bank of drawers. Shows how a run is laid out and nested as one job.',
+    demonstrates: ['drawer-box', 'slide-holes', 'toe-kick'],
     build: () =>
       design('Base run', [baseUnit('C1', 'Left'), drawerBank('C2'), baseUnit('C3', 'Right')]),
   },
@@ -86,6 +98,7 @@ export const STARTERS: Starter[] = [
     name: 'A wall cabinet',
     about:
       'Hangs over a worktop: no toe kick, shallower, and a solid hanging rail to screw it up by rather than the back panel.',
+    demonstrates: ['hanging-rail', 'cabinet-types'],
     build: () => design('Wall cabinet', [{ ...newCabinetOfType('wall', []), id: 'C1' }]),
   },
   {
@@ -93,6 +106,7 @@ export const STARTERS: Starter[] = [
     name: 'A wardrobe',
     about:
       'Floor to near ceiling, double doors, and shelves on a bored 32 mm ladder so they move later.',
+    demonstrates: ['shelf-pins', 'door-fit', 'hinge-boring'],
     build: () =>
       design('Wardrobe', [
         {
@@ -120,6 +134,7 @@ export const STARTERS: Starter[] = [
     name: 'A bookcase',
     about:
       'Open, fixed shelves, and knocked together with tab and slot — no screws, and the tabs on show as the detail.',
+    demonstrates: ['tab-and-slot', 'corner-relief'],
     build: () =>
       design(
         'Bookcase',

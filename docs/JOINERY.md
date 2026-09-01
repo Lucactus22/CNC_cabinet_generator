@@ -243,6 +243,34 @@ back's face stepped behind the sides and awkward to reach.
 Pick groove to keep the back invisible from behind; pick rabbet when the back
 of the carcass has to meet a wall that is not flat.
 
+## Toe kick
+
+The plinth a base cabinet stands on, so your feet fit under it while you work
+at the front of it.
+
+```
+Both side panels are notched away at the front bottom corner
+Notch = toeKick.height tall by toeKick.setback deep
+A rail is housed in a plain dado between the sides, its front face at the setback
+Everything inside the carcass — the bottom panel, the doors, a face frame —
+  starts above the notch rather than at the floor
+```
+
+The rail is one piece spanning the full width between the outer sides, not one
+per bay: unlike a shelf or a hanging rail, nothing above it needs to reach past
+it, so there is no divider for it to run into. It always sits in a plain
+housing joint whatever the carcass joint is, for the same reason a back does —
+tabs through the outside of a plinth would be visible work for nothing.
+
+**Only the carcass actually on the floor gets one.** Ask for a toe kick on a
+box that is standing on another and it is left off, with a note saying so: at
+that height the same notch is not a plinth but a recess in the middle of a run,
+and it would land exactly where the panel below has to carry the box above.
+
+A toe kick as tall as the carcass itself is a note rather than an error — it is
+a legitimate, if odd, thing to ask for — but it leaves nothing above it to put
+anything in.
+
 ## Hanging rail
 
 A wall cabinet's own back panel is thin by default (12 mm) and is not something
