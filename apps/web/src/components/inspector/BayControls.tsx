@@ -1,9 +1,17 @@
-import type { BaySpec, Carcass, DoorStyle, Part, ShelfMode } from '@cabgen/core';
+import type { BaySpec, Carcass, Part, ProjectParams, ShelfMode } from '@cabgen/core';
 import { useStore } from '../../store';
-import { ChoiceField, Hint, NumberField, Reveal, SelectField } from '../Controls';
+import { Hint, NumberField, Reveal, SelectField } from '../Controls';
+import { ChoiceGallery } from '../../gallery/Gallery';
+import { BAY_FRONT, BAY_INSIDE, type Fronting } from '../../gallery/choices';
 
-/** What fronts a bay, as one choice: a bay is doors or drawers, never both. */
-export type Fronting = DoorStyle | 'drawers';
+export type { Fronting };
+
+/** Which bay a set of controls is pointed at, so a draft mutation can find it. */
+export interface BayAt {
+  cabinetId: string;
+  carcassId: string;
+  bay: number;
+}
 
 /**
  * A new drawer bank starts as three.
@@ -26,92 +34,104 @@ export const emptyBay = (): BaySpec => ({
   drawerFrontHeights: [],
 });
 
+/**
+ * Bay `at` inside a draft, created if the divider count outran the list.
+ *
+ * Taken on the draft rather than through the store, because the option
+ * galleries apply the very same change twice — once to a throwaway copy to
+ * find out what it would cost, and once for real when it is clicked.
+ */
+export function bayIn(p: ProjectParams, at: BayAt): BaySpec | null {
+  const carcass = p.cabinets
+    .find((c) => c.id === at.cabinetId)
+    ?.carcasses.find((k) => k.id === at.carcassId);
+  if (!carcass) return null;
+  while (carcass.bays.length <= at.bay) carcass.bays.push(emptyBay());
+  return carcass.bays[at.bay]!;
+}
+
 /** Edit bay `i` of a carcass, creating it if the divider count outran the list. */
 export function useBayPatch(cabinetId: string, carcassId: string, bay: number) {
   const update = useStore((s) => s.update);
   return (fn: (b: BaySpec) => void): void =>
     update((p) => {
-      const carcass = p.cabinets
-        .find((c) => c.id === cabinetId)
-        ?.carcasses.find((k) => k.id === carcassId);
-      if (!carcass) return;
-      while (carcass.bays.length <= bay) carcass.bays.push(emptyBay());
-      fn(carcass.bays[bay]!);
+      const spec = bayIn(p, { cabinetId, carcassId, bay });
+      if (spec) fn(spec);
     });
 }
 
-const FRONTS: Array<{ value: Fronting; label: string; about?: string }> = [
-  { value: 'none', label: 'Open', about: 'Nothing across the front' },
-  { value: 'left', label: 'Door, hinged left' },
-  { value: 'right', label: 'Door, hinged right' },
-  { value: 'double', label: 'Pair of doors' },
-  { value: 'drawers', label: 'Drawers', about: 'A bank of three to start with' },
-];
+/** A bay is doors or drawers, never both, so one choice sets whichever it is. */
+export function setFronting(spec: BaySpec, v: Fronting): void {
+  if (v === 'drawers') {
+    spec.drawerFrontHeights = [...NEW_STACK];
+    return;
+  }
+  // Leaving the stack behind would mean a door choice that changes nothing.
+  spec.drawerFrontHeights = [];
+  spec.doors = v;
+}
 
 /**
- * `compact` is the same choice as a dropdown rather than a row of labelled
- * options: a carcass shows every one of its bays at once, and five explained
- * options per bay is three screens of scrolling to lay out one box. The bay's
- * own inspector — where there is one bay and room to say what each option is —
- * gets the explained version.
+ * `compact` is the same choice as a dropdown rather than a gallery of rendered
+ * options: a carcass shows every one of its bays at once, and five pictures
+ * per bay is several screens of scrolling to lay out one box. The bay's own
+ * inspector — where there is one bay and room to show what each option makes —
+ * gets the pictures.
  */
 export function BayFront({
   bay,
+  at,
   patch,
   compact = false,
 }: {
   bay: BaySpec;
+  at: BayAt;
   patch: (fn: (b: BaySpec) => void) => void;
   compact?: boolean;
 }) {
-  const onChange = (v: Fronting): void =>
-    patch((b) => {
-      if (v === 'drawers') {
-        b.drawerFrontHeights = [...NEW_STACK];
-      } else {
-        // A bay is doors or drawers; leaving the stack behind would mean a
-        // door choice that changes nothing on screen.
-        b.drawerFrontHeights = [];
-        b.doors = v;
-      }
-    });
-
   const param = 'cabinets[].carcasses[].bays[].doors';
   return compact ? (
     <SelectField
       label="Front"
       value={frontingOf(bay)}
       param={param}
-      options={FRONTS}
-      onChange={onChange}
+      options={BAY_FRONT.options}
+      onChange={(v) => patch((b) => setFronting(b, v))}
     />
   ) : (
-    <ChoiceField
-      label="Front"
+    <ChoiceGallery
+      gallery={BAY_FRONT}
       value={frontingOf(bay)}
       param={param}
-      options={FRONTS}
-      onChange={onChange}
+      set={(draft, v) => {
+        const spec = bayIn(draft, at);
+        if (spec) setFronting(spec, v);
+      }}
     />
   );
 }
 
-const INSIDES: Array<{ value: ShelfMode; label: string; about?: string }> = [
-  { value: 'none', label: 'Empty' },
-  { value: 'fixed', label: 'Fixed shelves', about: 'Housed in a dado each side' },
-  { value: 'adjustable', label: 'Adjustable', about: 'On pins, in a bored ladder' },
-];
+const INSIDES: Array<{ value: ShelfMode; label: string }> = BAY_INSIDE.options.map((o) => ({
+  value: o.value,
+  label: o.label,
+}));
 
 export function BayInside({
   bay,
+  at,
   patch,
   compact = false,
 }: {
   bay: BaySpec;
+  at: BayAt;
   patch: (fn: (b: BaySpec) => void) => void;
   compact?: boolean;
 }) {
-  if (bay.drawerFrontHeights.length > 0) return null;
+  const drawers = bay.drawerFrontHeights.length > 0;
+  // Hidden while the bay is a drawer bank, this was a capability nobody could
+  // discover from a bay that happened to have drawers in it. Shown greyed with
+  // the reason instead.
+  if (drawers && compact) return null;
   const onChange = (v: ShelfMode): void => patch((b) => void (b.shelves = v));
   const param = 'cabinets[].carcasses[].bays[].shelves';
   return (
@@ -125,15 +145,22 @@ export function BayInside({
           onChange={onChange}
         />
       ) : (
-        <ChoiceField
-          label="Inside"
+        <ChoiceGallery
+          gallery={BAY_INSIDE}
           value={bay.shelves}
           param={param}
-          options={INSIDES}
-          onChange={onChange}
+          set={(draft, v) => {
+            const spec = bayIn(draft, at);
+            if (spec) spec.shelves = v;
+          }}
+          unavailable={() =>
+            drawers
+              ? 'This bay is a bank of drawers, so there is nowhere to put a shelf.'
+              : undefined
+          }
         />
       )}
-      {bay.shelves === 'fixed' && (
+      {!drawers && bay.shelves === 'fixed' && (
         <NumberField
           label="How many"
           value={bay.shelfCount}

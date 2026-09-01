@@ -1,5 +1,7 @@
 import { useStore } from '../../store';
 import { Group, Hint, NumberField, SelectField } from '../Controls';
+import { ChoiceGallery } from '../../gallery/Gallery';
+import { DOOR_FIT } from '../../gallery/choices';
 import { BayFront, BayInside, DrawerStack, emptyBay, useBayPatch } from './BayControls';
 
 /**
@@ -33,8 +35,8 @@ export function BayInspector({
   return (
     <>
       <Group title={`Bay ${bay + 1}`} open>
-        <BayFront bay={spec} patch={patch} />
-        <BayInside bay={spec} patch={patch} />
+        <BayFront bay={spec} at={{ cabinetId, carcassId, bay }} patch={patch} />
+        <BayInside bay={spec} at={{ cabinetId, carcassId, bay }} patch={patch} />
         <DrawerStack
           bay={spec}
           bayIndex={bay}
@@ -46,19 +48,13 @@ export function BayInspector({
 
       {(spec.doors !== 'none' || drawers) && (
         <Group title={drawers ? 'How the fronts sit' : 'How the doors sit'} open>
-          <SelectField
-            label="Fit"
+          <ChoiceGallery
+            gallery={DOOR_FIT}
             value={params.doors.fit}
             param="doors.fit"
-            options={[
-              { value: 'overlay', label: 'Overlay, in front of the carcass' },
-              { value: 'inset', label: 'Inset, flush in the opening' },
-            ]}
-            onChange={(v) =>
-              update((p) => {
-                p.doors.fit = v;
-              })
-            }
+            set={(p, v) => {
+              p.doors.fit = v;
+            }}
           />
           <NumberField
             label={params.doors.fit === 'overlay' ? 'Reveal' : 'Clearance'}

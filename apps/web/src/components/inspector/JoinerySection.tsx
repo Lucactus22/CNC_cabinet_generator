@@ -1,5 +1,7 @@
 import { useStore } from '../../store';
-import { CheckField, ChoiceField, Group, Hint, NumberField, SelectField } from '../Controls';
+import { CheckField, Group, Hint, NumberField } from '../Controls';
+import { ChoiceGallery } from '../../gallery/Gallery';
+import { CARCASS_JOINT, RELIEF } from '../../gallery/choices';
 
 /**
  * How the boxes go together.
@@ -20,47 +22,38 @@ export function JoinerySection() {
       title="How it goes together"
       count={j.carcassJoint === 'tabslot' ? 'tab & slot' : undefined}
     >
-      <ChoiceField
-        label="Carcass joint"
+      <ChoiceGallery
+        gallery={CARCASS_JOINT}
         value={j.carcassJoint}
         param="joinery.carcassJoint"
-        options={[
-          {
-            value: 'dado',
-            label: 'Stopped dado',
-            about: 'Housed and screwed. Nothing shows on the outside; needs screws and glue.',
-          },
-          {
-            value: 'tabslot',
-            label: 'Tab and slot',
-            about: 'Knock-down. No screws needed; the tabs show on the outside face.',
-          },
-        ]}
-        onChange={(v) =>
-          update((p) => {
-            p.joinery.carcassJoint = v;
-          })
-        }
+        set={(p, v) => {
+          p.joinery.carcassJoint = v;
+        }}
       />
       <Hint>
         Applies to every carcass in the project — one set of grooves that all have to fit.
       </Hint>
-      <SelectField
-        label="Corner relief"
+      <ChoiceGallery
+        gallery={RELIEF}
         value={j.reliefStyle}
         param="joinery.reliefStyle"
-        options={[
-          { value: 'dogbone', label: 'Dogbone' },
-          { value: 'tbone', label: 'T-bone' },
-          { value: 'none', label: 'None' },
-        ]}
-        onChange={(v) =>
-          update((p) => {
-            p.joinery.reliefStyle = v;
-          })
-        }
-        title="Without relief, the cutter's radius leaves material where a square corner has to sit."
+        set={(p, v) => {
+          p.joinery.reliefStyle = v;
+        }}
       />
+      {/* Measured while R-18 was drawing these: with a stopped dado, nothing
+          in the project has a square corner to relieve — the cutter's own
+          radius rounds the end of a groove — so this control changes not one
+          byte of the output. It stays visible, because it decides everything
+          the moment the joint changes, but a control that silently does
+          nothing is exactly the kind of thing this app must not have. */}
+      {j.carcassJoint === 'dado' && (
+        <Hint>
+          Nothing in a stopped-dado box has a square corner to relieve, so this changes nothing
+          until the joint is tab and slot. The pictures are drawn on a tab-and-slot sample for that
+          reason.
+        </Hint>
+      )}
       <NumberField
         label="Fit clearance"
         value={j.fitClearance}

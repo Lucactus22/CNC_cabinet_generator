@@ -241,6 +241,7 @@ Three registries, each designed so new entries are additive.
 | A surface effect | an `EffectApplier` in `effects/` | `EFFECTS` and `EFFECT_LABELS` |
 | A make of hardware | a `HardwareEntry` — plain data | `CATALOGUE` in `hardware/catalogue.ts` |
 | A new *kind* of hardware | a boring function in `hardware/` | called from `applyJoinery`, plus a row in `CARRIES` |
+| A picture for a choice | a `Gallery` — a question, a view and options that shape a sample | `apps/web/src/gallery/choices.ts`, rendered by `<ChoiceGallery>` |
 
 Effects are the cleanest of the three: an effect only ever *adds features*, so
 the builder, the nester and the DXF writer need no changes at all. Prefer that
@@ -358,6 +359,35 @@ had to repoint. A project that silently re-cut itself to whoever opened it
 would be the "silently producing a wrong cabinet" failure `CLAUDE.md` calls the
 worst outcome available.
 
+**`gallery/` — the pictures are generated, never drawn.** Every option with a
+visible consequence is chosen from renders of what it produces (R-18). Nothing
+in there is an icon:
+
+```
+gallery/choices.ts      every gallery, as a question and a set of options
+gallery/samples.ts      the little projects the pictures are drawn from, cached
+gallery/render.ts       ProjectResult -> SVG paths: axonometric, section, detail
+gallery/Thumbnail.tsx   one picture
+gallery/Gallery.tsx     the picker, the greyed-out reasons, and the cost line
+gallery/starters.ts     five designs to start from, as furniture only
+```
+
+`samples.ts` builds a small cabinet through `buildProject` — the real pipeline
+— seeded with the *workshop* half of the live project, so a thumbnail shows
+your sheet thickness, your cutter and your dado depth. `render.ts` turns the
+result into SVG paths three ways: an axonometric view with back-facing prism
+faces culled and the rest painter-sorted; a **section**, which reduces a plane
+across an assembly axis to a line across each flat blank and walks it, taking
+pockets, slots and hinge cups out of the material as it goes; and a zoomed
+detail of one blank, for anything a few millimetres across. Two rules keep it
+honest: the cache is keyed on the sample's own parameters, which is the only
+key that cannot go stale, and a section left without a coordinate picks the
+plane that crosses the most machining rather than one somebody measured once.
+
+The section is what makes a capped top and an inset one distinguishable at all
+— capping exists precisely so the seam does not show from outside. R-20 wants
+the same rendering for its draggable section plane; this is where it lives.
+
 ## Testing
 
 Tests live in `packages/core/test`, with the web app's own in
@@ -401,5 +431,11 @@ person will delete.
 
 Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
-- the web app has only the catalogue tests; no component or end-to-end coverage
+- the web app has the catalogue and gallery tests; no component or end-to-end
+  coverage of the shell itself
 - a bay can be selected in the run strip but not by clicking the cabinet itself
+- `joinery.reliefStyle` has no effect under stopped-dado joinery, which is the
+  default: relief is applied to tab-and-slot slots and tab roots and nothing
+  else. The control stays, because it decides everything the moment the joint
+  changes, and the joinery section says so in a line rather than leaving it
+  silent

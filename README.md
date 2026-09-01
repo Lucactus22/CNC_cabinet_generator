@@ -21,6 +21,23 @@ npm test
 
 The cabinet is the workspace, not a picture next to a form.
 
+**Choices are pictures.** Every option with a visible consequence — how the
+boxes go together, how the top meets the sides, how the back goes in, what
+fronts a bay — is chosen by looking at what it produces, under a heading that
+asks the question rather than naming the field. The pictures are *generated*:
+each one is a small cabinet run through the same pipeline as your design, using
+your sheet thickness and your cutter, so they cannot drift from what the tool
+actually cuts. Where the difference is inside the panels the picture is a real
+section through them, with the grooves, slots and hinge cups in it. Hover an
+option and it appears on your own cabinet, with what it costs in parts, sheets
+and machining written underneath; click to keep it. Options that cannot be used
+on the thing you are looking at are shown greyed with the reason, not hidden.
+
+**A new browser opens on five cabinets to start from** — the reference unit, a
+run of base units, a wall cabinet, a wardrobe and a bookcase — each shown as a
+render of the project it loads, and each keeping the workshop settings you
+already have. It is also under the ☰ menu as *Start from a design…*.
+
 **The run strip** along the bottom is the project drawn out: a column per
 cabinet, a box per carcass, a cell per bay. Click any of them to work on it,
 drag a cabinet to move it along the wall, `+` to add one.

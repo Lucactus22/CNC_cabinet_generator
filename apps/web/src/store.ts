@@ -5,9 +5,11 @@ import {
   loadAutosave,
   loadLibrary,
   loadProfiles,
+  markStartersSeen,
   saveAutosave,
   saveLibrary,
   saveProfiles,
+  startersSeen,
   type LibraryEntry,
 } from './persistence';
 import { RUN, settleSelection, type Selection } from './selection';
@@ -20,6 +22,22 @@ import { applyWorkshop, workshopOf, type WorkshopProfile } from './workshop';
  */
 export type Surface = 'bench' | 'output';
 
+/**
+ * A choice being *considered*, built but not committed.
+ *
+ * R-16 measured the cost of a construction choice as invisible: switching the
+ * carcass joint left the badge, the part count and the sheet count identical,
+ * so the only way to find out what a choice did was to make it and look. This
+ * is the answer — the whole pipeline run on the parameters the option would
+ * produce, shown on the model and summarised beside the button, before
+ * anything is committed. `tag` says which option asked, because the worker
+ * coalesces and a result can arrive for a question already abandoned.
+ */
+export interface Preview {
+  tag: string;
+  project: ProjectResult | null;
+}
+
 interface AppState {
   params: ProjectParams;
   project: ProjectResult;
@@ -30,6 +48,8 @@ interface AppState {
   workshopOpen: boolean;
   paletteOpen: boolean;
   diagnosticsOpen: boolean;
+  /** The gallery of starter designs, over whichever surface is showing. */
+  startersOpen: boolean;
   /** What the inspector is pointed at. Always resolves; see selection.ts. */
   selection: Selection;
   /** Set by the command palette so the control it found can scroll itself in and take focus. */
@@ -52,9 +72,12 @@ interface AppState {
   profiles: WorkshopProfile[];
   /** What applying a profile had to repoint, shown once and dismissed. */
   workshopNotes: string[];
+  /** The option under the pointer, built on the real design. Never committed. */
+  preview: Preview | null;
   setSurface: (surface: Surface) => void;
   setWorkshopOpen: (open: boolean) => void;
   setPaletteOpen: (open: boolean) => void;
+  setStartersOpen: (open: boolean) => void;
   setSafeNames: (v: boolean) => void;
   setDiagnosticsOpen: (open: boolean) => void;
   select: (selection: Selection) => void;
@@ -69,8 +92,14 @@ interface AppState {
   setExploded: (v: number) => void;
   /** Apply a change to the parameters and rebuild. */
   update: (fn: (draft: ProjectParams) => void) => void;
+  /** Build what a choice *would* do, without changing anything. */
+  previewChange: (tag: string, fn: (draft: ProjectParams) => void) => void;
+  /** Put the model back to what is actually committed. */
+  clearPreview: () => void;
   reset: () => void;
   load: (params: ProjectParams) => void;
+  /** Open a starter design, keeping this browser's workshop settings. */
+  startFrom: (design: ProjectParams) => void;
   undo: () => void;
   redo: () => void;
   saveToLibrary: (name: string) => void;
@@ -83,6 +112,9 @@ interface AppState {
 }
 
 const worker = createProjectWorkerClient();
+// A second worker so a hover never delays the build the user's own typing is
+// waiting on, and so a preview abandoned mid-flight cannot land as the design.
+const previewWorker = createProjectWorkerClient();
 
 // A stray click on Reset losing an hour of work is the exact failure this
 // history exists to prevent, so every path that changes `params` — typing,
@@ -111,7 +143,12 @@ function makeId(): string {
  * up rather than working through every value a slider passed on the way.
  */
 export const useStore = create<AppState>((set, get) => {
-  const initial = loadAutosave() ?? defaultParams();
+  const saved = loadAutosave();
+  const initial = saved ?? defaultParams();
+
+  previewWorker.subscribe((project, tag) =>
+    set((s) => (s.preview && s.preview.tag === tag ? { preview: { tag, project } } : {})),
+  );
 
   worker.subscribe((project) =>
     set((s) => ({
@@ -127,8 +164,10 @@ export const useStore = create<AppState>((set, get) => {
     })),
   );
 
+  // Every path that changes `params` comes through here, which is also where
+  // any preview stops being true: it was built on the design as it was.
   const rebuild = (params: ProjectParams) => {
-    set({ building: true });
+    set((s) => (s.preview === null ? { building: true } : { building: true, preview: null }));
     worker.request(params);
   };
 
@@ -191,6 +230,10 @@ export const useStore = create<AppState>((set, get) => {
     workshopOpen: false,
     paletteOpen: false,
     diagnosticsOpen: false,
+    // Only on a browser that has never had a project in it, and only once. A
+    // set of defaults is not a recognisable cabinet, and the first minutes
+    // otherwise go on working out what the tool even makes.
+    startersOpen: saved === null && !startersSeen(),
     selection: RUN,
     focusParam: null,
     safeNames: false,
@@ -200,9 +243,14 @@ export const useStore = create<AppState>((set, get) => {
     library: loadLibrary(),
     profiles: loadProfiles(),
     workshopNotes: [],
+    preview: null,
     setSurface: (surface) => set({ surface }),
     setWorkshopOpen: (workshopOpen) => set({ workshopOpen }),
     setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
+    setStartersOpen: (startersOpen) => {
+      if (!startersOpen) markStartersSeen();
+      set({ startersOpen });
+    },
     setSafeNames: (safeNames) => set({ safeNames }),
     setDiagnosticsOpen: (diagnosticsOpen) => set({ diagnosticsOpen }),
     // Deliberately leaves the surface alone: picking a part out of the cut
@@ -261,8 +309,28 @@ export const useStore = create<AppState>((set, get) => {
       rebuild(params);
       scheduleAutosave(params);
     },
+    previewChange: (tag, fn) => {
+      if (get().preview?.tag === tag) return;
+      const params = structuredClone(get().params);
+      fn(params);
+      set({ preview: { tag, project: null } });
+      previewWorker.request(params, tag);
+    },
+    clearPreview: () => {
+      if (get().preview !== null) set({ preview: null });
+    },
     reset: () => jumpTo(defaultParams(), RUN),
     load: (params) => jumpTo(params, RUN),
+    // The design is already carrying this shop's workshop settings (see
+    // `starterParams`); anything they had to repoint is worth saying out loud
+    // rather than absorbing, so the drawer comes open with the notes on it.
+    startFrom: (design) => {
+      const params = structuredClone(design);
+      const notes = applyWorkshop(params, workshopOf(get().params));
+      markStartersSeen();
+      jumpTo(params, RUN);
+      set({ workshopNotes: notes, workshopOpen: notes.length > 0, startersOpen: false });
+    },
     undo: () => {
       endBurst();
       const { past } = get();
@@ -352,6 +420,17 @@ export const useStore = create<AppState>((set, get) => {
 });
 
 export const severityRank = { error: 0, warning: 1, info: 2 } as const;
+
+/**
+ * What the 3D view draws: the option under the pointer if one is being
+ * considered, otherwise the design itself.
+ *
+ * Only the model follows a preview. The inspector, the run strip and the top
+ * bar keep showing what is committed, because a panel that rewrote itself
+ * under the pointer would be unusable and would make it impossible to tell a
+ * hover from a click.
+ */
+export const displayedProject = (s: AppState): ProjectResult => s.preview?.project ?? s.project;
 
 /** The part the inspector, the sheet view and the 3D view all highlight. */
 export const selectedPartId = (s: { selection: Selection }): string | null =>

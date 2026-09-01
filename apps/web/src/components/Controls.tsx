@@ -1,5 +1,18 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useStore } from '../store';
+
+/**
+ * Whether the section a control sits in is actually open.
+ *
+ * A closed `details` still renders its children — the browser only hides
+ * them — which cost nothing while every control was an input. It costs real
+ * work now that a section can hold a gallery of rendered geometry, so a
+ * picture waits until somebody can see it. Nested sections carry their
+ * parent's answer as well as their own.
+ */
+const SectionOpen = createContext(true);
+
+export const useSectionOpen = (): boolean => useContext(SectionOpen);
 
 /**
  * A collapsible run of controls inside the inspector or the workshop.
@@ -21,13 +34,17 @@ export function Group({
   /** Shown beside the title when the section holds something switched on. */
   count?: number | string;
 }) {
+  const parentOpen = useSectionOpen();
+  const [showing, setShowing] = useState(open);
   return (
-    <details className="group" open={open}>
+    <details className="group" open={open} onToggle={(e) => setShowing(e.currentTarget.open)}>
       <summary>
         {title}
         {count !== undefined && count !== 0 && <span className="count">{count}</span>}
       </summary>
-      <div className="body">{children}</div>
+      <SectionOpen.Provider value={parentOpen && showing}>
+        <div className="body">{children}</div>
+      </SectionOpen.Provider>
     </details>
   );
 }
@@ -60,7 +77,12 @@ function useReveal(param: string | undefined) {
       section.open = true;
     }
     host.current.scrollIntoView({ block: 'center' });
-    host.current.querySelector<HTMLElement>('input, select, textarea, button')?.focus();
+    // The option already in force, where there is one: landing on a gallery
+    // and focusing its *first* tile would preview a choice nobody asked for,
+    // and read as though that were the current answer.
+    const chosen = host.current.querySelector<HTMLElement>('[aria-pressed="true"]');
+    const first = host.current.querySelector<HTMLElement>('input, select, textarea, button');
+    (chosen ?? first)?.focus();
     host.current.classList.add('found');
     const t = setTimeout(() => {
       host.current?.classList.remove('found');

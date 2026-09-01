@@ -1,9 +1,8 @@
-import { layoutBays, resolveWidths, type Carcass } from '@cabgen/core';
+import { layoutBays, resolveWidths, type Carcass, type ProjectParams } from '@cabgen/core';
 import { useStore } from '../../store';
 import {
   ActionField,
   CheckField,
-  ChoiceField,
   Group,
   Hint,
   NumberField,
@@ -11,6 +10,8 @@ import {
   SelectField,
   TextField,
 } from '../Controls';
+import { ChoiceGallery } from '../../gallery/Gallery';
+import { BACK_STYLE, CONSTRUCTION, FLOOR, TOP_STYLE } from '../../gallery/choices';
 import { BayFront, BayInside, emptyBay, useBayPatch } from './BayControls';
 import { JoinerySection } from './JoinerySection';
 
@@ -48,10 +49,13 @@ export function CarcassInspector({
   const width = resolveWidths(cabinet.carcasses)[carcassIndex]!.width;
   const bayCount = spec.dividerCount + 1;
 
-  const patch = (fn: (c: Carcass) => void): void =>
-    update((p) => {
-      fn(p.cabinets[cabinetIndex]!.carcasses[carcassIndex]!);
-    });
+  // The same edit twice over: once for real, and once on a throwaway copy so
+  // a gallery can find out what an option would cost before it is committed.
+  const patchDraft = (p: ProjectParams, fn: (c: Carcass) => void): void => {
+    const target = p.cabinets[cabinetIndex]?.carcasses[carcassIndex];
+    if (target) fn(target);
+  };
+  const patch = (fn: (c: Carcass) => void): void => update((p) => patchDraft(p, fn));
 
   return (
     <>
@@ -146,69 +150,47 @@ export function CarcassInspector({
       </Group>
 
       <Group title="Panels">
-        <SelectField
-          label="Top panel"
+        <ChoiceGallery
+          gallery={TOP_STYLE}
           value={spec.topStyle}
           param="cabinets[].carcasses[].topStyle"
-          options={[
-            { value: 'capped', label: 'Capped over the sides' },
-            { value: 'inset', label: 'Inset between the sides' },
-          ]}
-          onChange={(v) => patch((c) => void (c.topStyle = v))}
-          title="Capped lays the top over the side edges, so the surface reads as one panel with no seam showing from above."
+          set={(p, v) => patchDraft(p, (c) => void (c.topStyle = v))}
         />
         {/* Shown on every carcass, not only the ones that can leave the bottom
             out: a control that does not exist on the box you happen to be
-            looking at is a capability nobody finds, and a sentence saying why
-            costs a line. */}
-        {below ? (
-          <>
-            <SelectField
-              label="Bottom panel"
-              value={spec.floor}
-              param="cabinets[].carcasses[].floor"
-              options={[
-                { value: 'own', label: 'Its own panel' },
-                { value: 'below', label: `None, stands on the ${below.name.toLowerCase()} top` },
-              ]}
-              onChange={(v) => patch((c) => void (c.floor = v))}
-              title="Leaving it out stands this carcass in shallow dados in the top panel below. One less panel, but that panel then needs machining on both faces."
-            />
-            {spec.floor === 'below' && (
-              <NumberField
-                label="Locating dado"
-                value={params.joinery.stackDadoDepth}
-                step={0.5}
-                min={0.5}
-                param="joinery.stackDadoDepth"
-                onChange={(v) =>
-                  update((p) => {
-                    p.joinery.stackDadoDepth = v;
-                  })
-                }
-                title="Kept shallow: the panel below is grooved on its underside too, and the two sets of pockets cross."
-              />
-            )}
-          </>
-        ) : (
-          <Reveal param="cabinets[].carcasses[].floor">
-            <Hint>
-              This box is on the floor, so it always has its own bottom panel. One standing on
-              another can leave it out and stand in shallow dados in the top below it instead.
-            </Hint>
-          </Reveal>
+            looking at is a capability nobody finds, so the option that cannot
+            be used here is greyed with the reason instead of dropped. */}
+        <ChoiceGallery
+          gallery={FLOOR}
+          value={spec.floor}
+          param="cabinets[].carcasses[].floor"
+          set={(p, v) => patchDraft(p, (c) => void (c.floor = v))}
+          unavailable={(v) =>
+            v === 'below' && !below
+              ? 'This box is on the floor, so there is nothing under it to stand in.'
+              : undefined
+          }
+        />
+        {below && spec.floor === 'below' && (
+          <NumberField
+            label="Locating dado"
+            value={params.joinery.stackDadoDepth}
+            step={0.5}
+            min={0.5}
+            param="joinery.stackDadoDepth"
+            onChange={(v) =>
+              update((p) => {
+                p.joinery.stackDadoDepth = v;
+              })
+            }
+            title="Kept shallow: the panel below is grooved on its underside too, and the two sets of pockets cross."
+          />
         )}
-        <SelectField
-          label="Back panel"
+        <ChoiceGallery
+          gallery={BACK_STYLE}
           value={spec.back.style}
           param="cabinets[].carcasses[].back.style"
-          options={[
-            { value: 'groove', label: 'In a groove' },
-            { value: 'rabbet', label: 'In a rabbet' },
-            { value: 'none', label: 'None' },
-          ]}
-          onChange={(v) => patch((c) => void (c.back.style = v))}
-          title="A groove hides the back behind a shoulder of solid material. A rabbet opens onto the rear edge instead, so the back and the sides can be scribed flush to a wall that is not flat, in one pass."
+          set={(p, v) => patchDraft(p, (c) => void (c.back.style = v))}
         />
         {spec.back.style !== 'none' && (
           <>
@@ -239,19 +221,11 @@ export function CarcassInspector({
       <JoinerySection />
 
       <Group title="Face frame" count={spec.construction === 'face-frame' ? 'on' : undefined}>
-        <ChoiceField
-          label="Construction"
+        <ChoiceGallery
+          gallery={CONSTRUCTION}
           value={spec.construction}
           param="cabinets[].carcasses[].construction"
-          options={[
-            { value: 'frameless', label: 'Frameless', about: 'Doors reference the panels' },
-            {
-              value: 'face-frame',
-              label: 'Face frame',
-              about: 'Solid stock across the front; doors reference the frame',
-            },
-          ]}
-          onChange={(v) => patch((c) => void (c.construction = v))}
+          set={(p, v) => patchDraft(p, (c) => void (c.construction = v))}
         />
         {spec.construction === 'face-frame' && (
           <>
@@ -414,8 +388,8 @@ function BayCard({
           more…
         </button>
       </div>
-      <BayFront bay={baySpec} patch={patch} compact />
-      <BayInside bay={baySpec} patch={patch} compact />
+      <BayFront bay={baySpec} at={{ cabinetId, carcassId, bay }} patch={patch} compact />
+      <BayInside bay={baySpec} at={{ cabinetId, carcassId, bay }} patch={patch} compact />
     </div>
   );
 }

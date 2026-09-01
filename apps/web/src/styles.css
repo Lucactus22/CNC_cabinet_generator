@@ -394,6 +394,113 @@ kbd {
   color: var(--muted);
   pointer-events: none;
 }
+/* ------------------------------------------------------------- the galleries
+   A choice made by looking at what it produces. The picture is rendered from
+   the real pipeline (see src/gallery), so the tile beside a label is the tool's
+   own output at 76 pixels, not an icon somebody drew once. */
+.gallery {
+  display: grid;
+  gap: 6px;
+}
+.gallery-question {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+.gallery-options {
+  display: grid;
+  gap: 4px;
+}
+.gallery-option {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: 9px;
+  align-items: center;
+  text-align: left;
+  padding: 5px 7px;
+}
+/* Words only, where the difference is genuinely not a shape. */
+.gallery-option.words {
+  grid-template-columns: 1fr;
+}
+.gallery-pic {
+  display: block;
+  width: 76px;
+  height: 60px;
+  border-radius: 4px;
+  /* A shade under the panel, so a pale blank reads as an object on a surface
+     rather than as a hole in one. */
+  background: #171a20;
+}
+.gallery-pic svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.gallery-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.gallery-text b {
+  font-weight: 600;
+  font-size: 12.5px;
+}
+.gallery-text > span {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+/* The reason an option cannot be used here. Shown, never hidden: an option
+   nobody can see is an option nobody learns exists. */
+.gallery-text em {
+  font-size: 11px;
+  line-height: 1.35;
+  font-style: normal;
+  color: var(--warn);
+}
+.gallery-option.on {
+  border-color: var(--accent);
+  background: rgb(240 160 75 / 10%);
+}
+.gallery-option.unavailable {
+  opacity: 0.5;
+  cursor: default;
+}
+.gallery-option.unavailable:hover {
+  border-color: var(--line);
+}
+/* What the option under the pointer would cost, off the same build the model
+   is showing. */
+.gallery-cost {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.gallery-cost b {
+  color: var(--text);
+}
+.gallery-cost .metric {
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+.gallery-cost .metric.moved {
+  color: var(--accent);
+}
+.gallery.wide .gallery-options {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.gallery.wide .gallery-option {
+  grid-template-columns: 1fr;
+  gap: 5px;
+}
+.gallery.wide .gallery-pic {
+  width: 100%;
+  height: 96px;
+}
+
 /* Where find-by-name landed. Long enough to see, short enough not to nag. */
 .found {
   outline: 2px solid var(--accent);
@@ -682,7 +789,7 @@ kbd {
   bottom: calc(100% + 6px);
   right: 0;
   z-index: 30;
-  width: 280px;
+  width: 420px;
   background: var(--float);
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -691,20 +798,13 @@ kbd {
   display: grid;
   gap: 4px;
 }
-.run-add-menu button {
-  text-align: left;
-  display: grid;
-  gap: 2px;
+.run-add-menu .gallery-option {
   background: none;
   border-color: transparent;
 }
-.run-add-menu button:hover {
+.run-add-menu .gallery-option:hover {
   background: var(--panel-2);
   border-color: var(--line);
-}
-.run-add-menu span {
-  font-size: 11.5px;
-  color: var(--muted);
 }
 
 /* -------------------------------------------------------------- the doors */
@@ -840,6 +940,74 @@ kbd {
 .fix-button span {
   font-size: 11.5px;
   color: var(--muted);
+}
+
+/* ------------------------------------------------------ starting from one
+   The front door: real cabinets, each shown as a render of the project the
+   button loads. Over the bench rather than beside it, because there is nothing
+   underneath yet worth keeping in view. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 55;
+  background: rgb(8 9 12 / 62%);
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  padding: 6vh 16px 16px;
+  overflow-y: auto;
+}
+.starters {
+  width: min(880px, 100%);
+  background: var(--float);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 14px 16px 16px;
+  display: grid;
+  gap: 8px;
+}
+.starters header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.starters h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.starter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+.starter {
+  display: grid;
+  gap: 3px;
+  text-align: left;
+  align-content: start;
+  padding: 8px;
+}
+.starter-pic {
+  display: block;
+  width: 100%;
+  height: 130px;
+  border-radius: 4px;
+  background: #171a20;
+}
+.starter b {
+  font-size: 13px;
+}
+.starter span {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.starter em {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
 }
 
 /* --------------------------------------------------------- find by name */

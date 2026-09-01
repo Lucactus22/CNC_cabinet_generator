@@ -10,6 +10,8 @@ import {
   SelectField,
   TextField,
 } from './Controls';
+import { ChoiceGallery } from '../gallery/Gallery';
+import { NEST_STRATEGY } from '../gallery/choices';
 import { HardwarePanel } from './HardwarePanel';
 
 /**
@@ -683,24 +685,17 @@ function Nesting() {
 
   return (
     <Group title="Nesting">
-      <SelectField
-        label="Optimise for"
+      {/* The one gallery with no pictures. What a strategy produces is a
+          packing of *your* parts on *your* sheets, so a rendered sample would
+          be a picture of some other project — see NEST_STRATEGY. */}
+      <ChoiceGallery
+        gallery={NEST_STRATEGY}
         value={nesting.strategy}
         param="nesting.strategy"
-        options={[
-          { value: 'tiling', label: 'Fewest setups' },
-          { value: 'material', label: 'Least material' },
-          { value: 'guillotine', label: 'Guillotine (panel saw)' },
-        ]}
-        onChange={(v) => set((n) => void (n.strategy = v))}
+        set={(p, v) => {
+          p.nesting.strategy = v;
+        }}
       />
-      <Hint>
-        {nesting.strategy === 'tiling'
-          ? 'No part is cut across a tile seam unless it is larger than the machine itself.'
-          : nesting.strategy === 'guillotine'
-            ? 'Every part can be freed with straight cuts across the full sheet, at some cost in yield — for a panel saw rather than a router.'
-            : 'Tightest packing, but parts will be cut across tile seams.'}
-      </Hint>
       <NumberField
         label="Sheet margin"
         value={nesting.sheetMargin}

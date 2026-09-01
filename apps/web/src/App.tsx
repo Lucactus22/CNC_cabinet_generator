@@ -6,6 +6,7 @@ import { TopBar, useShortcuts } from './components/TopBar';
 import { WorkshopDrawer } from './components/WorkshopDrawer';
 import { CommandPalette } from './components/CommandPalette';
 import { DiagnosticsPanel } from './components/DiagnosticsPanel';
+import { StarterGallery } from './gallery/StarterGallery';
 import { useStore } from './store';
 
 /**
@@ -21,6 +22,7 @@ export function App() {
   const surface = useStore((s) => s.surface);
   const workshopOpen = useStore((s) => s.workshopOpen);
   const diagnosticsOpen = useStore((s) => s.diagnosticsOpen);
+  const startersOpen = useStore((s) => s.startersOpen);
   useShortcuts();
 
   return (
@@ -36,6 +38,7 @@ export function App() {
         {surface === 'bench' && <Inspector />}
         {diagnosticsOpen && <DiagnosticsPanel />}
         {workshopOpen && <WorkshopDrawer />}
+        {startersOpen && <StarterGallery />}
       </div>
 
       {surface === 'bench' && <RunStrip />}
