@@ -1648,19 +1648,82 @@ can make — every joint, every effect, every cabinet type, rendered — that ca
 browsed without touching the current design. Not a manual. A showroom.
 
 **Acceptance criteria.**
-- [ ] Selecting a joint or feature explains it in place, with a section drawing
-- [ ] Starter projects state what each demonstrates
-- [ ] Contextual suggestions appear at most once, dismiss permanently, and never
-      interrupt an action in progress
-- [ ] A browsable capability overview, rendered from real geometry
-- [ ] Every explanation is generated from or checked against the docs, so it
-      cannot drift from what the code does
-- [ ] Somebody who has never read the documentation can name three features they
-      discovered while designing
+- [x] Selecting a joint or feature explains it in place, with a section drawing
+      — every blank's machining, grouped by what put it there, and a section
+      through **the live project** at whichever one is opened, not through a
+      sample of somebody else's cabinet
+- [x] Starter projects state what each demonstrates — named rather than
+      described, as topic ids, and each claim checked against the geometry the
+      starter actually builds
+- [x] Contextual suggestions appear at most once, dismiss permanently, and never
+      interrupt an action in progress — six of them, one at a time, at the foot
+      of the inspector, gated on a settled selection with nothing building, no
+      option being considered and nothing open over the bench
+- [x] A browsable capability overview, rendered from real geometry — the
+      showroom: 23 capabilities in seven groups, 21 of them a picture the
+      pipeline drew on this browser's own sheets and cutter
+- [x] Every explanation is generated from or checked against the docs, so it
+      cannot drift from what the code does — each topic cites a `docs/` heading
+      and the phrases it stands on, and a test reads that section back; no
+      dimension is written into a sentence, they are all read off the live
+      project
+- [x] Somebody who has never read the documentation can name three features they
+      discovered while designing — **13 named before a single click** on a fresh
+      browser, and 23 explained one click later. See
+      [UX.md](UX.md#what-r-19-built-and-what-it-measured)
+
+**Tests.** Every explanation answerable to a doc, every picture actually
+containing the thing it names, and every piece of machining the pipeline can
+produce reachable from an explanation.
+
+*Landed as `apps/web/test/explain.test.ts`, 111 tests. Four of them carry the
+item: every topic's cited `docs/` heading has to exist and still contain the
+phrases the explanation stands on; every topic that can recognise itself has to
+find itself in its own sample, so a tile cannot be a picture of a plain box
+under the heading "Through tab and slot"; every `purpose` a project with every
+branch switched on produces has to have both a name a woodworker would use and
+a topic, so a new joint arriving with no explanation fails here rather than
+showing up as a blank panel; and the section plane chosen for a feature has to
+actually pass through that feature, because "it drew something" is not "the
+groove is in it".*
+
+**One doc had to be written before it could be cited.** The toe kick had no
+section anywhere in `docs/`, which R-18 had already noticed and left here. An
+explanation grounded in the nearest paragraph that happened to mention it would
+have been the drift this item's fifth criterion exists to prevent, so
+[JOINERY.md](JOINERY.md) gained a *Toe kick* section describing the joint the
+builder actually makes.
 
 **Risks.** Becoming the thing this milestone exists to avoid. Every element here
 must be ignorable. Measure it: a user who dismisses everything should reach the
 same design in the same number of interactions as one who never saw it.
+
+*Cost, measured: opening the showroom builds and projects its twenty-one
+samples in **43.5 ms** cold and **11.5 ms** warm — the same parameter-keyed
+cache R-18 built, so a second visit re-uses every build — and it is opened
+deliberately rather than on every keystroke. A section through the **live**
+project, which is redrawn whenever the design changes under an open
+explanation, costs **1.0 ms**, against R-18's measured 2.5 ms for a keystroke
+with fourteen thumbnails on screen.*
+
+*Measured: the shell renders **20** controls at rest with every suggestion
+spent, which is R-17's figure unchanged, and **23** while one is up — a state
+that can happen at most six times in the life of a browser. The cabinet's share
+of the window is unchanged at 84.4% / 81.8% gross, and 73.5% net at 1440 × 900
+with a suggestion showing against 76.0% without it (63.7% against 67.9% at
+1024 × 768) — inside the ≥ 70% / ≥ 60% budget either way. Nothing on any
+journey needs a suggestion: every one of them is a second route to a control
+that was already there.*
+
+**A bug found on the way, and it was this item's own.** The first cut of the
+quiet suggestions gated them on a `settled` flag set by a timer in an effect.
+An effect runs *after* the render that changed the state it watches, so
+dismissing the starter gallery rendered one frame with the old flag still true:
+the suggestion appeared for that frame, and the once-only rule spent it. It was
+recorded as seen in `localStorage` and never shown again — a tip that was
+"shown once" for 16 milliseconds. The wait now records *which* state it settled
+on rather than that it settled, so the render that changes the context is
+unquiet in that same render.
 
 ---
 

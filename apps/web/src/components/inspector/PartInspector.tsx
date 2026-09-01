@@ -2,6 +2,7 @@ import type { EdgeBandingSpec, PanelEdge, PartRole } from '@cabgen/core';
 import { useStore } from '../../store';
 import { Group, Hint, Reveal, SelectField } from '../Controls';
 import { EffectList } from './EffectList';
+import { Machining } from '../Explain';
 
 /**
  * Roles worth offering a banding rule for, each with the edges that are ever
@@ -87,6 +88,13 @@ export function PartInspector({ partId }: { partId: string }) {
             {step.fixings.length > 0 ? ` ${step.fixings.join('; ')}` : ''}
           </Hint>
         )}
+      </Group>
+
+      {/* R-16's audit has no row for this, because until now there was
+          nothing to rate: a panel's machining was visible in the 3D view and
+          explained nowhere at all. */}
+      <Group title="What is machined into this" count={pockets + through + holes || undefined}>
+        <Machining part={part} />
       </Group>
 
       <Banding role={part.role} />

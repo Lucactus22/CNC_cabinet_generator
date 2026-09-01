@@ -5,6 +5,7 @@ import { CabinetInspector } from './inspector/CabinetInspector';
 import { CarcassInspector } from './inspector/CarcassInspector';
 import { BayInspector } from './inspector/BayInspector';
 import { PartInspector } from './inspector/PartInspector';
+import { SuggestionLine } from './Suggestion';
 
 /**
  * What applies to what is selected, next to it.
@@ -71,6 +72,12 @@ export function Inspector() {
         )}
         {selection.kind === 'part' && <PartInspector partId={selection.partId} />}
       </div>
+
+      {/* Under the controls rather than among them, and outside the part that
+          scrolls: it must never push a control down to make room for itself,
+          and equally must not end up 600 px below the fold where it would be
+          spent without ever being read. */}
+      <SuggestionLine />
     </aside>
   );
 }

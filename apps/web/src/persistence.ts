@@ -72,6 +72,45 @@ export function markStartersSeen(): void {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Contextual suggestions
+// ---------------------------------------------------------------------------
+
+const SUGGESTIONS_KEY = 'cabgen:suggestions-seen';
+
+/**
+ * Which quiet suggestions this browser has already been shown.
+ *
+ * R-19's bar for these is that they never repeat: shown once, and gone for
+ * good whether they were acted on, dismissed, or simply scrolled past. That
+ * promise is only as good as this store, so a suggestion is written here the
+ * moment it stops being on screen rather than when somebody clicks the ✕ —
+ * the one thing worse than a tip is the same tip twice.
+ */
+export function suggestionsSeen(): string[] {
+  try {
+    const raw = localStorage.getItem(SUGGESTIONS_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+  } catch {
+    // Storage disabled: nothing has been seen, and nothing will be recorded.
+    // A suggestion shown once per session is the failure mode, which is the
+    // gentler of the two available.
+    return [];
+  }
+}
+
+export function markSuggestionSeen(id: string): void {
+  try {
+    const seen = suggestionsSeen();
+    if (seen.includes(id)) return;
+    localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify([...seen, id]));
+  } catch {
+    // See saveAutosave.
+  }
+}
+
 function isLibraryEntryShaped(
   e: unknown,
 ): e is { id: unknown; name: unknown; savedAt: unknown; params: unknown } {

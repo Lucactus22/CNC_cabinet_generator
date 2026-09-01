@@ -66,6 +66,29 @@ what it costs in sheets and yield written on the button.
 **Find…** (Ctrl/Cmd+K) searches every setting by name, including the words a
 woodworker uses rather than the ones on the labels: *kickboard* finds the toe
 kick, *rebate* the rabbet, *knock-down* tab and slot, *beadboard* the grooves.
+It also searches the explanations, so *dogbone*, *half lap* and *scribe* find
+what they are as well as where they are set.
+
+**What this can make** — under the ☰ menu — is the showroom: every joint,
+panel, front, surface and way of fitting a room this tool can cut, each with a
+render the pipeline made on *your* sheets and cutter, what it is, why it is
+shaped that way, and the numbers off your own project. It changes nothing, so
+it is safe to open mid-job. Where a capability genuinely has no shape — edge
+banding takes two millimetres off a blank — it says so instead of showing a
+picture of something else.
+
+**Selecting a panel says what is cut into it and why.** *Housing for a
+divider*, *screw clearance holes*, *hinge cup*: open one and you get a section
+through your own cabinet at that joint, its clearances, and a line on the
+constraint that shapes it. Every one of those lines is bound to a section of
+the documentation, and a test reads that section back, so an explanation cannot
+outlive what it explains.
+
+**A quiet line, once.** Where something plainly applies to what you are looking
+at — a box on the floor with no toe kick, a plain door that could take a shaker
+line — the inspector says so in one sentence at the foot of the panel. Never
+more than one, never while you are mid-change, and gone for good once you have
+seen it.
 
 ## What it makes
 

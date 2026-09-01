@@ -324,6 +324,9 @@ components/WorkshopDrawer   the machine, tooling, sheets, tape and hardware
 components/OutputPack  sheets, cut list, part drawings, labels, assembly steps
 components/CommandPalette   find by name, over the trade's words as well as ours
 components/DiagnosticsPanel a chip that opens a list, with verified fixes
+components/Showroom         what this tool can make, rendered, changing nothing
+components/Explain          why there is a groove there, and a section through it
+components/Suggestion       one quiet line about something that applies, once
 ```
 
 Four pieces carry the design:
@@ -371,6 +374,32 @@ gallery/Thumbnail.tsx   one picture
 gallery/Gallery.tsx     the picker, the greyed-out reasons, and the cost line
 gallery/starters.ts     five designs to start from, as furniture only
 ```
+
+**`explain/` — the words are answerable to the docs.** R-18 made every *choice*
+a picture; R-19 covers what is not a choice — the machining already on a panel,
+and the capabilities somebody has no word for:
+
+```
+explain/topics.ts       every capability, as two sentences and a doc citation
+explain/features.ts     a feature's `purpose` -> its topic, and where to cut
+explain/suggestions.ts  capabilities offered where they plainly apply
+```
+
+Three rules make it hard to lie. Every topic names a heading in `docs/` **and
+the phrases it leans on**, which `apps/web/test/explain.test.ts` reads back out
+of that file — an explanation cannot outlive the behaviour it explains. No
+dimension is written into a sentence; anything with a number in it reads that
+number off the live project, so a sentence about a hinge cup follows the hinge
+this project is cut for. And a topic that can recognise itself is asserted to
+be present in the sample its own picture is drawn from.
+
+`features.ts` is the other half: every feature already carries a `purpose` for
+the layer grouping, so that is the key an explanation hangs off, and a purpose
+with no topic fails a test rather than showing as a blank panel. It also picks
+the plane to cut the *live* assembly on to show one feature — never along the
+part's own face, never inside another panel where one is free, and across the
+feature's longest run, because a groove sectioned along its length is a
+rectangle.
 
 `samples.ts` builds a small cabinet through `buildProject` — the real pipeline
 — seeded with the *workshop* half of the live project, so a thumbnail shows
@@ -431,8 +460,8 @@ person will delete.
 
 Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
-- the web app has the catalogue and gallery tests; no component or end-to-end
-  coverage of the shell itself
+- the web app has the catalogue, gallery and explanation tests; no component or
+  end-to-end coverage of the shell itself
 - a bay can be selected in the run strip but not by clicking the cabinet itself
 - `joinery.reliefStyle` has no effect under stopped-dado joinery, which is the
   default: relief is applied to tab-and-slot slots and tab roots and nothing

@@ -843,6 +843,11 @@ group open; ✕ marks a group closed at rest.
 | Bays of unequal width | — | — | — | **Absent** |
 | Where the shelf-pin ladder starts and stops | — | — | — | **Absent** |
 
+**Read this table as of R-16.** R-18 turned most of its unexplained rows into
+pictures and R-19 explained the rest; what each of them changed is recorded in
+its own section below rather than by editing the rows, so the measurement that
+justified the work is still here to check the work against.
+
 **Three rows in that table are a clear yes**, and two of the three are in the
 top bar or a tab; the third, reordering the run, is 228 px down the sidebar — the
 one geometric capability that is genuinely easy to find, and it is the one at the
@@ -1044,6 +1049,84 @@ extended it to nine more parameters. Fixed both ends: the palette eats the key,
 and the reveal focuses the option already in force rather than the first tile,
 so arriving at a gallery neither changes the design nor previews something
 nobody asked for.
+
+---
+
+## What R-19 built, and what it measured
+
+R-18's answer to discovery was to make every *choice* a picture. This is the
+rest: the capabilities that are not a choice between two options, the machining
+already on a panel in front of you, and the person who does not yet know there
+is a question to ask. Measured the same way as everything above — Playwright
+against `vite preview` on the production build, from a cleared `localStorage` —
+on **2026-09-01**.
+
+| | R-17 / R-18, measured | R-19, measured |
+|---|---|---|
+| J2 reach three capabilities *and be told what they are* | 6 interactions, each explained where it lands | **13 named before a single click**, 23 explained one click later — two from the bench, through the project menu |
+| Capabilities with a written explanation in the app | 0 | **23**, each citing the `docs/` section it came from |
+| A panel's machining, explained | not addressed | **every purpose the pipeline emits**, with a section through your own cabinet |
+| Controls the shell renders at rest | 20 | **20**, and 23 while a suggestion is up |
+| Cabinet's share of the window | 84.4% / 80.6% gross; 76.0% / 68.7% net | **84.4% / 81.8%** gross; **76.0% / 67.9%** net, **73.5% / 63.7%** with a suggestion up |
+
+The share figures come out at R-17's numbers rather than R-18's, to the decimal,
+on a build that carries both — the same viewport rectangle measured the same
+way. R-18's 1024 × 768 pair is the odd one out and nothing in this item touched
+the shell's geometry, so the difference is in how that measurement was taken
+rather than in the app. The control count reproduces exactly, which is the
+figure the budget is actually against.
+
+**Four things were built.**
+
+- **The showroom.** One place, off the project menu and out of find-by-name,
+  showing what this tool can cut: 23 capabilities in seven groups, 21 of them a
+  render the real pipeline made on this browser's own sheets and cutter, each
+  with what it is, why it is shaped that way, its numbers off the live project,
+  and a button to where it is set. It changes nothing, which is what makes it
+  safe to open mid-job. It is deliberately *not* in the top bar: the resting
+  control count is a budget R-17 set at 20 and this is not worth one of them.
+- **Machining, explained in place.** Selecting a panel used to say what it is.
+  It now also lists what is cut into it, grouped by what put it there — *housing
+  for a divider*, *screw clearance holes*, *hinge cup* — and opening one draws a
+  section through **the live project** at that joint, zoomed to it. R-18 built
+  the section renderer for thumbnails of samples; this points it at the user's
+  own cabinet.
+- **Starters that say what they teach.** Each of the five names the
+  capabilities it is there to demonstrate, and a test asserts the geometry it
+  builds really contains them. A lesson that quietly stopped being true would
+  be worse than no lesson, because somebody loaded the design to look at it.
+- **Six quiet suggestions**, one at a time, at the foot of the inspector: a box
+  on the floor with no toe kick, a screwed-together carcass that could knock
+  together, fixed shelves that could be a pin ladder, a plain front, an unbanded
+  front, and a run that has never been measured against a room. Never modal,
+  never animated, gone for good once seen.
+
+**What the audit table looks like now.** Of the rows R-16 rated *Bad* or *Poor*,
+R-18 turned twelve into pictures of themselves. This item takes the four it
+left — the toe kick, the hanging rail, edge banding and the hardware catalogue —
+and the ones that were never a control at all: the stopped dado's own notch and
+stop, corner relief, screw holes, the half lap, the one-face rule, the drawer
+box formula, slide holes, handles and the scribe strip. All of them are now in
+the showroom, and eleven of them are also reachable by clicking the very
+machining they produce on a panel.
+
+**Two things this deliberately does not do.** There is no tour and no "did you
+know" — principle 9's absent list from R-16 stands. And nothing here is required
+to reach any design: every suggestion is a second route to a control that was
+already there, so somebody who dismisses all six reaches the same cabinet in the
+same number of interactions.
+
+**Where an explanation cannot be a picture, it says so.** Edge banding takes two
+millimetres off a blank and the corner angle is three tape readings; a tile
+showing a door that looks exactly like an unbanded door would teach the opposite
+of the truth. Those two are words, on the same reasoning R-18 gave for the
+nesting strategies.
+
+**And one thing found by writing it down.** The toe kick had no section anywhere
+in `docs/` — R-18 had already flagged it as unexplained — so there was nothing
+for its explanation to be answerable to. Grounding it in the nearest paragraph
+that happened to mention it would have been exactly the drift the test exists to
+catch, so `JOINERY.md` gained the section first and the app cites it.
 
 ---
 

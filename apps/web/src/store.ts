@@ -50,6 +50,12 @@ interface AppState {
   diagnosticsOpen: boolean;
   /** The gallery of starter designs, over whichever surface is showing. */
   startersOpen: boolean;
+  /**
+   * The showroom: every capability, rendered, browsable without touching the
+   * design. Null when it is shut; a topic id when something asked to open it
+   * at one particular thing.
+   */
+  showroom: { topicId: string | null } | null;
   /** What the inspector is pointed at. Always resolves; see selection.ts. */
   selection: Selection;
   /** Set by the command palette so the control it found can scroll itself in and take focus. */
@@ -78,6 +84,8 @@ interface AppState {
   setWorkshopOpen: (open: boolean) => void;
   setPaletteOpen: (open: boolean) => void;
   setStartersOpen: (open: boolean) => void;
+  /** Open the showroom, optionally scrolled to one capability. Null shuts it. */
+  setShowroom: (at: { topicId: string | null } | null) => void;
   setSafeNames: (v: boolean) => void;
   setDiagnosticsOpen: (open: boolean) => void;
   select: (selection: Selection) => void;
@@ -234,6 +242,7 @@ export const useStore = create<AppState>((set, get) => {
     // set of defaults is not a recognisable cabinet, and the first minutes
     // otherwise go on working out what the tool even makes.
     startersOpen: saved === null && !startersSeen(),
+    showroom: null,
     selection: RUN,
     focusParam: null,
     safeNames: false,
@@ -251,6 +260,7 @@ export const useStore = create<AppState>((set, get) => {
       if (!startersOpen) markStartersSeen();
       set({ startersOpen });
     },
+    setShowroom: (showroom) => set({ showroom }),
     setSafeNames: (safeNames) => set({ safeNames }),
     setDiagnosticsOpen: (diagnosticsOpen) => set({ diagnosticsOpen }),
     // Deliberately leaves the surface alone: picking a part out of the cut
@@ -274,6 +284,8 @@ export const useStore = create<AppState>((set, get) => {
         workshopOpen: workshop ?? false,
         paletteOpen: false,
         diagnosticsOpen: false,
+        // Whatever asked to be shown a control is standing in front of it.
+        showroom: null,
         selection: selection ? settleSelection(s.params, s.project.parts, selection) : s.selection,
         focusParam: param ?? null,
       }));

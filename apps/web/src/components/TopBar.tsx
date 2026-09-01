@@ -30,6 +30,7 @@ export function TopBar() {
   const setDiagnosticsOpen = useStore((s) => s.setDiagnosticsOpen);
   const setPaletteOpen = useStore((s) => s.setPaletteOpen);
   const setStartersOpen = useStore((s) => s.setStartersOpen);
+  const setShowroom = useStore((s) => s.setShowroom);
   const past = useStore((s) => s.past);
   const future = useStore((s) => s.future);
   const undo = useStore((s) => s.undo);
@@ -87,6 +88,7 @@ export function TopBar() {
       <ProjectMenu
         open={menuOpen}
         setOpen={setMenuOpen}
+        onShowroom={() => setShowroom({ topicId: null })}
         onStartFrom={() => setStartersOpen(true)}
         onOpenFile={() => fileInput.current?.click()}
         onSaveFile={() =>
@@ -184,12 +186,14 @@ export function TopBar() {
 function ProjectMenu({
   open,
   setOpen,
+  onShowroom,
   onStartFrom,
   onOpenFile,
   onSaveFile,
 }: {
   open: boolean;
   setOpen: (v: boolean) => void;
+  onShowroom: () => void;
   onStartFrom: () => void;
   onOpenFile: () => void;
   onSaveFile: () => void;
@@ -217,6 +221,17 @@ function ProjectMenu({
               title="Real cabinets to start from, shown as renders of what each one makes"
             >
               Start from a design…
+            </button>
+            {/* Behind the door rather than in the top bar: the resting control
+                count is a budget R-17 set and this is not worth one of them. */}
+            <button
+              onClick={() => {
+                setOpen(false);
+                onShowroom();
+              }}
+              title="Every joint, panel, front and surface this can cut, rendered"
+            >
+              What this can make…
             </button>
             <button
               onClick={() => {
@@ -322,6 +337,7 @@ export function useShortcuts(): void {
   const setDiagnosticsOpen = useStore((s) => s.setDiagnosticsOpen);
   const setWorkshopOpen = useStore((s) => s.setWorkshopOpen);
   const setStartersOpen = useStore((s) => s.setStartersOpen);
+  const setShowroom = useStore((s) => s.setShowroom);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -335,6 +351,7 @@ export function useShortcuts(): void {
         setWorkshopOpen(false);
         setPaletteOpen(false);
         setStartersOpen(false);
+        setShowroom(null);
         if (!typing) select({ kind: 'run' });
         return;
       }
@@ -354,5 +371,14 @@ export function useShortcuts(): void {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [undo, redo, setPaletteOpen, select, setDiagnosticsOpen, setWorkshopOpen, setStartersOpen]);
+  }, [
+    undo,
+    redo,
+    setPaletteOpen,
+    select,
+    setDiagnosticsOpen,
+    setWorkshopOpen,
+    setStartersOpen,
+    setShowroom,
+  ]);
 }
