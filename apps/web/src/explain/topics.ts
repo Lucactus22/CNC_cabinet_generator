@@ -368,8 +368,8 @@ export const TOPICS: Topic[] = [
         const carcass = p.cabinets[0]!.carcasses[0]!;
         carcass.dividerCount = 1;
         carcass.bays = [
-          { shelves: 'fixed', shelfCount: 1, doors: 'none', drawerFrontHeights: [] },
-          { shelves: 'fixed', shelfCount: 1, doors: 'none', drawerFrontHeights: [] },
+          { shelves: 'fixed', shelfCount: 1, shelfGaps: [], doors: 'none', drawerFrontHeights: [] },
+          { shelves: 'fixed', shelfCount: 1, shelfGaps: [], doors: 'none', drawerFrontHeights: [] },
         ];
       },
       view: { kind: 'detail', pick: (part) => part.role === 'divider' },
@@ -512,6 +512,56 @@ export const TOPICS: Topic[] = [
   },
 
   // ---------------------------------------------------------------- insides
+  {
+    id: 'fixed-shelves',
+    group: 'insides',
+    title: 'Fixed shelves, at the heights you choose',
+    what: 'A shelf housed in a stopped dado in each panel that bounds its bay, so it stiffens the box across its width instead of resting on four small pegs.',
+    why: 'Where they sit is stated as the clear openings between them, bottom to top, because that is the number that matters at the bench — nobody measures to the middle of a shelf. Heights that do not add up to the opening are spaced evenly instead, with a note saying so.',
+    source: { doc: 'JOINERY.md', heading: 'Fixed shelves' },
+    grounds: [
+      'housed in a stopped dado',
+      'the clear openings between them, bottom to top',
+      'nobody measures to the middle of a shelf',
+      'spaced evenly instead',
+    ],
+    picture: {
+      seed: (p) => {
+        const bay = p.cabinets[0]!.carcasses[0]!.bays[0]!;
+        bay.shelves = 'fixed';
+        bay.shelfCount = 2;
+      },
+      view: { kind: 'iso', azimuth: 28, elevation: 16 },
+    },
+    // Not merely "a shelf": the loose shelf that comes with a pin ladder is
+    // also role `shelf`, and this topic claiming an adjustable bay would be the
+    // exact drift the sample test exists to catch.
+    present: (project) =>
+      project.parts.some((part) => part.role === 'shelf' && !part.id.includes('-SHELF-ADJ-')),
+    param: 'cabinets[].carcasses[].bays[].shelfGaps',
+    measures: ({ params, project, part }) => {
+      const bay = project.bays.find((b) => (part ? b.partIds.includes(part.id) : false));
+      const spec = bay
+        ? params.cabinets
+            .find((c) => c.id === bay.cabinetId)
+            ?.carcasses.find((k) => k.id === bay.carcassId)?.bays[bay.index]
+        : undefined;
+      const shelves = project.parts.filter((x) => x.role === 'shelf' && !x.id.includes('-ADJ-'));
+      return [
+        { label: 'Fixed shelves in this run', value: `${shelves.length}` },
+        ...(bay
+          ? [{ label: 'Opening they share', value: mm(bay.shelfRun.z1 - bay.shelfRun.z0) }]
+          : []),
+        {
+          label: 'Heights',
+          value:
+            spec && spec.shelfGaps.length > 0
+              ? spec.shelfGaps.map(mm).join(' · ')
+              : 'spaced evenly',
+        },
+      ];
+    },
+  },
   {
     id: 'shelf-pins',
     group: 'insides',

@@ -1,8 +1,9 @@
-import type { BaySpec, Carcass, Part, ProjectParams, ShelfMode } from '@cabgen/core';
+import type { BayVolume, BaySpec, Carcass, Part, ProjectParams, ShelfMode } from '@cabgen/core';
 import { useStore } from '../../store';
-import { Hint, NumberField, Reveal, SelectField } from '../Controls';
+import { CheckField, Hint, NumberField, Reveal, SelectField } from '../Controls';
 import { ChoiceGallery } from '../../gallery/Gallery';
 import { BAY_FRONT, BAY_INSIDE, type Fronting } from '../../gallery/choices';
+import { fixedShelves, gapsOf } from '../../drag';
 
 export type { Fronting };
 
@@ -30,6 +31,7 @@ export const frontingOf = (bay: BaySpec): Fronting =>
 export const emptyBay = (): BaySpec => ({
   shelves: 'none',
   shelfCount: 0,
+  shelfGaps: [],
   doors: 'none',
   drawerFrontHeights: [],
 });
@@ -168,10 +170,88 @@ export function BayInside({
           min={0}
           max={20}
           param="cabinets[].carcasses[].bays[].shelfCount"
-          onChange={(v) => patch((b) => void (b.shelfCount = Math.max(0, Math.round(v))))}
+          onChange={(v) =>
+            patch((b) => {
+              b.shelfCount = Math.max(0, Math.round(v));
+              // Explicit heights are one per opening, so a changed count makes
+              // the old list meaningless — it would silently fall back to an
+              // even split with the stale numbers still on screen. The bay
+              // count clears `bayWidths` for exactly this reason.
+              if (b.shelfGaps.length > 0 && b.shelfGaps.length !== b.shelfCount + 1)
+                b.shelfGaps = [];
+            })
+          }
         />
       )}
     </>
+  );
+}
+
+/**
+ * How high each fixed shelf sits, when evenly spaced is not what is wanted.
+ *
+ * The same shape as the carcass's unequal bay widths, one axis round: a switch,
+ * because evenly spaced is the common case, seeded from the shelves the bay
+ * already has so nothing moves until a number is changed. A shelf dragged in
+ * the 3D view writes the very same list — dragging is for deciding, typing is
+ * for committing, and both have to be the same parameter or they would
+ * disagree.
+ */
+export function ShelfHeights({
+  bay,
+  volume,
+  patch,
+}: {
+  bay: BaySpec;
+  volume: BayVolume | undefined;
+  patch: (fn: (b: BaySpec) => void) => void;
+}) {
+  const parts = useStore((s) => s.project.parts);
+  if (bay.shelves !== 'fixed' || bay.shelfCount <= 0 || !volume) return null;
+
+  const shelves = fixedShelves(parts, volume);
+  const explicit = bay.shelfGaps.length > 0;
+  // Read off the shelves the pipeline actually placed rather than recomputed
+  // here: the gap under the lowest shelf is measured from the floor of the
+  // bay, and every one above it from the top of the shelf below.
+  const cut = gapsOf(shelves, volume);
+
+  return (
+    <Reveal param="cabinets[].carcasses[].bays[].shelfGaps">
+      <CheckField
+        label="Set the shelf heights"
+        value={explicit}
+        // Seeded exactly, not rounded: the opening rarely divides into whole
+        // millimetres, and a rounded seed would move every shelf in the bay
+        // the instant the switch was turned on.
+        onChange={(on) => patch((b) => void (b.shelfGaps = on ? [...cut] : []))}
+        title="Off, the shelves are spaced evenly. On, the clear height under each one is set here — or dragged in the model."
+      />
+      {explicit &&
+        bay.shelfGaps.map((g, k) => (
+          <NumberField
+            key={k}
+            label={k === bay.shelfGaps.length - 1 ? 'Above the top shelf' : `Under shelf ${k + 1}`}
+            value={g}
+            // Not zero: `layoutShelves` reads a non-positive entry as one that
+            // was never given, which would shorten the list and throw away
+            // every other height typed here.
+            min={1}
+            onChange={(v) =>
+              patch((b) => {
+                b.shelfGaps = b.shelfGaps.map((x, j) => (j === k ? v : x));
+              })
+            }
+          />
+        ))}
+      {explicit && !sameish(cut, bay.shelfGaps) && (
+        <Hint>
+          These do not add up to the {(volume.shelfRun.z1 - volume.shelfRun.z0).toFixed(0)} mm of
+          opening once the shelves themselves are allowed for, so they are being spaced evenly
+          instead — at {cut.map((g) => g.toFixed(0)).join(' · ')} mm.
+        </Hint>
+      )}
+    </Reveal>
   );
 }
 

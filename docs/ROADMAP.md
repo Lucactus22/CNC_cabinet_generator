@@ -1771,17 +1771,55 @@ Bays are not parts and cannot currently be picked. Making them addressable is
 the real design work here; get it right before any dragging.
 
 **Acceptance criteria.**
-- [ ] Clicking a bay opens its controls in the viewport
-- [ ] Clicking a door, shelf or panel offers what applies to it
-- [ ] Dividers and fixed shelves draggable, snapping sensibly, showing the live
-      dimension
-- [ ] A section plane that can be dragged through the assembly
-- [ ] Every change made this way is a normal parameter change: undoable (R-13)
-      and saved with the project
-- [ ] The sidebar keeps only what is genuinely global
+- [x] Clicking a bay opens its controls in the viewport — the builder records a
+      `BayVolume` per opening and the view raycasts those, back-face only, so a
+      bay is the space nothing standing in it claims; the inspector card moves
+      to the click and places itself clear of what it describes
+- [x] Clicking a door, shelf or panel offers what applies to it — a door leads
+      with its bay's fronting, a shelf with its heights, a divider with the bay
+      count and widths, a side panel with the box's size, a scribe strip with
+      the measured room. All of it the level above's *own* component, filtered,
+      never a copy
+- [x] Dividers and fixed shelves draggable, snapping sensibly, showing the live
+      dimension — to an equal pair, the 32 mm module the box is bored on, and a
+      round ten, with which snap it landed on named on screen
+- [x] A section plane that can be dragged through the assembly — on any axis,
+      grabbed by its border, flippable, with a slider for the millimetre
+- [x] Every change made this way is a normal parameter change: undoable (R-13)
+      and saved with the project — a whole drag coalesces into one undo step,
+      the same way a dragged field already did
+- [x] The sidebar keeps only what is genuinely global — audited: the workshop
+      drawer holds nothing about a particular cabinet, and the run's own
+      inspector holds nothing narrower than the run. See the note below
+
+**The model gained a parameter, and it had to.** Fixed shelves were always
+evenly spaced: `BaySpec` had no way to say where one sits, so "drag a fixed
+shelf" had nothing to write. `BaySpec.shelfGaps` is the exact mirror of
+`bayWidths` one axis round — the clear openings between the shelves, bottom to
+top, used as given when they add up and split evenly with a note when they do
+not. See [JOINERY.md](JOINERY.md#fixed-shelves).
+
+**On "the sidebar keeps only what is genuinely global".** There is no sidebar
+left to trim — R-17 dissolved it — so this was read the way it was meant: does
+anything about one cabinet still live in the shared surface? It does not. What
+*does* happen, deliberately, is the reverse: a handful of project-wide settings
+(the door reveal, the shelf-pin ladder, the joinery) are rendered inside a bay's
+or a carcass's inspector, where they are actually fixable, each with a line
+saying it applies to the whole project. Moving them out would undo R-17's
+journey counts to satisfy the letter of a criterion about a panel that no longer
+exists.
 
 **Risks.** Two editors of one value that disagree. The parameters are the single
 source of truth; the viewport is another editor of them, never a second copy.
+
+*Two places the design gave under contact with the code, and four bugs testing
+and review found — all of them "a drag that appears to work and does not" — are
+written up in [UX.md](UX.md) with the measured counts: the section plane's grab
+handle had to shrink to its border, an "equal openings" snap needs a wider
+target than a round number to be reachable at all, and the four are a rounded
+pair that shifted the far end of the box, a seed taken from a list the builder
+had already rejected, a commit with no click threshold, and a 32 mm snap that
+moved the gap rather than the shelf's height above the floor of the opening.*
 
 ---
 

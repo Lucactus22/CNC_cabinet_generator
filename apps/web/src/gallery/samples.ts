@@ -43,7 +43,9 @@ function sampleCabinet(live: ProjectParams): Cabinet {
         hangingRail: { enabled: false, height: 100, screwDiameter: 6, screwSpacing: 400 },
         dividerCount: 0,
         bayWidths: [],
-        bays: [{ shelves: 'none', shelfCount: 0, doors: 'none', drawerFrontHeights: [] }],
+        bays: [
+          { shelves: 'none', shelfCount: 0, shelfGaps: [], doors: 'none', drawerFrontHeights: [] },
+        ],
         back: {
           style: 'groove',
           materialId: thin?.id ?? live.carcassMaterialId,

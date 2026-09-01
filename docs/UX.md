@@ -1130,13 +1130,107 @@ catch, so `JOINERY.md` gained the section first and the app cites it.
 
 ---
 
+## What R-20 built, and what it measured
+
+R-17 gave the model the window; R-19 gave it words. This is the item that made
+it answer back. Measured the same way as everything above — Playwright against
+`vite preview` on the production build, from a cleared `localStorage` — on
+**2026-09-01**.
+
+| | R-17 / R-19, measured | R-20, measured |
+|---|---|---|
+| J4 drawers in that bay | 2, through the run strip | **2, by pointing at the bay itself** — or at anything standing in it — with 0 px of scrolling |
+| Move a divider to make bays unequal | 3 (select the carcass, tick the switch, type) | **1** — drag it, snapped and with the dimension on screen |
+| Set a fixed shelf's height | *not possible at any count* | **1** by dragging, or a switch and a field |
+| Bays selectable by clicking the model | no | **yes**, and so is the space inside one |
+| Controls the shell renders at rest | 20 | **21** |
+| Cabinet's share of the window | 84.4% / 81.8% gross; 76.0% / 67.9% net | **unchanged**, to the decimal |
+
+**The resting count went up by one, and it is the section button.** R-17 set
+that budget at 20 to kill a 129-control sidebar, and the count it landed on
+already carried one control that is not about the selection: the explode
+slider, which is how you look at the cabinet rather than what the cabinet is.
+The section plane is its sibling and it is the capability this item exists for —
+the joinery is inside the panels and has never been visible at all. Burying it
+in the project menu, the way R-19 buried the showroom, would have been the
+consistent move for a *reference*; this is a tool you use on the model in front
+of you, and it belongs on the model. One control, stated rather than hidden.
+
+**Four things were built.**
+
+- **Bays are pickable, as the space they are.** A bay produces no part, so the
+  builder now records where each one stands and the 3D view raycasts those
+  volumes — back-face only, so anything standing in the opening is nearer and
+  wins, and what is left over is the empty space. Clicking it opens the bay's
+  own controls *at the bay*: the same inspector card, moved to the click and
+  placed clear of the thing it describes, never a second panel with a second
+  copy of the parameters in it.
+- **Clicking a panel offers what would change it.** A door leads with its bay's
+  fronting; a shelf with the bay's insides and its heights; a divider with the
+  bay count and the widths; a side panel with the box's size and how its panels
+  meet; a scribe strip with the measured room. All of it is the *same*
+  component the level above renders, filtered — `CarcassInspector` takes a list
+  of which of its groups to show — so there is nothing to keep in step.
+- **Dividers and fixed shelves are draggable**, writing `bayWidths` and
+  `shelfGaps` through the ordinary undoable update, snapping to an equal pair,
+  to the 32 mm module the box is bored on, and to a round ten, with the
+  dimension and *which* snap it landed on shown while the hand is down. Every
+  draggable thing keeps its field: dragging is for deciding, typing is for
+  committing.
+- **A section plane** that cuts the live assembly on any of the three axes,
+  draggable by its border, flippable, with a slider for the millimetre. It is
+  the first time the dados, tongues and hinge cups inside the panels have been
+  visible in place.
+
+**Two things the design gave under contact with the code.**
+
+- **The whole plane cannot be the grab handle.** A translucent sheet spanning
+  the run sits between the pointer and every panel behind it, so the first
+  thing anyone would do after cutting a section is drag the plane by accident
+  instead of clicking a bay. Only its border is grabbable now; the sheet itself
+  is a hint, at an opacity you can see past.
+- **A snap on an equal footing with round numbers can never be reached.** Round
+  tens are ten millimetres apart, so there is always one within five; the value
+  that makes two openings equal is a single number somewhere between them, and
+  it is the one people actually want. Named snaps get a wider target than
+  generic ones, which is the difference between "equal openings" being
+  reachable by hand and being decorative.
+
+**And four bugs found by testing and reviewing it, all of the same family:**
+*a drag that appears to work and does not.*
+
+- The first version rounded *both* openings of a dragged pair to a tenth of a
+  millimetre. Their sum then no longer matched the interior they share, which
+  shifted every panel beyond them by up to a fifteenth of a millimetre — a drag
+  on the first divider quietly re-cutting the far end of a three-bay box. The
+  partner now takes the exact remainder.
+- A drag seeded its new list from `bayWidths` or `shelfGaps` whenever the length
+  matched, *including a list the builder had already rejected for not adding
+  up*. The list it wrote did not add up either, so the panel did not move at
+  all, with only the pre-existing "split evenly instead" note as feedback. Both
+  now seed from the openings the builder actually produced, which is the only
+  description of the cabinet that cannot be stale.
+- Committing began on the first pixel of pointer movement, so a hand that shook
+  while *clicking* a divider resized the cabinet and pushed an undo entry — and
+  the click still went through as a selection. A drag now needs the same four
+  pixels a pick already needed to tell itself from an orbit.
+- The 32 mm snap moved the *gap* to a multiple of the pitch, which puts the
+  lowest shelf on the ladder and every one above it a shelf thickness off it.
+  It now snaps the shelf's own height above the floor of the opening, measured
+  the way `pinHeights` measures it.
+
+Three of the four are pinned in `apps/web/test/drag.test.ts`; the fourth is a
+pointer threshold and was walked in the running app instead.
+
+---
+
 ## What this does not decide
 
 Left open deliberately, for the item that hits them:
 
-- **Exactly how a bay becomes clickable.** Bays are not parts and have no
-  geometry of their own. R-20 says this is the real design work and it is right;
-  it needs a prototype, not a paragraph here.
+- ~~**Exactly how a bay becomes clickable.**~~ Answered by R-20: the builder
+  records each opening as a volume, and the view picks it back-face first so a
+  bay is the space nothing else in it claims. See above.
 - **Whether the run strip is 3D or 2D.** It should be a scale elevation; whether
   it is drawn from the same three.js scene or as an SVG from the part boxes is
   an implementation choice for R-17.

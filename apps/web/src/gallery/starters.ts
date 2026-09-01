@@ -55,7 +55,7 @@ const shelved = (over: Partial<Carcass>): Carcass => ({
   hangingRail: defaultHangingRail(),
   dividerCount: 0,
   bayWidths: [],
-  bays: [{ shelves: 'none', shelfCount: 0, doors: 'none', drawerFrontHeights: [] }],
+  bays: [{ shelves: 'none', shelfCount: 0, shelfGaps: [], doors: 'none', drawerFrontHeights: [] }],
   back: { style: 'groove', materialId: MATERIAL_BACK, inset: 12 },
   construction: 'frameless',
   faceFrame: defaultFaceFrame(MATERIAL_STOCK),
@@ -121,8 +121,20 @@ export const STARTERS: Starter[] = [
               toeKick: { enabled: true, height: 100, setback: 50 },
               dividerCount: 1,
               bays: [
-                { shelves: 'adjustable', shelfCount: 0, doors: 'left', drawerFrontHeights: [] },
-                { shelves: 'adjustable', shelfCount: 0, doors: 'right', drawerFrontHeights: [] },
+                {
+                  shelves: 'adjustable',
+                  shelfCount: 0,
+                  shelfGaps: [],
+                  doors: 'left',
+                  drawerFrontHeights: [],
+                },
+                {
+                  shelves: 'adjustable',
+                  shelfCount: 0,
+                  shelfGaps: [],
+                  doors: 'right',
+                  drawerFrontHeights: [],
+                },
               ],
             }),
           ],
@@ -149,7 +161,15 @@ export const STARTERS: Starter[] = [
                 height: 1600,
                 depth: 300,
                 topStyle: 'inset',
-                bays: [{ shelves: 'fixed', shelfCount: 4, doors: 'none', drawerFrontHeights: [] }],
+                bays: [
+                  {
+                    shelves: 'fixed',
+                    shelfCount: 4,
+                    shelfGaps: [],
+                    doors: 'none',
+                    drawerFrontHeights: [],
+                  },
+                ],
               }),
             ],
           },
@@ -180,7 +200,13 @@ function drawerBank(id: string): Cabinet {
   const carcass = cabinet.carcasses[0]!;
   carcass.dividerCount = 0;
   carcass.bays = [
-    { shelves: 'none', shelfCount: 0, doors: 'none', drawerFrontHeights: [180, 250, 250] },
+    {
+      shelves: 'none',
+      shelfCount: 0,
+      shelfGaps: [],
+      doors: 'none',
+      drawerFrontHeights: [180, 250, 250],
+    },
   ];
   return cabinet;
 }

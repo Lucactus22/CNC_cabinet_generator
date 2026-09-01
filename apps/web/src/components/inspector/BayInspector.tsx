@@ -2,7 +2,14 @@ import { useStore } from '../../store';
 import { Group, Hint, NumberField, SelectField } from '../Controls';
 import { ChoiceGallery } from '../../gallery/Gallery';
 import { DOOR_FIT } from '../../gallery/choices';
-import { BayFront, BayInside, DrawerStack, emptyBay, useBayPatch } from './BayControls';
+import {
+  BayFront,
+  BayInside,
+  DrawerStack,
+  ShelfHeights,
+  emptyBay,
+  useBayPatch,
+} from './BayControls';
 
 /**
  * One opening in a carcass, and everything that fills it.
@@ -23,6 +30,11 @@ export function BayInspector({
 }) {
   const params = useStore((s) => s.params);
   const update = useStore((s) => s.update);
+  const volume = useStore((s) =>
+    s.project.bays.find(
+      (b) => b.cabinetId === cabinetId && b.carcassId === carcassId && b.index === bay,
+    ),
+  );
   const patch = useBayPatch(cabinetId, carcassId, bay);
 
   const cabinet = params.cabinets.find((c) => c.id === cabinetId);
@@ -37,6 +49,7 @@ export function BayInspector({
       <Group title={`Bay ${bay + 1}`} open>
         <BayFront bay={spec} at={{ cabinetId, carcassId, bay }} patch={patch} />
         <BayInside bay={spec} at={{ cabinetId, carcassId, bay }} patch={patch} />
+        <ShelfHeights bay={spec} volume={volume} patch={patch} />
         <DrawerStack
           bay={spec}
           bayIndex={bay}

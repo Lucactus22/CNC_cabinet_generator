@@ -9,6 +9,7 @@ import {
   type ShelfPinBoring,
 } from '../hardware/catalogue.js';
 import type {
+  BaySpec,
   Cabinet,
   Carcass,
   Material,
@@ -278,8 +279,27 @@ function mergeCarcass(template: Carcass, raw: Record<string, unknown>): Carcass 
     // frameless, exactly as it was cut, with sensible numbers already sitting
     // there the moment someone switches it on.
     faceFrame: { ...template.faceFrame, ...(raw.faceFrame as object) },
-    bays: Array.isArray(raw.bays) ? (raw.bays as Carcass['bays']) : template.bays,
+    bays: Array.isArray(raw.bays) ? raw.bays.map(mergeBay) : template.bays,
     bayWidths: Array.isArray(raw.bayWidths) ? (raw.bayWidths as number[]) : [],
+  };
+}
+
+/**
+ * Fill in a bay written before a field existed.
+ *
+ * `shelfGaps` and `drawerFrontHeights` are both read with `.filter` and
+ * `.length` the moment a carcass is built, so a file that predates either
+ * would take the geometry down before anything could report why. An absent
+ * list means "space them evenly", which is what those projects were cut to.
+ */
+function mergeBay(raw: unknown): BaySpec {
+  const bay = (raw ?? {}) as Partial<BaySpec>;
+  return {
+    shelves: bay.shelves ?? 'none',
+    shelfCount: bay.shelfCount ?? 0,
+    shelfGaps: Array.isArray(bay.shelfGaps) ? bay.shelfGaps : [],
+    doors: bay.doors ?? 'none',
+    drawerFrontHeights: Array.isArray(bay.drawerFrontHeights) ? bay.drawerFrontHeights : [],
   };
 }
 

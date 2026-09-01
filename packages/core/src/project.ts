@@ -1,4 +1,5 @@
 import type { ProjectParams, Part } from './model/types.js';
+import type { BayVolume } from './build/builder.js';
 import { generate, partsNeedingFlip } from './joinery/index.js';
 import { nestParts, nestStock, type NestResult } from './nest/index.js';
 import { checkManufacturability, type Diagnostic } from './machine/check.js';
@@ -25,6 +26,14 @@ export interface ProjectResult {
   params: ProjectParams;
   /** Every part, sheet goods and solid stock alike. */
   parts: Part[];
+  /**
+   * Where each bay stands in the assembly.
+   *
+   * A bay produces no part of its own, so this is the only thing an interface
+   * can point at to select one — and it comes off the same layout the
+   * dividers and shelves were placed from, so what you click is what gets cut.
+   */
+  bays: BayVolume[];
   nest: NestResult;
   /** Face-frame stiles and rails, packed along boards rather than nested on sheets. */
   stockNest: NestResult;
@@ -55,7 +64,8 @@ function isStock(params: ProjectParams, part: Part): boolean {
  * and a test can call it without any scaffolding.
  */
 export function buildProject(params: ProjectParams): ProjectResult {
-  const { parts, warnings, notes, joints, hinges, handles, slides, wallMounts } = generate(params);
+  const { parts, bays, warnings, notes, joints, hinges, handles, slides, wallMounts } =
+    generate(params);
   const stockParts = parts.filter((p) => isStock(params, p));
   const sheetParts = parts.filter((p) => !isStock(params, p));
 
@@ -79,6 +89,7 @@ export function buildProject(params: ProjectParams): ProjectResult {
   return {
     params,
     parts,
+    bays,
     nest,
     stockNest,
     diagnostics,

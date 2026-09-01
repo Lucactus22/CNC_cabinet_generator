@@ -26,7 +26,8 @@ ProjectParams
     ├─ buildParts()          build/builder.ts
     │    parameters → placed panels + a list of what meets what
     │    Decides WHAT joins to WHAT. Never decides how it is machined.
-    │    Also emits the scribe strips that fit the run to a measured room.
+    │    Also emits the scribe strips that fit the run to a measured room,
+    │    and where every bay stands — see "Bays are volumes" below.
     │
     ├─ applyJoinery()        joinery/index.ts
     │    joints → pockets, through cuts, notches, tabs, drilling
@@ -91,6 +92,22 @@ but for the length of one build they can lag a build behind what is on screen;
 one computes, and `apps/web/src/worker/projectWorkerClient.ts` coalesces a
 burst of rapid changes to whichever params were current when the worker last
 finished, rather than working through every intermediate value.
+
+### Bays are volumes
+
+A bay is the only level of the model that produces no part of its own, so
+nothing downstream could point at one. `buildParts()` records a `BayVolume` per
+opening — its clear interior, the panels bounding it, and every part built
+inside it — from the same `layoutBays` call the dividers and shelves are placed
+from. That is what the 3D view raycasts to select a bay (R-20), what maps a door
+or a shelf back to the bay that decided it, and what a drag on a divider reads
+its current widths off. Recomputing any of that outside the pipeline is exactly
+how the thing you click drifts from the thing that gets cut.
+
+The volume runs to the true underside of the top; `shelfRun` is the shorter band
+a shelf can actually stand in. A hanging rail stands *inside* the bay rather
+than shortening it, and a volume that stopped under the rail would leave the
+space beside it belonging to nothing.
 
 ### Determinism
 
@@ -327,6 +344,7 @@ components/DiagnosticsPanel a chip that opens a list, with verified fixes
 components/Showroom         what this tool can make, rendered, changing nothing
 components/Explain          why there is a groove there, and a section through it
 components/Suggestion       one quiet line about something that applies, once
+drag.ts                     what dragging a panel in the model would set
 ```
 
 Four pieces carry the design:
@@ -361,6 +379,34 @@ an ordinary undoable parameter update that reports every material reference it
 had to repoint. A project that silently re-cut itself to whoever opened it
 would be the "silently producing a wrong cabinet" failure `CLAUDE.md` calls the
 worst outcome available.
+
+**`Viewport3D.tsx` — the model is the workspace, not a picture of it.** R-20
+made the cabinet answer back. Three things live there, and none of them is a
+second copy of a parameter:
+
+*Bays are pickable* as the volumes the builder hands out, drawn back-face only
+so a ray inside an opening comes out at its far wall — anything standing in the
+bay is nearer and wins, and what is left is the empty space, which is what a bay
+is. The inspector then moves to the click rather than opening a rival panel
+beside it: `store.anchor` is the screen rectangle of what was picked, and the
+card places itself clear of it.
+
+*Dividers and fixed shelves are draggable*, and `drag.ts` says what a drag would
+set: the opening on the panel's low side, its limits, and the values worth
+landing on exactly — an equal pair, the 32 mm module the box is bored on, a
+round ten. A drag writes `bayWidths` or `shelfGaps` through the ordinary
+`update`, so it is undoable, autosaved and identical to typing the number into
+the field the panel keeps. Dragging is for deciding; typing is for committing.
+The partner opening takes the *exact* remainder rather than a rounded one,
+because half a millimetre out and every panel beyond the pair shifts.
+
+*A section plane* clips the live assembly through
+`renderer.localClippingEnabled`, so the dados, tongues and hinge cups inside the
+panels are visible in place. Only the plane's border is grabbable: a sheet
+spanning the whole run would sit between the pointer and every panel behind it.
+Clipped materials are drawn double-sided, because a cut prism is an open shell
+and would otherwise read as a hole. The bay volumes are clipped too but keep
+their own `side` — overwriting it is what once made every shelf unpickable.
 
 **`gallery/` — the pictures are generated, never drawn.** Every option with a
 visible consequence is chosen from renders of what it produces (R-18). Nothing
@@ -460,9 +506,8 @@ person will delete.
 
 Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
-- the web app has the catalogue, gallery and explanation tests; no component or
-  end-to-end coverage of the shell itself
-- a bay can be selected in the run strip but not by clicking the cabinet itself
+- the web app has the catalogue, gallery, explanation and drag tests; no
+  component or end-to-end coverage of the shell itself
 - `joinery.reliefStyle` has no effect under stopped-dado joinery, which is the
   default: relief is applied to tab-and-slot slots and tab roots and nothing
   else. The control stays, because it decides everything the moment the joint

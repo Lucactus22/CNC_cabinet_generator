@@ -19,8 +19,8 @@ import {
   drawerHeights,
   hingeHeights,
   layoutBays,
+  layoutShelves,
   pinHeights,
-  shelfHeights,
   wallMountXs,
 } from './layout.js';
 import { resolveHardware } from '../hardware/catalogue.js';
@@ -60,9 +60,46 @@ export interface JointRequest {
   openEdgeAtY?: number;
 }
 
+/**
+ * One clear opening in a carcass, as a volume standing in the assembly.
+ *
+ * A bay is the only level of the model that produces no part of its own, so
+ * nothing downstream can point at one unless the builder says where it is.
+ * Recomputing it outside the pipeline is what would let the thing you click
+ * drift away from the thing that gets cut, which is why this comes off the
+ * very numbers the dividers and shelves are placed from.
+ */
+export interface BayVolume {
+  /** Reads like a part id, because it names a thing in the same run: `C1-B-BAY-2`. */
+  id: string;
+  /** What it is called on screen, the same way a part carries its label. */
+  label: string;
+  cabinetId: string;
+  carcassId: string;
+  /** Index into `Carcass.bays`. */
+  index: number;
+  /** The clear interior: between the panels either side, the floor and the underside of the top. */
+  box: AABB;
+  /**
+   * The band a shelf can actually stand in, floor to ceiling.
+   *
+   * Distinct from `box`, because a hanging rail stands *inside* the bay rather
+   * than shortening it: the storage gives up the room, but the space beside
+   * the rail still belongs to the opening and still has to be clickable.
+   */
+  shelfRun: { z0: number; z1: number };
+  /** The panel bounding it on the low-X side: an outer side, or the divider before it. */
+  leftPanelId: string;
+  rightPanelId: string;
+  /** Every part built inside this opening — doors, drawer boxes and faces, shelves, a hanging rail. */
+  partIds: string[];
+}
+
 export interface BuildResult {
   parts: Part[];
   joints: JointRequest[];
+  /** Where each bay stands, for anything that has to point at one. See `BayVolume`. */
+  bays: BayVolume[];
   /** Blanks that are trapezoids rather than rectangles, resolved by the joinery stage. */
   tapers: TaperRequest[];
   /** Adjustable-shelf pin rows, resolved to concrete holes by the joinery stage. */
@@ -247,6 +284,7 @@ export function buildParts(params: ProjectParams): BuildResult {
 
   const parts: Part[] = [];
   const joints: JointRequest[] = [];
+  const bays: BayVolume[] = [];
   const pinRows: PinRowRequest[] = [];
   const toeNotches: ToeNotchRequest[] = [];
   const hinges: HingeRequest[] = [];
@@ -260,6 +298,7 @@ export function buildParts(params: ProjectParams): BuildResult {
   const sink: BuildSink = {
     parts,
     joints,
+    bays,
     pinRows,
     toeNotches,
     hinges,
@@ -376,6 +415,7 @@ export function buildParts(params: ProjectParams): BuildResult {
   return {
     parts,
     joints,
+    bays,
     pinRows,
     toeNotches,
     hinges,
@@ -636,6 +676,7 @@ export function cabinetPositions(cabinets: Cabinet[]): Array<{ id: string; x: nu
 export interface BuildSink {
   parts: Part[];
   joints: JointRequest[];
+  bays: BayVolume[];
   pinRows: PinRowRequest[];
   toeNotches: ToeNotchRequest[];
   hinges: HingeRequest[];
@@ -914,6 +955,41 @@ function buildCarcass(
     joints.push({ maleId: id, femaleId: topId, stopFrontAtY: yFront, purpose: 'divider' });
   });
 
+  // --- Bay volumes ---------------------------------------------------------
+  // Recorded now, from the same numbers the dividers were just placed at, so
+  // anything pointing at a bay — a click in the 3D view, a drag on a divider —
+  // is pointing at the opening that actually gets built rather than at a
+  // second guess at where it is. The interior runs to the true underside of
+  // the top, not to `shelfZ1`: a hanging rail stands *inside* the bay, and a
+  // volume that stopped under it would leave the space beside the rail
+  // belonging to nothing.
+  const bayVolumes: BayVolume[] = bays.map((bay, i) => {
+    const { leftPanel, rightPanel } = bayBoundingPanels(
+      i,
+      bays.length,
+      leftId,
+      rightId,
+      dividerIds,
+    );
+    return {
+      id: `${prefix}-BAY-${i + 1}`,
+      label: `${human} bay ${i + 1}`,
+      cabinetId: ctx.cabinetId,
+      carcassId: spec.id,
+      index: i,
+      box: box(bay.x0, bay.x1, yFront, innerBackY, shelfZ0, zTop - t),
+      shelfRun: { z0: shelfZ0, z1: shelfZ1 },
+      leftPanelId: leftPanel,
+      rightPanelId: rightPanel,
+      partIds: [],
+    };
+  });
+  sink.bays.push(...bayVolumes);
+  /** Everything built inside bay `i`, so a part can be traced back to its opening. */
+  const fills = (i: number, ...ids: string[]): void => {
+    bayVolumes[i]?.partIds.push(...ids);
+  };
+
   // --- Hanging rail --------------------------------------------------------
   // One segment per bay, bounded by whatever stands either side of it — a
   // divider always reaches the top regardless of shelfZ1 (it is jointed there),
@@ -968,6 +1044,7 @@ function buildCarcass(
         z: (hangZ0 + hangZ1) / 2,
         diameter: hr.screwDiameter,
       });
+      fills(i, hangId);
     });
   }
 
@@ -987,8 +1064,19 @@ function buildCarcass(
     );
 
     if (baySpec.shelves === 'fixed' && baySpec.shelfCount > 0) {
-      const zs = shelfHeights(shelfZ0, shelfZ1, baySpec.shelfCount, t);
-      zs.forEach((z, k) => {
+      const shelves = layoutShelves(
+        shelfZ0,
+        shelfZ1,
+        baySpec.shelfCount,
+        shelfMat.actualThickness,
+        baySpec.shelfGaps ?? [],
+      );
+      if (shelves.fellBackToEven) {
+        notes.push(
+          `${human} carcass, bay ${i + 1}: the shelf heights did not add up to the opening, so the shelves were spaced evenly instead.`,
+        );
+      }
+      shelves.zs.forEach((z, k) => {
         const id = `${prefix}-SHELF-${i + 1}-${k + 1}`;
         add(
           id,
@@ -1003,6 +1091,7 @@ function buildCarcass(
         );
         joints.push({ maleId: id, femaleId: leftPanel, stopFrontAtY: yFront, purpose: 'shelf' });
         joints.push({ maleId: id, femaleId: rightPanel, stopFrontAtY: yFront, purpose: 'shelf' });
+        fills(i, id);
       });
     }
 
@@ -1041,6 +1130,7 @@ function buildCarcass(
           '+',
           'u',
         );
+        fills(i, id);
       } else {
         notes.push(
           `${human} carcass bay ${i + 1}: the opening is too short for a shelf pin ladder, so no holes were drilled.`,
@@ -1189,6 +1279,7 @@ function buildCarcass(
         // carries the hinge side rather than a position: where on that edge it
         // lands is a placement setting, not something the carcass decides.
         if (hw.handle) handles.push({ doorId: id, hingeSide: leaf.hingeSide });
+        fills(i, id);
       });
     });
   }
@@ -1225,6 +1316,10 @@ function buildCarcass(
         rightId,
         dividerIds,
       );
+      // `buildDrawerStack` writes into the sink rather than returning parts,
+      // and how many it makes depends on whether the bay could take a box at
+      // all, so what it added is read off the list instead of predicted.
+      const before = parts.length;
       buildDrawerStack(
         {
           cabinetId: ctx.cabinetId,
@@ -1249,6 +1344,7 @@ function buildCarcass(
         hw.slide,
         sink,
       );
+      fills(i, ...parts.slice(before).map((p) => p.id));
     });
   }
 
