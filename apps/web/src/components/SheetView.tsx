@@ -1,51 +1,16 @@
-import { useMemo } from 'react';
-import { composeSheet, defaultExportOptions, planTiles } from '@cabgen/core';
 import { selectedPartId, useStore } from '../store';
+import { useSheetViews } from '../sheetViews';
 import { DrawingSvg } from './drawing';
 
 /**
  * The nested sheets, drawn from the very geometry that gets exported.
  */
 export function SheetView() {
-  const { params, parts, nest, stockNest } = useStore((s) => s.project);
+  const project = useStore((s) => s.project);
   const selected = useStore(selectedPartId);
   const select = useStore((s) => s.select);
 
-  const sheets = useMemo(
-    () =>
-      nest.sheets
-        .map((sheet) => ({
-          sheet,
-          label: 'Sheet',
-          drawing: composeSheet(params, parts, sheet, defaultExportOptions()).drawing,
-          // Setups follow how far the parts actually reach, matching the export.
-          tiles: planTiles(
-            sheet.contentLength,
-            sheet.width,
-            params.machine,
-            params.nesting.sheetMargin,
-          ),
-          material: params.materials.find((m) => m.id === sheet.materialId)?.name,
-        }))
-        // Boards, drawn the same way: `composeSheet` only ever asks a sheet
-        // for its size and its parts, so a board is nothing but a sheet with
-        // its parts in a single row.
-        .concat(
-          stockNest.sheets.map((sheet) => ({
-            sheet,
-            label: 'Board',
-            drawing: composeSheet(params, parts, sheet, defaultExportOptions()).drawing,
-            tiles: planTiles(
-              sheet.contentLength,
-              sheet.width,
-              params.machine,
-              params.nesting.sheetMargin,
-            ),
-            material: params.stockMaterials.find((m) => m.id === sheet.materialId)?.name,
-          })),
-        ),
-    [params, parts, nest, stockNest],
-  );
+  const sheets = useSheetViews(project);
 
   if (sheets.length === 0) {
     return <div className="empty">Nothing to nest yet.</div>;

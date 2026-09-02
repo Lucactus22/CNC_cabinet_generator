@@ -1,9 +1,8 @@
-import { defaultExportOptions, exportProject } from '@cabgen/core';
 import { useStore } from '../store';
-import { saveBlob, zipFiles } from '../download';
 import { SheetView } from './SheetView';
 import { PartView } from './PartView';
 import { BuildGuide } from './BuildGuide';
+import { InfoTip } from './Controls';
 
 /**
  * The pack you take to the machine, in one printable run.
@@ -17,27 +16,14 @@ import { BuildGuide } from './BuildGuide';
  */
 export function OutputPack() {
   const project = useStore((s) => s.project);
-  const params = useStore((s) => s.params);
   const building = useStore((s) => s.building);
   const safeNames = useStore((s) => s.safeNames);
   const setSafeNames = useStore((s) => s.setSafeNames);
   const setDiagnosticsOpen = useStore((s) => s.setDiagnosticsOpen);
+  const setExportPreviewOpen = useStore((s) => s.setExportPreviewOpen);
 
   const hasErrors = project.diagnostics.some((d) => d.severity === 'error');
   const blocked = building || hasErrors;
-
-  const doExport = (): void => {
-    const bundle = exportProject(project, { ...defaultExportOptions(), safeNames });
-    const slug =
-      params.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '') || 'cabinet';
-    saveBlob(
-      zipFiles(bundle.files.map((f) => ({ name: f.name, content: f.dxf }))),
-      `${slug}-cnc.zip`,
-    );
-  };
 
   return (
     <div className="pack">
@@ -52,7 +38,7 @@ export function OutputPack() {
           onClick={() => {
             if (building) return;
             if (blocked) setDiagnosticsOpen(true);
-            else doExport();
+            else setExportPreviewOpen(true);
           }}
           title={
             building
@@ -74,6 +60,7 @@ export function OutputPack() {
             onChange={(e) => setSafeNames(e.target.checked)}
           />
           safe layer names
+          <InfoTip text="Writes POCKET_D6P35 instead of POCKET_D6.35, for importers that dislike dots." />
         </label>
         <span className="hint" style={{ margin: 0 }}>
           {project.nest.sheets.length} sheets · {project.parts.length} parts ·{' '}

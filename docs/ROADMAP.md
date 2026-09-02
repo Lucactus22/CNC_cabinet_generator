@@ -2040,13 +2040,92 @@ at arm's length cannot hover, which makes half the tool's help invisible in
 exactly the place this item is designing for.
 
 **Acceptance criteria.**
-- [ ] Export preview with sheet thumbnails, tiles and materials before download
-- [ ] A shopping summary: sheets by material, hardware by type and count
-- [ ] Any single part re-exportable on its own
-- [ ] A workshop view legible at arm's length, steps illustrated, progress
+- [x] Export preview with sheet thumbnails, tiles and materials before download
+- [x] A shopping summary: sheets by material, hardware by type and count
+- [x] Any single part re-exportable on its own
+- [x] A workshop view legible at arm's length, steps illustrated, progress
       surviving a reload
-- [ ] The designer usable on a tablet, even if it is not the focus
-- [ ] No explanation reachable only by hovering
+- [x] The designer usable on a tablet, even if it is not the focus
+- [x] No explanation reachable only by hovering
+
+**Revised while working it.** `ExportBar.tsx` named in the item's own "Where"
+line was retired in R-17, months before this item's own slot came up — its
+export button split into `TopBar.tsx`'s and `OutputPack.tsx`'s own copies,
+which is where the preview hooks in instead. And "a workshop view" needed a
+name that did not collide with the existing Workshop *drawer* (R-17's door
+onto the machine, the tooling and the sheets — the shop's settings, set once)
+now that both are real: this item's is **At the machine**, a third door
+beside Workshop and Output, for the job in progress rather than the shop.
+
+**Nothing reachable only by hovering, scoped to what F-10 actually
+measured.** The 43-of-86 figure is labelled *fields*, and all three of
+`NumberField`, `SelectField` and `CheckField` in `Controls.tsx` already
+funnel their explanation through one `title` prop — fixing the three fixes
+every field built from them, all at once, rather than each of the roughly
+116 call sites individually. `InfoTip` puts the same sentence behind a small
+button beside the label, opened by click, Enter or Space, closed on blur,
+with the native `title` left in place for a mouse. A handful of icon-only
+buttons outside that pattern (the section plane's flip and close, adding a
+cabinet) gained an `aria-label` alongside their `title` for the same reason.
+Left alone: a button whose own visible text already carries its meaning,
+where the `title` is a supplementary detail (a keyboard shortcut, why Export
+is currently blocked) rather than the only explanation of what it does.
+
+**What it cost, for the items that follow.** `ProjectResult` gained
+`hardware: HardwareSummaryRow[]` (`export/hardware.ts`), computed from the
+same hinge, handle, slide and joint requests `export/assembly.ts` already
+turns into per-step lines — one row per kind (slides split further by
+runner length, since that is a different SKU), each count read off an
+oracle other than `hardwareSummary`'s own arithmetic in the tests that pin
+it. `export/part.ts` factors the local-frame composition `PartView.tsx` had
+inline into `partDrawing` / `exportPart`, shared by the on-screen drawing,
+the download button and **At the machine**'s own step pictures, so there is
+only one place a part's blank is ever drawn from. `AtMachine.tsx`'s
+progress is `machineProgress` in the store — see ARCHITECTURE.md's own
+section on it for the signature safeguard, and its note that
+`activeMachineProgress` must be read through a `useMemo`, never passed to
+`useStore` directly: it allocates a fresh object every call, which
+`useSyncExternalStore` reads as a snapshot that never stops changing —
+React error #185, caught only by driving the built app, exactly the failure
+mode `CLAUDE.md`'s own verification step exists to catch before tests do.
+`SheetView.tsx`'s per-sheet composition moved out to `sheetViews.ts` so the
+export preview's thumbnails and the output pack's full cards share one
+`useSheetViews` hook rather than two copies of the same `composeSheet` call.
+
+**What review found.** Four things, caught before this landed:
+
+- Making `.topbar` scroll horizontally rather than let a button run off a
+  narrow screen — reasonable on its own — clipped the ☰ project menu's own
+  dropdown along with it: CSS computes `overflow-y` as `auto` the instant
+  `overflow-x` is anything but `visible`, and that dropdown is an absolutely
+  positioned child meant to hang below the row. Open, Save, the design
+  library and Reset would have been unreachable by mouse for every user, not
+  only a narrow one. Dropped in favour of the media query alone, which
+  already keeps the row's own content narrow enough not to need it at the
+  widths this item targets.
+- `cutListSignature` fingerprinted only `project.cutList`, so an edit that
+  changed nothing but a face-frame stile's width — living in
+  `stockCutList`, kept apart precisely so board feet never mix into a sheet
+  count — left a checkmark ticked against a stock part that had, in truth,
+  changed size underneath it. Worse: even for a sheet part, an id-only
+  fingerprint cannot see a *resize* of an *existing* part at all, since a
+  wider cabinet still calls its side `C1-B-SIDE-L`. Both closed by folding
+  each row's own dimensions into the signature, not only its id, and by
+  reading both lists.
+- The single-part download button always wrote `safeNames: false`, so
+  someone who turned safe layer names on for the full export — because
+  their importer chokes on the dot in `POCKET_D6.35` — got the untranslated
+  layer names back the moment they redownloaded one ruined panel. Now reads
+  the same store setting the full export does.
+- `partDrawing`'s own doc comment claimed it was "the same composition
+  `composeSheet` does... minus the placement transform," which is not true
+  of a flipped feature and was never tested against `composeSheet` at all —
+  exactly the kind of claim this codebase does not get to make on trust.
+  The comment now says what is actually shared (everything except which
+  axis a face-B feature mirrors across, which is two different physical
+  operations by design) and `part-export.test.ts` checks the shared part
+  directly against `composeSheet`'s own output for a part that never needs
+  turning.
 
 ---
 

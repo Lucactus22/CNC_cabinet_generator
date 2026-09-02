@@ -1,15 +1,7 @@
 import { useMemo } from 'react';
-import {
-  bboxOf,
-  defaultExportOptions,
-  drillLayer,
-  emptyDrawing,
-  LAYER,
-  pocketLayer,
-  type DxfDrawing,
-  type Part,
-} from '@cabgen/core';
+import { bboxOf, defaultExportOptions, exportPart, partDrawing, type Part } from '@cabgen/core';
 import { selectedPartId, useStore } from '../store';
+import { saveText } from '../download';
 import { DrawingSvg } from './drawing';
 
 /** Every part, with the selected one drawn full size. */
@@ -95,7 +87,10 @@ function bandLine(
 
 function PartDrawing({ part }: { part: Part }) {
   const params = useStore((s) => s.params);
-  const drawing = useMemo(() => partDrawing(part), [part]);
+  const safeNames = useStore((s) => s.safeNames);
+  // Never the engraved id: the heading right below already names the part,
+  // and drawing it twice would be clutter rather than information.
+  const drawing = useMemo(() => partDrawing(part, { safeNames: false }, false), [part]);
   const bb = bboxOf(part.outline);
   const w = bb.maxX - bb.minX;
   const h = bb.maxY - bb.minY;
@@ -104,15 +99,33 @@ function PartDrawing({ part }: { part: Part }) {
   const bandingName = (id: string): string =>
     params.bandingMaterials.find((m) => m.id === id)?.name ?? id;
 
+  const download = (): void => {
+    // Same safe-names setting the full-project export uses — a part
+    // re-downloaded here after ruining the first one has to import into the
+    // same CAM setup the rest of the job already did.
+    const { file } = exportPart(part, { ...defaultExportOptions(), safeNames });
+    saveText(file.dxf, file.name, 'application/dxf');
+  };
+
   return (
     <div>
-      <h3 style={{ fontSize: 13, margin: '0 0 6px' }}>
-        {part.label}{' '}
-        <span style={{ fontFamily: 'var(--mono)', color: 'var(--muted)', fontWeight: 400 }}>
-          {part.id} · {w.toFixed(1)} × {h.toFixed(1)} × {part.thickness.toFixed(1)} mm · machined
-          face {part.faceASign === '+' ? 'A' : 'A (mirror of its pair)'}
-        </span>
-      </h3>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <h3 style={{ fontSize: 13, margin: '0 0 6px' }}>
+          {part.label}{' '}
+          <span style={{ fontFamily: 'var(--mono)', color: 'var(--muted)', fontWeight: 400 }}>
+            {part.id} · {w.toFixed(1)} × {h.toFixed(1)} × {part.thickness.toFixed(1)} mm · machined
+            face {part.faceASign === '+' ? 'A' : 'A (mirror of its pair)'}
+          </span>
+        </h3>
+        <span className="spacer" />
+        <button
+          className="link"
+          onClick={download}
+          title="This one blank's DXF on its own — the answer to a ruined panel, without opening the whole sheet zip."
+        >
+          Download this part's DXF
+        </button>
+      </div>
       <svg
         className="sheet-svg"
         style={{ maxHeight: '38vh' }}
@@ -147,26 +160,4 @@ function PartDrawing({ part }: { part: Part }) {
       )}
     </div>
   );
-}
-
-/** Compose one part on its own, in its local machining coordinates. */
-function partDrawing(part: Part): DxfDrawing {
-  const opts = defaultExportOptions();
-  const d = emptyDrawing();
-  d.paths.push({ layer: LAYER.outline, path: part.outline });
-  for (const f of part.features) {
-    if (f.kind === 'pocket') {
-      d.paths.push({ layer: pocketLayer(f.depth, opts), path: f.path });
-    } else if (f.kind === 'through') {
-      d.paths.push({ layer: LAYER.through, path: f.path });
-    } else if (f.kind === 'drill') {
-      d.circles.push({
-        layer: drillLayer(f.diameter, f.depth, opts),
-        x: f.x,
-        y: f.y,
-        radius: f.diameter / 2,
-      });
-    }
-  }
-  return d;
 }

@@ -173,6 +173,7 @@ export function RunStrip() {
           onClick={() => setAdding((v) => !v)}
           aria-expanded={adding}
           title="Add a cabinet to the end of the run"
+          aria-label="Add a cabinet to the end of the run"
         >
           +
         </button>

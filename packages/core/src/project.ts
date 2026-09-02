@@ -12,11 +12,13 @@ import {
   cutListCsv,
   defaultExportOptions,
   exportSheet,
+  hardwareSummary,
   materialSummary,
   slug,
   stockSummary,
   type AssemblyPlan,
   type CutListRow,
+  type HardwareSummaryRow,
   type PartLabel,
   type SheetExportOptions,
   type SheetFile,
@@ -45,6 +47,8 @@ export interface ProjectResult {
   stockMaterials: ReturnType<typeof stockSummary>;
   /** Total tape length needed per banding material. */
   banding: ReturnType<typeof bandingSummary>;
+  /** What to buy: hinges, handles, slides and shelf pins, by name and count. See export/hardware.ts. */
+  hardware: HardwareSummaryRow[];
   /** Step-by-step assembly order, derived from the joint graph. See export/assembly.ts. */
   assembly: AssemblyPlan;
   /** One entry per part, for a printable label sheet. See export/labels.ts. */
@@ -78,6 +82,7 @@ export function buildProject(params: ProjectParams): ProjectResult {
   const materials = materialSummary(params, sheetParts, nest);
   const stockMaterials = stockSummary(params, stockParts, stockNest);
   const banding = bandingSummary(params, parts);
+  const hardware = hardwareSummary(params, parts, { joints, hinges, handles, slides });
   const assembly = buildAssemblyPlan(params, parts, {
     joints,
     hinges,
@@ -98,6 +103,7 @@ export function buildProject(params: ProjectParams): ProjectResult {
     materials,
     stockMaterials,
     banding,
+    hardware,
     assembly,
     labels,
     notes,
