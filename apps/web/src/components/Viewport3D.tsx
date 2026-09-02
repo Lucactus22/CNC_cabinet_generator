@@ -271,6 +271,7 @@ function SectionControls({ project }: { project: ProjectResult }) {
         className="pill"
         onClick={() => setSection({ ...section, flip: !section.flip })}
         title="Look at the other half"
+        aria-label="Look at the other half"
       >
         ⇄
       </button>
@@ -278,6 +279,7 @@ function SectionControls({ project }: { project: ProjectResult }) {
         className="pill"
         onClick={() => setSection(null)}
         title="Put the cabinet back together"
+        aria-label="Put the cabinet back together"
       >
         ✕
       </button>

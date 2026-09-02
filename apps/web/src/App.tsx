@@ -8,6 +8,8 @@ import { CommandPalette } from './components/CommandPalette';
 import { DiagnosticsPanel } from './components/DiagnosticsPanel';
 import { StarterGallery } from './gallery/StarterGallery';
 import { Showroom } from './components/Showroom';
+import { ExportPreview } from './components/ExportPreview';
+import { AtMachine } from './components/AtMachine';
 import { useStore } from './store';
 
 /**
@@ -25,6 +27,8 @@ export function App() {
   const diagnosticsOpen = useStore((s) => s.diagnosticsOpen);
   const startersOpen = useStore((s) => s.startersOpen);
   const showroom = useStore((s) => s.showroom);
+  const exportPreviewOpen = useStore((s) => s.exportPreviewOpen);
+  const atMachine = useStore((s) => s.atMachine);
   useShortcuts();
 
   return (
@@ -42,6 +46,8 @@ export function App() {
         {workshopOpen && <WorkshopDrawer />}
         {startersOpen && <StarterGallery />}
         {showroom !== null && <Showroom />}
+        {exportPreviewOpen && <ExportPreview />}
+        {atMachine && <AtMachine />}
       </div>
 
       {surface === 'bench' && <RunStrip />}

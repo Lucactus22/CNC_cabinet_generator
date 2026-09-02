@@ -1328,8 +1328,11 @@ Left open deliberately, for the item that hits them:
 - **What the workshop profile format is.** It is a subset of `ProjectParams` and
   it lives in the same store as the project library, but the exact keys are
   R-17's to name.
-- **Mobile.** The tablet at the machine is R-22's workshop view. A phone is not
-  a target and nothing here assumes one.
+- ~~**Mobile.**~~ Answered by R-22: **At the machine**, large type and one
+  step at a time, standing in for a responsive reflow of the designer. A
+  phone was never a target and nothing there assumes one — the designer
+  itself stays usable down to a tablet's own width without being redesigned
+  for it, which is as far as R-22 took it.
 
 Ideas that came out of this research and are good but outside Milestone F have
 gone to [feature_suggestions.md](feature_suggestions.md) rather than widening an

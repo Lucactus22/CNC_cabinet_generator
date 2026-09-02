@@ -1,5 +1,6 @@
 import { normaliseParams, type ProjectParams } from '@cabgen/core';
 import type { WorkshopProfile, WorkshopSettings } from './workshop';
+import { emptyMachineProgress, type MachineProgress } from './machineProgress';
 
 const AUTOSAVE_KEY = 'cabgen:autosave';
 const LIBRARY_KEY = 'cabgen:library';
@@ -205,6 +206,47 @@ function isWorkshopShaped(raw: unknown): raw is WorkshopSettings {
 export function saveProfiles(entries: WorkshopProfile[]): void {
   try {
     localStorage.setItem(PROFILES_KEY, JSON.stringify(entries));
+  } catch {
+    // See saveAutosave.
+  }
+}
+
+// ---------------------------------------------------------------------------
+// At the machine: which step, which parts are cut
+// ---------------------------------------------------------------------------
+
+const MACHINE_PROGRESS_KEY = 'cabgen:machine-progress';
+
+/**
+ * Progress at the machine, if this browser has any. `store.ts`'s
+ * `activeMachineProgress` is what actually decides whether it still applies —
+ * this just reads back whatever was last written, signature included.
+ */
+export function loadMachineProgress(): MachineProgress {
+  try {
+    const raw = localStorage.getItem(MACHINE_PROGRESS_KEY);
+    if (!raw) return emptyMachineProgress();
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (
+      typeof parsed.signature !== 'string' ||
+      typeof parsed.step !== 'number' ||
+      !Array.isArray(parsed.cut)
+    ) {
+      return emptyMachineProgress();
+    }
+    return {
+      signature: parsed.signature,
+      step: parsed.step,
+      cut: parsed.cut.filter((id): id is string => typeof id === 'string'),
+    };
+  } catch {
+    return emptyMachineProgress();
+  }
+}
+
+export function saveMachineProgress(progress: MachineProgress): void {
+  try {
+    localStorage.setItem(MACHINE_PROGRESS_KEY, JSON.stringify(progress));
   } catch {
     // See saveAutosave.
   }

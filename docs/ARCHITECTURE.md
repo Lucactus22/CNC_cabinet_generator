@@ -351,6 +351,9 @@ components/DiagnosticsPanel a chip that docks a list along the bottom, grouped b
 components/Showroom         what this tool can make, rendered, changing nothing
 components/Explain          why there is a groove there, and a section through it
 components/Suggestion       one quiet line about something that applies, once
+components/ExportPreview    what is about to be produced, before the zip downloads — sheets, the shopping list, a beat before real material is committed
+components/AtMachine        the workshop view: large type, one step at a time, meant to be read standing at the machine — see "At the machine" below
+sheetViews.ts                one nested sheet's SVG, shared by the output pack and the export preview so neither can show something the other disagrees with
 drag.ts                     what dragging a panel in the model would set
 ```
 
@@ -472,6 +475,41 @@ plane that crosses the most machining rather than one somebody measured once.
 The section is what makes a capped top and an inset one distinguishable at all
 — capping exists precisely so the seam does not show from outside. R-20 wants
 the same rendering for its draggable section plane; this is where it lives.
+
+**At the machine — a different mode, not a responsive reflow.** R-22's
+workshop view is the cut list and the assembly guide again, but meant to be
+read standing up: large type, one assembly step at a time, a part shown as a
+picture rather than an id. It is a third door alongside the Workshop drawer
+and the Output pack, not a variant of either — the Workshop drawer is the
+*shop's* settings, this is the *job* in progress.
+
+Progress — which step, which parts are ticked as cut — is `machineProgress`
+in the store, persisted to `localStorage` the same way autosave is. What
+makes it safe rather than merely convenient is `machineProgress.ts`'s
+`cutListSignature`: a fingerprint of the current cut list's part ids. Part
+ids are structural (`C1-B-SIDE-L`), not content-hashed, so the same id can
+legitimately name a different blank in a different project, or the same
+project after an edit resized it. `activeMachineProgress` in `store.ts`
+compares the stored signature against the live one on every read and reads
+a mismatch as a fresh job rather than misapplying someone else's
+checkmarks — the paperwork equivalent of the silently wrong cabinet
+`CLAUDE.md` calls this codebase's worst failure. It is a plain function, not
+a store selector: a selector that allocates a new object every call is
+exactly what `useSyncExternalStore` cannot tolerate, so call sites compute
+it inside a `useMemo` instead.
+
+**A part re-exported on its own.** `export/part.ts`'s `partDrawing` is what
+`PartView.tsx` already drew on screen for the selected part, unchanged, so
+the downloaded file and the picture cannot drift apart from each other. It
+is not `composeSheet` reused, and deliberately cannot be: a face-B feature
+there is mirrored across the whole *sheet*, because turning the sheet over
+has to stay consistent with every other part nested on it, while a part
+exported alone has no sheet — the operator turns over just this one blank,
+across its own centre, which is a different axis in general. What the two
+functions do share — the outline, through cuts, face-A features, and which
+layer and `_FLIP` suffix a feature gets — `part-export.test.ts` checks
+directly against `composeSheet`'s own output rather than trusting the two
+implementations to agree by construction. See [DXF.md](DXF.md).
 
 ## Testing
 

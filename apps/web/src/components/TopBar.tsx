@@ -1,12 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  cabinetPositions,
-  defaultExportOptions,
-  exportProject,
-  normaliseParams,
-} from '@cabgen/core';
+import { cabinetPositions, normaliseParams } from '@cabgen/core';
 import { useStore } from '../store';
-import { saveBlob, saveText, zipFiles } from '../download';
+import { saveText } from '../download';
 import { summarise } from '../diagnosticsGrouping';
 import { isWorkshopTopic } from '../diagnosticTopics';
 
@@ -37,7 +32,9 @@ export function TopBar() {
   const undo = useStore((s) => s.undo);
   const redo = useStore((s) => s.redo);
   const load = useStore((s) => s.load);
-  const safeNames = useStore((s) => s.safeNames);
+  const setExportPreviewOpen = useStore((s) => s.setExportPreviewOpen);
+  const atMachine = useStore((s) => s.atMachine);
+  const setAtMachine = useStore((s) => s.setAtMachine);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -61,19 +58,6 @@ export function TopBar() {
     0,
     ...params.cabinets.map((c) => c.carcasses.reduce((a, k) => a + k.height, 0)),
   );
-
-  const doExport = (): void => {
-    const bundle = exportProject(project, { ...defaultExportOptions(), safeNames });
-    const slug =
-      params.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '') || 'cabinet';
-    saveBlob(
-      zipFiles(bundle.files.map((f) => ({ name: f.name, content: f.dxf }))),
-      `${slug}-cnc.zip`,
-    );
-  };
 
   const openProject = async (file: File): Promise<void> => {
     try {
@@ -170,6 +154,14 @@ export function TopBar() {
         Output
       </button>
       <button
+        aria-pressed={atMachine}
+        className={atMachine ? 'on' : undefined}
+        onClick={() => setAtMachine(!atMachine)}
+        title="Large type, one step at a time — cutting and assembly, meant to be read standing at the machine"
+      >
+        At the machine
+      </button>
+      <button
         // Red only for an actual error — a rebuild in flight is not a
         // problem, and painting it the same red as one would say it is.
         className={`primary${errors > 0 ? ' blocked' : ''}`}
@@ -180,14 +172,14 @@ export function TopBar() {
           // blocked opens the list that says why, rather than only refusing.
           if (building) return;
           if (blocked) setDiagnosticsOpen(true);
-          else doExport();
+          else setExportPreviewOpen(true);
         }}
         title={
           building
             ? 'Still catching up to your last change — wait a moment and try again.'
             : blocked
               ? 'Blocked — click to see what is stopping it.'
-              : 'Sheet DXFs, per-tile DXFs and the cut list, as one zip.'
+              : 'See what is about to be cut, then download the zip.'
         }
       >
         Export DXF
@@ -355,6 +347,8 @@ export function useShortcuts(): void {
   const setWorkshopOpen = useStore((s) => s.setWorkshopOpen);
   const setStartersOpen = useStore((s) => s.setStartersOpen);
   const setShowroom = useStore((s) => s.setShowroom);
+  const setExportPreviewOpen = useStore((s) => s.setExportPreviewOpen);
+  const setAtMachine = useStore((s) => s.setAtMachine);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -369,6 +363,8 @@ export function useShortcuts(): void {
         setPaletteOpen(false);
         setStartersOpen(false);
         setShowroom(null);
+        setExportPreviewOpen(false);
+        setAtMachine(false);
         if (!typing) select({ kind: 'run' });
         return;
       }
@@ -397,5 +393,7 @@ export function useShortcuts(): void {
     setWorkshopOpen,
     setStartersOpen,
     setShowroom,
+    setExportPreviewOpen,
+    setAtMachine,
   ]);
 }

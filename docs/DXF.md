@@ -73,6 +73,18 @@ your feeds, and it can place them better than a file can.
 | `<name>-sheet<N>.dxf` | One nested sheet, whole |
 | `<name>-sheet<N>-tile<M>.dxf` | One tile, coordinates zeroed to that tile |
 | `<name>-cutlist.csv` | Part list with sizes, sheet numbers, hole counts |
+| `<part id>.dxf` | One part on its own, downloaded separately — see below |
+
+### One part on its own
+
+R-22's answer to the workshop's most common accident, a ruined panel:
+download the one blank again without opening the whole sheet zip in another
+program to find and extract it. Origin is the part's own local machining
+frame, not a sheet — this is the one file in this generator's output that is
+not in sheet space. A face-B feature is mirrored across the blank's own
+centre rather than a sheet's length, so `_FLIP` still means the same thing:
+cut everything else first, turn the blank over left to right, then cut the
+`_FLIP` layers.
 
 ## Tiles
 

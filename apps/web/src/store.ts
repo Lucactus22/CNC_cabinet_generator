@@ -4,14 +4,17 @@ import { createProjectWorkerClient } from './worker/projectWorkerClient';
 import {
   loadAutosave,
   loadLibrary,
+  loadMachineProgress,
   loadProfiles,
   markStartersSeen,
   saveAutosave,
   saveLibrary,
+  saveMachineProgress,
   saveProfiles,
   startersSeen,
   type LibraryEntry,
 } from './persistence';
+import { cutListSignature, type MachineProgress } from './machineProgress';
 import { RUN, settleSelection, type Selection } from './selection';
 import { applyWorkshop, workshopOf, type WorkshopProfile } from './workshop';
 
@@ -65,6 +68,12 @@ interface AppState {
   diagnosticsOpen: boolean;
   /** The gallery of starter designs, over whichever surface is showing. */
   startersOpen: boolean;
+  /** What is about to be produced, shown once before the zip actually downloads. See R-22. */
+  exportPreviewOpen: boolean;
+  /** The workshop view: large type, one step at a time, meant to be read standing at the machine. */
+  atMachine: boolean;
+  /** Which assembly step is open and which parts are marked cut, at the machine. See machineProgress.ts. */
+  machineProgress: MachineProgress;
   /**
    * The showroom: every capability, rendered, browsable without touching the
    * design. Null when it is shut; a topic id when something asked to open it
@@ -101,6 +110,12 @@ interface AppState {
   setWorkshopOpen: (open: boolean) => void;
   setPaletteOpen: (open: boolean) => void;
   setStartersOpen: (open: boolean) => void;
+  setExportPreviewOpen: (open: boolean) => void;
+  setAtMachine: (open: boolean) => void;
+  setMachineStep: (step: number) => void;
+  toggleMachineCut: (partId: string) => void;
+  /** Clear checkmarks and go back to the first step — starting a fresh job on the same design. */
+  resetMachineProgress: () => void;
   /** Open the showroom, optionally scrolled to one capability. Null shuts it. */
   setShowroom: (at: { topicId: string | null } | null) => void;
   setSafeNames: (v: boolean) => void;
@@ -272,12 +287,52 @@ export const useStore = create<AppState>((set, get) => {
     profiles: loadProfiles(),
     workshopNotes: [],
     preview: null,
+    exportPreviewOpen: false,
+    atMachine: false,
+    machineProgress: loadMachineProgress(),
     setSurface: (surface) => set({ surface }),
     setWorkshopOpen: (workshopOpen) => set({ workshopOpen }),
     setPaletteOpen: (paletteOpen) => set({ paletteOpen }),
     setStartersOpen: (startersOpen) => {
       if (!startersOpen) markStartersSeen();
       set({ startersOpen });
+    },
+    setExportPreviewOpen: (exportPreviewOpen) => set({ exportPreviewOpen }),
+    setAtMachine: (atMachine) => set({ atMachine }),
+    // Always stamped with the *current* build's own signature: an edit made
+    // since progress was last written is exactly what should start a fresh
+    // record rather than carry stale checkmarks forward under a mismatched
+    // one. See machineProgress.ts and `activeMachineProgress` below.
+    setMachineStep: (step) => {
+      const machineProgress: MachineProgress = {
+        signature: cutListSignature(get().project),
+        step,
+        cut: activeMachineProgress(get()).cutIds,
+      };
+      set({ machineProgress });
+      saveMachineProgress(machineProgress);
+    },
+    toggleMachineCut: (partId) => {
+      const current = activeMachineProgress(get());
+      const cut = current.cutIds.includes(partId)
+        ? current.cutIds.filter((id) => id !== partId)
+        : [...current.cutIds, partId];
+      const machineProgress: MachineProgress = {
+        signature: cutListSignature(get().project),
+        step: current.step,
+        cut,
+      };
+      set({ machineProgress });
+      saveMachineProgress(machineProgress);
+    },
+    resetMachineProgress: () => {
+      const machineProgress: MachineProgress = {
+        signature: cutListSignature(get().project),
+        step: 0,
+        cut: [],
+      };
+      set({ machineProgress });
+      saveMachineProgress(machineProgress);
     },
     setShowroom: (showroom) => set({ showroom }),
     setSafeNames: (safeNames) => set({ safeNames }),
@@ -465,3 +520,24 @@ export const displayedProject = (s: AppState): ProjectResult => s.preview?.proje
 /** The part the inspector, the sheet view and the 3D view all highlight. */
 export const selectedPartId = (s: { selection: Selection }): string | null =>
   s.selection.kind === 'part' ? s.selection.partId : null;
+
+/**
+ * The machine progress actually worth showing: stored progress, unless it was
+ * recorded against a cut list that no longer matches the one on screen, in
+ * which case it reads as a fresh job rather than misapplying someone else's
+ * checkmarks. See `MachineProgress`'s own note on why the signature exists.
+ *
+ * A plain function, not a store selector — it allocates a fresh object on
+ * every call, which is exactly what `useStore`'s `useSyncExternalStore`
+ * cannot tolerate from a selector (the snapshot never stops "changing",
+ * which is React error #185, not a slow render). Call it inside a
+ * `useMemo` keyed on `project` and `machineProgress` instead, the way
+ * `AtMachine.tsx` does.
+ */
+export const activeMachineProgress = (s: {
+  project: ProjectResult;
+  machineProgress: MachineProgress;
+}): { step: number; cutIds: string[] } => {
+  if (s.machineProgress.signature !== cutListSignature(s.project)) return { step: 0, cutIds: [] };
+  return { step: s.machineProgress.step, cutIds: s.machineProgress.cut };
+};

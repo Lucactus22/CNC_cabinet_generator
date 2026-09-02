@@ -94,6 +94,38 @@ function useReveal(param: string | undefined) {
   return host;
 }
 
+/**
+ * The explanation a `title` attribute carries, reachable without a mouse.
+ *
+ * A hover tooltip is invisible to a tablet at the machine (nothing to hover
+ * with) and to a keyboard user tabbing through (nothing fires on focus). This
+ * puts the same sentence behind a small button instead, which opens on a
+ * click or on Enter/Space the way any button does — and keeps the native
+ * `title` too, so a mouse still gets it for free on hover. See R-22, F-10.
+ */
+export function InfoTip({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="infotip">
+      <button
+        type="button"
+        className="infotip-btn"
+        aria-label="What this does"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        onBlur={() => setOpen(false)}
+      >
+        i
+      </button>
+      {open && (
+        <span className="infotip-bubble" role="tooltip">
+          {text}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function NumberField({
   label,
   value,
@@ -118,7 +150,10 @@ export function NumberField({
   const host = useReveal(param);
   return (
     <div className="field" title={title} ref={host} data-param={param}>
-      <label>{label}</label>
+      <label>
+        {label}
+        {title && <InfoTip text={title} />}
+      </label>
       <div className="unit">
         <input
           type="number"
@@ -158,7 +193,10 @@ export function SelectField<T extends string>({
   const host = useReveal(param);
   return (
     <div className={wide ? 'field wide' : 'field'} title={title} ref={host} data-param={param}>
-      <label>{label}</label>
+      <label>
+        {label}
+        {title && <InfoTip text={title} />}
+      </label>
       <select value={value} onChange={(e) => onChange(e.target.value as T)}>
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -229,7 +267,10 @@ export function CheckField({
   const host = useReveal(param);
   return (
     <div className="field" title={title} ref={host} data-param={param}>
-      <label>{label}</label>
+      <label>
+        {label}
+        {title && <InfoTip text={title} />}
+      </label>
       <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} />
     </div>
   );
