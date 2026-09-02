@@ -11,7 +11,7 @@ import {
   type Part,
   type ProjectResult,
 } from '@cabgen/core';
-import { displayedProject, useStore, type Anchor, type SectionState } from '../store';
+import { displayedProject, useStore, type SectionState } from '../store';
 import { dragPlanFor, dragReadout, snapDrag, type DragPlan } from '../drag';
 
 const COLOURS = {
@@ -86,14 +86,14 @@ export function Viewport3D({ hidden = false }: { hidden?: boolean }) {
       // Clicking the same thing again, or the background, brings the rest of
       // the cabinet back — which means selecting the run, because selection
       // always resolves.
-      onPick: (hit, where) => {
+      onPick: (hit) => {
         const state = useStore.getState();
         const current = focusOf(state.project.bays, state.selection);
         if (hit === null || same(hit, current)) {
           select({ kind: 'run' });
           return;
         }
-        select(selectionFor(state.project.bays, hit), where);
+        select(selectionFor(state.project.bays, hit));
       },
       onHover: setHover,
       onDragStart: (partId) => {
@@ -357,8 +357,7 @@ interface Engine {
 }
 
 interface Handlers {
-  /** `where` is the screen rectangle the picked object covers, for placing the card. */
-  onPick: (hit: Pick | null, where: Anchor) => void;
+  onPick: (hit: Pick | null) => void;
   onHover: (hit: Pick | null) => void;
   /** The assembly axis this panel may be dragged along, or null if it may not. */
   onDragStart: (partId: string) => 'x' | 'z' | null;
@@ -573,42 +572,8 @@ function createEngine(host: HTMLElement, handlers: Handlers): Engine {
     const moved = pressAt ? Math.hypot(ev.clientX - pressAt.x, ev.clientY - pressAt.y) : 0;
     pressAt = null;
     if (moved > 4) return;
-    const hit = pick();
-    handlers.onPick(hit, screenRectOf(hit, ev));
+    handlers.onPick(pick());
   };
-
-  /**
-   * How much of the screen the picked object takes up, so the inspector can
-   * stand clear of it. Falls back to the pointer itself when nothing was hit.
-   */
-  function screenRectOf(hit: Pick | null, ev: MouseEvent): Anchor {
-    const r = renderer.domElement.getBoundingClientRect();
-    const point = {
-      left: ev.clientX - r.left,
-      right: ev.clientX - r.left,
-      top: ev.clientY - r.top,
-      bottom: ev.clientY - r.top,
-    };
-    const object =
-      hit === null
-        ? null
-        : hit.kind === 'part'
-          ? (meshes.find((m) => m.part.id === hit.id)?.mesh ?? null)
-          : (bayMeshes.find((b) => b.bay.id === hit.id)?.mesh ?? null);
-    if (!object) return point;
-
-    const box = new THREE.Box3().setFromObject(object);
-    if (box.isEmpty()) return point;
-    const rect = { left: Infinity, right: -Infinity, top: Infinity, bottom: -Infinity };
-    for (const corner of boxCorners(box)) {
-      const p = screenOf(corner);
-      rect.left = Math.min(rect.left, p.x);
-      rect.right = Math.max(rect.right, p.x);
-      rect.top = Math.min(rect.top, p.y);
-      rect.bottom = Math.max(rect.bottom, p.y);
-    }
-    return Number.isFinite(rect.left) ? rect : point;
-  }
 
   // A pointer that has left the canvas is not hovering anything, and a stale
   // highlight is a lie about what a click would land on.
@@ -867,14 +832,6 @@ function createEngine(host: HTMLElement, handlers: Handlers): Engine {
             : 0;
     }
   }
-}
-
-function boxCorners(box: THREE.Box3): THREE.Vector3[] {
-  const out: THREE.Vector3[] = [];
-  for (const x of [box.min.x, box.max.x])
-    for (const y of [box.min.y, box.max.y])
-      for (const z of [box.min.z, box.max.z]) out.push(new THREE.Vector3(x, y, z));
-  return out;
 }
 
 const samePick = (a: Pick | null, b: Pick | null): boolean =>

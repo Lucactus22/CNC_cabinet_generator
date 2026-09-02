@@ -309,14 +309,6 @@ kbd {
   box-shadow: var(--shadow);
   overflow: hidden;
 }
-/* Anchored to a click in the model, rather than parked in the corner: R-20's
-   "its controls, in the viewport". Positioned by the component, which is the
-   only thing that knows how tall the card came out. */
-.inspector.anchored {
-  top: auto;
-  right: auto;
-  max-height: calc(100% - 24px);
-}
 .inspector-body {
   overflow-y: auto;
 }

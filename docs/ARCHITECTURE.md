@@ -387,9 +387,12 @@ second copy of a parameter:
 *Bays are pickable* as the volumes the builder hands out, drawn back-face only
 so a ray inside an opening comes out at its far wall — anything standing in the
 bay is nearer and wins, and what is left is the empty space, which is what a bay
-is. The inspector then moves to the click rather than opening a rival panel
-beside it: `store.anchor` is the screen rectangle of what was picked, and the
-card places itself clear of it.
+is. Selecting one opens that bay's controls in the inspector — the same card
+that answers every other selection, still docked at its corner. It was briefly
+moved to the click, on the reading that a bay's controls should open "in the
+viewport"; in the running app a 300 px panel over the middle of the cabinet is
+the one thing this architecture exists to prevent, so the card stays where the
+hand already knows to look.
 
 *Dividers and fixed shelves are draggable*, and `drag.ts` says what a drag would
 set: the opening on the panel's low side, its limits, and the values worth
