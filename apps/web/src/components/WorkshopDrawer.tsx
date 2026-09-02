@@ -13,6 +13,7 @@ import {
 import { ChoiceGallery } from '../gallery/Gallery';
 import { NEST_STRATEGY } from '../gallery/choices';
 import { HardwarePanel } from './HardwarePanel';
+import { isWorkshopTopic } from '../diagnosticTopics';
 
 /**
  * The workshop: one spindle, one machine, one stack of sheets, one drawer of
@@ -27,7 +28,12 @@ import { HardwarePanel } from './HardwarePanel';
 export function WorkshopDrawer() {
   const setOpen = useStore((s) => s.setWorkshopOpen);
   const errors = useStore(
-    (s) => s.project.diagnostics.filter((d) => d.severity === 'error').length,
+    // Scoped to what actually lives behind this door: an error about the
+    // room or the design would sit here with nothing to fix it, which is
+    // its own kind of silent-wrong-badge.
+    (s) =>
+      s.project.diagnostics.filter((d) => d.severity === 'error' && isWorkshopTopic(d.topic))
+        .length,
   );
 
   return (

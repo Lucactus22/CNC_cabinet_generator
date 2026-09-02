@@ -21,8 +21,10 @@ export function OutputPack() {
   const building = useStore((s) => s.building);
   const safeNames = useStore((s) => s.safeNames);
   const setSafeNames = useStore((s) => s.setSafeNames);
+  const setDiagnosticsOpen = useStore((s) => s.setDiagnosticsOpen);
 
-  const blocked = building || project.diagnostics.some((d) => d.severity === 'error');
+  const hasErrors = project.diagnostics.some((d) => d.severity === 'error');
+  const blocked = building || hasErrors;
 
   const doExport = (): void => {
     const bundle = exportProject(project, { ...defaultExportOptions(), safeNames });
@@ -44,9 +46,21 @@ export function OutputPack() {
           Print the pack
         </button>
         <button
-          onClick={doExport}
-          disabled={blocked}
-          title={blocked ? 'Fix what is blocking first.' : undefined}
+          // Red only for an actual error — a rebuild in flight is not a
+          // problem, and painting it the same red as one would say it is.
+          className={hasErrors ? 'blocked' : undefined}
+          onClick={() => {
+            if (building) return;
+            if (blocked) setDiagnosticsOpen(true);
+            else doExport();
+          }}
+          title={
+            building
+              ? 'Still catching up to your last change — wait a moment and try again.'
+              : blocked
+                ? 'Blocked — click to see what is stopping it.'
+                : undefined
+          }
         >
           Export DXF
         </button>

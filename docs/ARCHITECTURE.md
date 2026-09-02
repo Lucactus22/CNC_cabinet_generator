@@ -326,6 +326,13 @@ Every diagnostic should name the part it is about (`partIds`, so the previews
 can highlight it) and the parameter most likely to fix it (`hint`). Messages are
 written as sentences a woodworker would say, not as error codes.
 
+A diagnostic with a shape — a part too big for the machine, a sheet that needs
+several setups, a shelf past its safe span — also carries `spatial`, a small
+closed union set from the same numbers the sentence was built from. It exists
+so the diagnostics panel can draw the problem (R-21) rather than only describe
+it, without ever being able to draw something the message does not say —
+`DiagnosticDiagram` in `apps/web` reads it and nothing else.
+
 ## The web app
 
 `apps/web` is the bench: the cabinet is the surface and everything else floats
@@ -340,7 +347,7 @@ components/Inspector   what applies to the selection, and only that
 components/WorkshopDrawer   the machine, tooling, sheets, tape and hardware
 components/OutputPack  sheets, cut list, part drawings, labels, assembly steps
 components/CommandPalette   find by name, over the trade's words as well as ours
-components/DiagnosticsPanel a chip that opens a list, with verified fixes
+components/DiagnosticsPanel a chip that docks a list along the bottom, grouped by topic, with verified fixes and a diagram where the problem has a shape
 components/Showroom         what this tool can make, rendered, changing nothing
 components/Explain          why there is a groove there, and a section through it
 components/Suggestion       one quiet line about something that applies, once

@@ -1836,6 +1836,19 @@ when it could be a picture of the part next to the machine's envelope.
 
 **Where.** `Diagnostics.tsx`, `machine/check.ts`.
 
+*`Diagnostics.tsx` no longer exists — R-17 retired it in the same pass that
+built the shell, and folded a first version of most of this item into its
+replacement, `components/DiagnosticsPanel.tsx`, months before this item's own
+slot came up. Grouping by severity with repeats collapsed to a count, the
+readiness chip, and — critically — the structured-fix mechanism this item's
+own headline is about, were already there and already tested. What actually
+landed here: topic headers, the spatial diagrams, a full readiness sentence,
+Export explaining itself instead of only disabling, the workshop badge
+visible without opening the door, and — raised mid-session by the person
+running the app, who found the panel sitting as a floating card over the
+cabinet — docking it to the bottom of the stage instead, the cabinet staying
+visible above it.*
+
 **R-16 found a defect here, and it is now this item's headline.** On the default
 project the app's only offered fix for its only blocking errors makes things
 worse:
@@ -1864,6 +1877,22 @@ than a sentence that explains, and **a fix that would raise a new blocking
 error is not a fix**: check the result before offering it, the same way the
 pipeline is cheap enough to run twice.
 
+*Built differently.* A fix as "a parameter path and a value" on the
+`Diagnostic` itself cannot say "rip both sheet materials to 1000 mm", which is
+two writes across a list whose length nobody can predict — the actual shape
+of the fix that clears F-1. `apps/web/src/fixes.ts` already existed (built
+ahead of schedule during R-17, which needed *some* answer to reach an
+exportable default project) as a short list of whole-project candidates, each
+one applied to a clone and rebuilt through the real pipeline before it is
+shown, kept only if it strictly reduces the error count, sorted so the
+cheapest full clear leads. That already *is* "checked before it is offered,
+and a fix that raises a new error is not a fix" — just scoped to the errors
+that block export, which is what J6 needs, rather than to every diagnostic
+that names a parameter. Generalising it to warnings and info notes as well
+was considered and left out: most of them have no single unambiguous fix (a
+sagging shelf's hint alone lists three different changes), and inventing one
+means guessing, which this codebase does not do with a cabinet.
+
 **Two errors about the machine are the first thing a new user sees**, before
 they have designed anything, because a fresh project's sheets do not fit a
 default bed. Route workshop-setup diagnostics to R-17's workshop surface, with a
@@ -1879,17 +1908,17 @@ Group by topic, collapse repeats with a count, and put a readiness summary at
 the top. "Ready to cut" is currently inferred from the colour of a dot; say it.
 
 **Acceptance criteria.**
-- [ ] Grouped by topic, sorted by severity, repeats collapsed with a count
-- [ ] Unambiguous fixes offered as buttons, applied undoably
-- [ ] Spatial problems shown as a diagram, not only described
-- [ ] A readiness summary answering "can this be cut" in words
-- [ ] Clicking a diagnostic still highlights the part everywhere
-- [ ] Export explains why it is blocked rather than only being disabled
-- [ ] Workshop-setup diagnostics shown where they are fixable, not in front of
+- [x] Grouped by topic, sorted by severity, repeats collapsed with a count
+- [x] Unambiguous fixes offered as buttons, applied undoably
+- [x] Spatial problems shown as a diagram, not only described
+- [x] A readiness summary answering "can this be cut" in words
+- [x] Clicking a diagnostic still highlights the part everywhere
+- [x] Export explains why it is blocked rather than only being disabled
+- [x] Workshop-setup diagnostics shown where they are fixable, not in front of
       somebody who has not chosen a machine yet
-- [ ] The default project reaches an exportable state in **≤ 2 interactions**,
+- [x] The default project reaches an exportable state in **≤ 2 interactions**,
       both of them offered
-- [ ] No view is permanently reduced by the panel. Today it holds 26.4% of the
+- [x] No view is permanently reduced by the panel. Today it holds 26.4% of the
       window — more than the sidebar gets — on every tab including the Build
       guide, and on the Parts tab that is why only 2 of 21 rows are visible
       while the drawing is up, and why the drawing is gone by the time row 15
@@ -1898,6 +1927,71 @@ the top. "Ready to cut" is currently inferred from the colour of a dot; say it.
 **Tests.** Each structured fix clears the diagnostic that offered it **and
 raises no new error** — one test each, because a fix that does not fix is worse
 than none, and this item's own first draft cited a fix that does exactly that.
+
+*Landed in `apps/web/test/diagnostics.test.ts`: `offeredFixes` on the default
+project pins that ripping both sheet materials clears every blocking error,
+sorts first, and is reachable in the two interactions R-17 already measured
+(open the list, press the top button); a second test runs every offered
+candidate through the pipeline and asserts each one strictly reduces the
+error count and actually changes something, which is the same "checked
+before it is offered" promise stated as an assertion rather than a comment.
+Topic bucketing and the readiness sentence are pinned against the default
+project's real fourteen-entry diagnostics list, not a synthetic one, so a
+regrouping that quietly drops or duplicates an entry fails here. The three
+spatial payloads — a part against the machine's travel, a sheet's seam
+positions, a shelf's span against the 40×-thickness rule — are pinned in
+`packages/core/test/pipeline.test.ts`, next to the diagnostics they come
+from, with the exact numbers a diagram would need to draw them; `packages/core`
+has no rendering of its own to test against, so the numbers are the contract.*
+
+**What review found.** Three defects, all in the "Export explains itself"
+mechanism, caught before this landed:
+
+- `aria-disabled` on the Export button was the wrong tool for "stays
+  clickable so it can explain itself" — Playwright (and, more to the point, a
+  screen reader) reads `aria-disabled="true"` as exactly that, disabled,
+  which is precisely untrue here: the button still does something on every
+  click. Dropped in favour of an ordinary enabled button styled to read as
+  blocked.
+- The button painted itself in the same red as an actual blocking error
+  whenever a rebuild was merely in flight (`building`, R-12), on every
+  keystroke that triggers one — even with zero errors. "Still catching up"
+  and "something is wrong" are different states and had been sharing one
+  colour. Red now follows `errors > 0` alone; `building` still holds the
+  click (nothing to export yet) without claiming a problem exists.
+- The output pack's own copy of this button special-cased `errors` but not
+  `building`, unlike the top bar's — a click mid-rebuild opened the
+  diagnostics list, which would then read the stale, error-free previous
+  build and say "Ready to cut", flatly contradicting the click that had just
+  refused to export. Brought in line with the top bar's guard.
+
+A fourth, unrelated to Export: the resize handle's `pointermove`/`pointerup`
+listeners live on `window`, added on pointer-down and removed on pointer-up —
+but Escape closes the panel (and so unmounts it) regardless of whether a drag
+is still in progress, and unmounting does not deliver a `pointerup`. Without
+an unmount-time cleanup, dragging the handle and then pressing Escape before
+releasing the mouse would leak that listener pair for as long as the button
+stayed physically up. A `useEffect` cleanup now runs the same teardown on
+unmount.
+
+**What it cost, for the items that follow.** `Diagnostic` gained an optional
+`spatial: DiagnosticSpatial` field — a small closed union (`part-vs-machine`,
+`sheet-tiles`, `shelf-span`) set at the one place in `checkManufacturability`
+that already has the exact numbers the sentence next to it was built from, so
+a diagram can never say something the message does not. `severityRank` moved
+from `apps/web/src/store.ts` to `packages/core`, next to `Severity` itself —
+it is a fact about the domain type, not the UI, and the move was forced: the
+grouping logic needed it and store.ts pulls in the project web worker at
+module scope, which does not exist under a Node test runner. The grouping
+and bucketing logic that used to live inside `DiagnosticsPanel.tsx` moved
+out to `apps/web/src/diagnosticsGrouping.ts` for the same reason — it is the
+part of this item worth pinning, and a `.tsx` component is not something this
+repo's test setup imports. `apps/web/src/diagnosticTopics.ts` is the new,
+single place that says which topics the workshop door can actually fix
+(`machine`, `nesting`, `hardware`) — both the panel's "open the workshop"
+link and the door's own badge read it, so the two cannot silently disagree
+about what is behind the door. `apps/web/src/components/DiagnosticDiagram.tsx`
+is the small SVG renderer for the three spatial kinds.
 
 ---
 

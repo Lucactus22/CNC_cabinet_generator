@@ -10,6 +10,46 @@ import { tileCountFor } from './tiling.js';
 
 export type Severity = 'error' | 'warning' | 'info';
 
+/** How severities order against each other — worst first. */
+export const severityRank: Record<Severity, number> = { error: 0, warning: 1, info: 2 };
+
+/**
+ * The numbers behind a diagnostic that has a shape, so a panel can draw it
+ * rather than only describe it — a part next to the machine's envelope, a
+ * sheet with its seams, a shelf against the span it is safe to.
+ *
+ * Kept as a closed, diagnostic-specific union rather than a generic scene
+ * graph: each variant is set at the one place in `checkManufacturability`
+ * that already has the exact numbers the message itself was built from, so
+ * the picture cannot drift from the sentence next to it.
+ */
+export type DiagnosticSpatial =
+  | {
+      kind: 'part-vs-machine';
+      partW: number;
+      partH: number;
+      travelX: number;
+      travelY: number;
+      /** Which axis the stock feeds along, if tiling is on — that axis is not really bounded, it tiles. */
+      feedAxis: 'x' | 'y' | 'none';
+    }
+  | {
+      kind: 'sheet-tiles';
+      /** How far the parts on this sheet actually reach, along the feed axis. */
+      length: number;
+      width: number;
+      /** How far the stock advances between setups. */
+      step: number;
+      tiles: number;
+    }
+  | {
+      kind: 'shelf-span';
+      span: number;
+      thickness: number;
+      /** The span this rule of thumb starts to worry at: 40 times the thickness. */
+      limit: number;
+    };
+
 export interface Diagnostic {
   severity: Severity;
   /** Groups related messages in the UI, e.g. 'machine', 'joinery', 'nesting'. */
@@ -19,6 +59,8 @@ export interface Diagnostic {
   partIds?: string[];
   /** The parameter most likely to fix it. */
   hint?: string;
+  /** The numbers behind it, when it has a shape worth drawing. */
+  spatial?: DiagnosticSpatial;
 }
 
 /**
@@ -132,6 +174,14 @@ export function checkManufacturability(
         message: `${part.label} is ${w.toFixed(0)} x ${h.toFixed(0)} mm and cannot be cut on this machine: its smaller dimension of ${short.toFixed(0)} mm already exceeds the ${fixedTravel} mm of travel on the axis that does not feed.`,
         partIds: [part.id],
         hint: 'Reduce the carcass size, or use a machine with more travel across the feed.',
+        spatial: {
+          kind: 'part-vs-machine',
+          partW: w,
+          partH: h,
+          travelX: m.travelX,
+          travelY: m.travelY,
+          feedAxis: m.tilingAxis,
+        },
       });
     } else if (m.tilingAxis !== 'none' && long > feedTravel + 1e-6) {
       out.push({
@@ -165,6 +215,13 @@ export function checkManufacturability(
             params.nesting.strategy === 'material'
               ? 'Switch nesting to fewest setups, or set the sheet size to match your machine.'
               : 'Set the sheet size to match your machine to avoid tiling entirely.',
+          spatial: {
+            kind: 'sheet-tiles',
+            length: sheet.contentLength,
+            width: sheet.width,
+            step,
+            tiles,
+          },
         });
       }
     }
@@ -259,6 +316,12 @@ export function checkManufacturability(
         message: `${part.label} spans ${span.toFixed(0)} mm in ${part.thickness.toFixed(1)} mm material and will sag under load.`,
         partIds: [part.id],
         hint: 'Add a divider, use thicker material, or add a front edge stiffener.',
+        spatial: {
+          kind: 'shelf-span',
+          span,
+          thickness: part.thickness,
+          limit: part.thickness * 40,
+        },
       });
     }
   }

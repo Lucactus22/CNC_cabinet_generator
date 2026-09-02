@@ -481,8 +481,6 @@ export const useStore = create<AppState>((set, get) => {
   };
 });
 
-export const severityRank = { error: 0, warning: 1, info: 2 } as const;
-
 /**
  * What the 3D view draws: the option under the pointer if one is being
  * considered, otherwise the design itself.
