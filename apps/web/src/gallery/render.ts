@@ -124,6 +124,12 @@ export type View = IsoView | SectionView | DetailView;
 /**
  * Tones taken from the 3D view's palette, so a thumbnail and the model on the
  * bench read as the same object rather than two drawings of it.
+ *
+ * The wood does not change with the theme — plywood is the colour of plywood
+ * in any light, and a light-mode cabinet drawn in grey would be a picture of
+ * something this tool does not make. What does change is the ground: a hole
+ * right through a blank is drawn as the surface behind it, so `void` has to be
+ * whatever `.gallery-pic` and its cousins are painted. See R-23.
  */
 const INK = {
   lit: '#e8cba2',
@@ -135,8 +141,8 @@ const INK = {
   behind: '#7d7466',
   feature: '#5b452a',
   pocket: '#8b6c45',
-  /** Right through the blank: no material at all. */
-  void: '#20242b',
+  /** Right through the blank: no material at all, so the ground shows. */
+  void: 'var(--pic-bg)',
 };
 
 const RIM = 0.9;

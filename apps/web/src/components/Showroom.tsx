@@ -4,6 +4,7 @@ import { sampleProject } from '../gallery/samples';
 import { Thumbnail } from '../gallery/Thumbnail';
 import { GROUP_LABEL, GROUP_ORDER, TOPICS, type Topic } from '../explain/topics';
 import { TopicBody } from './Explain';
+import { useDialog } from './overlays';
 
 /**
  * The showroom: what this tool can make.
@@ -21,6 +22,7 @@ import { TopicBody } from './Explain';
  * you to where that thing is set, if it is set anywhere.
  */
 export function Showroom() {
+  const dialog = useDialog<HTMLElement>();
   const showroom = useStore((s) => s.showroom);
   const setShowroom = useStore((s) => s.setShowroom);
   const wanted = showroom?.topicId ?? null;
@@ -34,6 +36,10 @@ export function Showroom() {
     <div className="scrim" onClick={() => setShowroom(null)} role="presentation">
       <section
         className="showroom"
+        ref={dialog}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
         aria-label="What this can make"
         onClick={(e) => e.stopPropagation()}
       >

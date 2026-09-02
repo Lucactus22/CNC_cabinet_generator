@@ -3,6 +3,7 @@ import { search, type CatalogEntry } from '../catalog';
 import { searchTopics, type Topic } from '../explain/topics';
 import { useGoTo } from '../navigate';
 import { useStore } from '../store';
+import { useDialog } from './overlays';
 
 /**
  * Find by name, over everything.
@@ -16,6 +17,13 @@ import { useStore } from '../store';
  */
 export function CommandPalette() {
   const open = useStore((s) => s.paletteOpen);
+  // Mounted only while it is up, so `useDialog` below has a mount to hang the
+  // focus on. The palette used to render `null` from a component that never
+  // unmounts, which is fine for markup and useless for focus.
+  return open ? <Palette /> : null;
+}
+
+function Palette() {
   const setOpen = useStore((s) => s.setPaletteOpen);
   const setShowroom = useStore((s) => s.setShowroom);
   const { toEntry } = useGoTo();
@@ -23,19 +31,16 @@ export function CommandPalette() {
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
   const input = useRef<HTMLInputElement>(null);
+  const dialog = useDialog<HTMLDivElement>();
 
+  // After `useDialog` has focused the dialog itself: for this one overlay the
+  // field is the whole point, so typing can start straight away.
   useEffect(() => {
-    if (open) {
-      setQuery('');
-      setCursor(0);
-      input.current?.focus();
-    }
-  }, [open]);
+    input.current?.focus();
+  }, []);
 
   const results = useMemo(() => search(query).slice(0, 10), [query]);
   const topics = useMemo(() => searchTopics(query).slice(0, 4), [query]);
-
-  if (!open) return null;
 
   // `reveal` shuts the palette itself, so there is nothing to close here.
   const go = (entry: CatalogEntry): void => toEntry(entry);
@@ -48,7 +53,10 @@ export function CommandPalette() {
     <div className="palette-backdrop" onClick={() => setOpen(false)} role="presentation">
       <div
         className="palette"
+        ref={dialog}
+        tabIndex={-1}
         role="dialog"
+        aria-modal="true"
         aria-label="Find a setting"
         onClick={(e) => e.stopPropagation()}
       >

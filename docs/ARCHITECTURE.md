@@ -353,8 +353,11 @@ components/Explain          why there is a groove there, and a section through i
 components/Suggestion       one quiet line about something that applies, once
 components/ExportPreview    what is about to be produced, before the zip downloads — sheets, the shopping list, a beat before real material is committed
 components/AtMachine        the workshop view: large type, one step at a time, meant to be read standing at the machine — see "At the machine" below
+components/ErrorBoundary    what is left when a render throws: the design, written to a file
+components/overlays.ts      the keyboard behaviour every popover and modal shares
 sheetViews.ts                one nested sheet's SVG, shared by the output pack and the export preview so neither can show something the other disagrees with
 drag.ts                     what dragging a panel in the model would set
+theme.ts                    light or dark, and who decides
 ```
 
 Four pieces carry the design:
@@ -498,6 +501,53 @@ a store selector: a selector that allocates a new object every call is
 exactly what `useSyncExternalStore` cannot tolerate, so call sites compute
 it inside a `useMemo` instead.
 
+**`styles.css` — one system, two themes, one source of truth.** R-23 replaced
+fifteen ad-hoc font sizes and nineteen ad-hoc paddings with eight type steps,
+eight space steps and five radii, and every rule below spends those. The
+palette is written once, as `light-dark(light, dark)` pairs under
+`color-scheme: light dark` on `:root`, so:
+
+- the system preference is followed by the stylesheet alone — no JavaScript,
+  and no flash of the wrong theme before it runs;
+- a chosen theme is one `data-theme` attribute on `<html>` (`theme.ts`,
+  persisted per browser like the project library), which says *which half*
+  applies and restates no colour;
+- printing takes the light half and a white drawing ground, whatever the
+  screen is doing, so the pack stops coming out as a 2.1:1 orange outline;
+- `apps/web/test/contrast.test.ts` reads those very declarations back out of
+  the file and checks **both** halves against WCAG AA — 4.5:1 for every ink on
+  every surface and on every tint composited over one, 3:1 for a control's
+  own boundary and for every line a drawing is read from, on screen and on
+  paper. A colour token it does not account for fails the test, which is the
+  same device `catalog.ts` uses for a parameter with no control.
+
+The consequence for components: **a colour belongs in the stylesheet.** The DXF
+layer colours (`drawing.tsx`), the measurement diagram (`MeasureWizard.tsx`) and
+the ground a rendered picture sits on are `var()` references, applied through
+`style` rather than as SVG presentation attributes. Two sets deliberately are
+not: `gallery/render.ts`'s plywood tones, because a cabinet is the colour of a
+cabinet in any light, and `Viewport3D`'s `SCENE`, because three.js materials are
+not stylesheet rules — that one is two palettes in the component, switched from
+`resolvedTheme` on the store.
+
+**`components/overlays.ts` — a popover shuts, a modal holds.** `useDismissable`
+closes on Escape or a press outside; `useDialog` moves focus into a modal, holds
+Tab inside it, closes on Escape and puts focus back where it came from. Both
+register their listeners **once** and read the current callback from a ref. That
+is not tidiness: the measurement walkthrough previously keyed its Escape
+listener on an `onClose` prop rebuilt every render, and the global Escape
+handler's own store update re-rendered the inspector *during the same event's
+dispatch* — so the listener was marked removed before the event reached it and
+its replacement was added too late to be called. Escape did nothing.
+
+**`components/ErrorBoundary.tsx` — the design outlives the crash.** For a tool
+with no server, losing an hour's work to a stray exception is the worst failure
+available. The boundary renders nothing that could be what broke — no geometry,
+no worker, no store subscription — and its first offer is a *file*: the design
+is autosaved, but if the autosaved parameters are what crashed the app, reloading
+walks straight back into it. Hence three buttons in that order: save to a file,
+reload, and forget the autosave.
+
 **A part re-exported on its own.** `export/part.ts`'s `partDrawing` is what
 `PartView.tsx` already drew on screen for the selected part, unchanged, so
 the downloaded file and the picture cannot drift apart from each other. It
@@ -513,9 +563,13 @@ implementations to agree by construction. See [DXF.md](DXF.md).
 
 ## Testing
 
-Tests live in `packages/core/test`, with the web app's own in
-`apps/web/test` — today the catalogue pair above. The end-to-end pass over the
-journeys is R-24.
+Tests live in `packages/core/test`, with the web app's own in `apps/web/test` —
+the catalogue pair above, the gallery, the explanations, the drag arithmetic,
+the machine-progress signature, and `contrast.test.ts`, which reads `styles.css`
+itself. That last one is why `vitest.config.ts` sets `css: true`: with the
+default, a CSS import in a test is replaced by an empty string, and every
+assertion in it would pass by having nothing to check. The end-to-end pass over
+the journeys is R-24.
 
 `test/golden/default-0.1/` holds the sheet DXF the 0.1 default project exported,
 before R-03 turned two hardcoded carcasses into a run of cabinets. `golden.test.ts`
@@ -554,8 +608,14 @@ person will delete.
 
 Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
-- the web app has the catalogue, gallery, explanation and drag tests; no
-  component or end-to-end coverage of the shell itself
+- the web app has the catalogue, gallery, explanation, drag and contrast
+  tests; no component or end-to-end coverage of the shell itself, so the
+  keyboard pass is walked by hand in the running app until R-24 lands the
+  harness that could assert it
+- a nested part is pickable by clicking its rectangle on the sheet preview and
+  by no key, deliberately: the cut list directly under it reaches the same
+  part and says which one it is, and twenty-one extra tab stops per sheet
+  would be a worse route, not a second one
 - `joinery.reliefStyle` has no effect under stopped-dado joinery, which is the
   default: relief is applied to tab-and-slot slots and tab roots and nothing
   else. The control stays, because it decides everything the moment the joint

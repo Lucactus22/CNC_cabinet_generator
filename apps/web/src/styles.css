@@ -1,19 +1,121 @@
+/* ============================================================== the system
+   Three scales and one palette, decided once and used everywhere.
+
+   Before R-23 this file held fifteen distinct font sizes and nineteen
+   distinct paddings, each chosen in passing next to the rule above it. None
+   of them was wrong on its own; together they were nobody's decision. The
+   tokens below are that decision, and the rules underneath spend them rather
+   than inventing numbers.
+
+   The palette is written as `light-dark(light, dark)` so both themes live on
+   one line and neither can be edited without the other being read. `:root`
+   carries `color-scheme: light dark`, so the system preference picks a side
+   with no JavaScript and no flash of the wrong one; `data-theme` on the same
+   element overrides it when somebody has chosen. `apps/web/test/contrast.test.ts`
+   reads these very declarations back out of this file and checks both halves
+   against WCAG AA, which is why every colour belongs here rather than in a
+   component. */
 :root {
-  --bg: #14161a;
-  --panel: #1b1e24;
-  --panel-2: #22262e;
-  --float: #1e222a;
-  --line: #2f353f;
-  --text: #e6e9ef;
-  --muted: #98a1b3;
-  --accent: #f0a04b;
-  --accent-dim: #8a5c26;
-  --error: #ef6b6b;
-  --warn: #e6b453;
-  --info: #6ba8ef;
-  --ok: #6fc48a;
-  --radius: 6px;
-  --shadow: 0 12px 32px rgb(0 0 0 / 45%);
+  color-scheme: light dark;
+
+  /* Type. Eight steps. `--text-md` is the body size the app is set in; the
+     two above it exist only for headings and for the workshop view, which
+     re-points the whole scale rather than picking its own numbers. */
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+
+  /* Space. Every gap, padding and margin in this file is one of these. */
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 12px;
+  --space-6: 16px;
+  --space-7: 24px;
+  --space-8: 32px;
+
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+
+  /* Surfaces, from the window's own ground up to a card floating over it. */
+  --bg: light-dark(#f1efea, #14161a);
+  --panel: light-dark(#e5e1d9, #1b1e24);
+  --panel-2: light-dark(#d7d2c7, #22262e);
+  --float: light-dark(#fbfaf8, #1e222a);
+  /* The ground a drawn thing sits on — a nested sheet, a thumbnail, a part.
+     Deliberately not `--panel`: a pale blank has to read as an object on a
+     surface rather than as a hole in one. */
+  --pic-bg: light-dark(#e0dbd1, #171a20);
+
+  /* Ink. Every one of these is checked at 4.5:1 on every surface above. */
+  --text: light-dark(#1b1e24, #e6e9ef);
+  --muted: light-dark(#4b5261, #98a1b3);
+  --accent: light-dark(#8a4903, #f0a04b);
+  --error: light-dark(#9c1b1b, #ef6b6b);
+  --warn: light-dark(#6a4600, #e6b453);
+  --info: light-dark(#134e8a, #6ba8ef);
+  --ok: light-dark(#195c32, #6fc48a);
+
+  /* Two kinds of line, because they answer to different rules. `--line`
+     separates regions and is decoration; `--edge` is the visible boundary of
+     a control, which WCAG holds to 3:1 against whatever it sits on, so an
+     input in daylight is still recognisably an input. */
+  --line: light-dark(#d2ccc1, #2f353f);
+  --edge: light-dark(#74705f, #6a7280);
+  /* The accent at edge weight, for a hover border and for anything the
+     accent owns without filling. */
+  --accent-dim: light-dark(#99631a, #b2793a);
+
+  /* Text on a filled accent or a filled error. */
+  --on-accent: light-dark(#fdf6ec, #1a1206);
+  --on-error: light-dark(#fff1f1, #1a0a0a);
+
+  /* Tints: the same hue as the ink, laid over a surface to mark a state.
+     Composited over each surface and checked with the ink on top of them. */
+  --wash-accent: light-dark(rgb(138 73 3 / 12%), rgb(240 160 75 / 10%));
+  --wash-accent-strong: light-dark(rgb(138 73 3 / 24%), rgb(240 160 75 / 26%));
+  --wash-error: light-dark(rgb(156 27 27 / 10%), rgb(239 107 107 / 12%));
+  --wash-warn: light-dark(rgb(106 70 0 / 12%), rgb(230 180 83 / 16%));
+  --wash-info: light-dark(rgb(19 78 138 / 10%), rgb(107 168 239 / 14%));
+  --wash-ok: light-dark(rgb(25 92 50 / 10%), rgb(111 196 138 / 12%));
+
+  /* A card lifted off the page, and the dimmed room behind a modal. */
+  --shadow-color: light-dark(rgb(60 52 38 / 22%), rgb(0 0 0 / 45%));
+  --shadow: 0 12px 32px var(--shadow-color);
+  --scrim: light-dark(rgb(46 42 34 / 42%), rgb(8 9 12 / 62%));
+  --scrim-strong: light-dark(rgb(46 42 34 / 55%), rgb(8 9 12 / 72%));
+  /* The readouts floating over the 3D scene, which has its own ground. */
+  --overlay-bg: light-dark(rgb(249 247 243 / 88%), rgb(20 22 26 / 82%));
+
+  /* The DXF layers, as drawn on screen and printed. Same meanings as the
+     colour indices the exporter writes; `drawing.tsx` reads them from here so
+     the sheet preview follows the theme instead of staying a dark picture in
+     a light room. Each is checked at 3:1 on `--pic-bg` in both themes. */
+  --layer-outline: light-dark(#8a4903, #f0a04b);
+  --layer-through: light-dark(#9c1b1b, #ef6b6b);
+  --layer-pocket: light-dark(#195c32, #6fc48a);
+  --layer-drill: light-dark(#134e8a, #6ba8ef);
+  --layer-tile: light-dark(#6c2f96, #c778dd);
+  --layer-sheet: light-dark(#74705f, #6a7280);
+  --layer-label: var(--muted);
+  /* Banding is not a DXF layer — it is a mark on the part drawing saying
+     where the tape goes — but it is read off the same picture. */
+  --layer-band: light-dark(#9c1160, #ef7bb4);
+
+  /* The measurement walkthrough's own diagram: the room, the run, the tape. */
+  --measure-wall: light-dark(#1f5183, #6f93bb);
+  --measure-run: light-dark(#6e4d1f, #c8a578);
+
+  --focus: var(--accent);
   --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
   --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   /* The two bands of chrome the model does not get. Kept as variables
@@ -22,6 +124,15 @@
   --topbar-h: 44px;
   --strip-h: 96px;
   --inspector-w: 300px;
+}
+
+/* A chosen theme beats the system's. Nothing here restates a colour: it only
+   says which half of every `light-dark()` above applies. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 * {
@@ -38,17 +149,26 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
-  font: 14px/1.5 var(--sans);
+  font: var(--text-md) / 1.5 var(--sans);
   overflow: hidden;
+}
+
+/* One visible focus ring for the whole app, on the keyboard only.
+   `:focus-visible` rather than `:focus` so a click does not leave a ring
+   behind it, and an outline rather than a border change so nothing moves by a
+   pixel when focus lands. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 button {
   font: inherit;
   color: inherit;
   background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 5px 9px;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
   cursor: pointer;
 }
 button:hover {
@@ -61,7 +181,7 @@ button:disabled {
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #1a1206;
+  color: var(--on-accent);
   font-weight: 600;
 }
 button.primary:hover {
@@ -80,7 +200,7 @@ button.primary.blocked {
 button.primary.blocked:hover {
   filter: none;
   border-color: var(--error);
-  background: rgb(239 107 107 / 10%);
+  background: var(--wash-error);
 }
 /* The plain-button version, for the same export action inside the output pack. */
 button.blocked {
@@ -88,7 +208,7 @@ button.blocked {
   color: var(--error);
 }
 button.blocked:hover {
-  background: rgb(239 107 107 / 10%);
+  background: var(--wash-error);
 }
 button.on {
   border-color: var(--accent);
@@ -100,7 +220,7 @@ button.link {
   padding: 0;
   color: var(--accent);
   text-decoration: underline;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 input,
@@ -109,15 +229,18 @@ select {
   font-family: var(--mono);
   color: var(--text);
   background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  padding: 4px 6px;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
   width: 100%;
   min-width: 0;
 }
+/* The accent border says "this is where you are typing" to a mouse user; the
+   ring above says it to a keyboard. Both, rather than the outline being
+   suppressed as it was before R-23 — removing it left a keyboard user with no
+   way to tell which of sixty fields had focus. */
 input:focus,
 select:focus {
-  outline: none;
   border-color: var(--accent);
 }
 input[type='checkbox'] {
@@ -126,10 +249,10 @@ input[type='checkbox'] {
 }
 kbd {
   font-family: var(--mono);
-  font-size: 10px;
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  padding: 0 3px;
+  font-size: var(--text-2xs);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-xs);
+  padding: 0 var(--space-1);
   color: var(--muted);
 }
 
@@ -152,8 +275,8 @@ kbd {
 .topbar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
   height: var(--topbar-h);
   border-bottom: 1px solid var(--line);
   background: var(--panel);
@@ -167,7 +290,7 @@ kbd {
      instead, which is not pretty but never hides a control past reach. */
 }
 .topbar h1 {
-  font-size: 14px;
+  font-size: var(--text-md);
   margin: 0;
   font-weight: 600;
   white-space: nowrap;
@@ -180,7 +303,7 @@ kbd {
 }
 .topbar .badge {
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   color: var(--muted);
   white-space: nowrap;
 }
@@ -190,15 +313,15 @@ kbd {
 .topbar .find {
   color: var(--muted);
   display: flex;
-  gap: 6px;
+  gap: var(--space-3);
   align-items: center;
 }
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .chip.error {
   border-color: var(--error);
@@ -233,12 +356,12 @@ kbd {
   justify-content: center;
   min-width: 15px;
   height: 15px;
-  padding: 0 4px;
-  margin-left: 5px;
-  border-radius: 999px;
+  padding: 0 var(--space-2);
+  margin-left: var(--space-2);
+  border-radius: var(--radius-pill);
   background: var(--error);
-  color: #1a0a0a;
-  font-size: 10px;
+  color: var(--on-error);
+  font-size: var(--text-2xs);
   font-weight: 700;
   font-family: var(--mono);
 }
@@ -246,15 +369,15 @@ kbd {
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
   font-family: var(--mono);
   color: var(--muted);
 }
 .pill.toggle {
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 2px 9px;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-4);
   cursor: pointer;
 }
 
@@ -269,16 +392,23 @@ kbd {
   width: 100%;
   height: 100%;
 }
+/* The model itself takes focus, so the keyboard can reach what a click
+   reaches. The ring goes inside the frame — an outline offset outwards on a
+   full-bleed element is clipped by the stage. */
+.viewport .scene:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
 .overlay {
   position: absolute;
-  left: 12px;
-  bottom: 12px;
-  background: rgb(20 22 26 / 82%);
+  left: var(--space-5);
+  bottom: var(--space-5);
+  background: var(--overlay-bg);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 7px 10px;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   color: var(--muted);
   pointer-events: none;
   backdrop-filter: blur(4px);
@@ -290,16 +420,16 @@ kbd {
 }
 .slider-row {
   position: absolute;
-  left: 12px;
-  top: 12px;
+  left: var(--space-5);
+  top: var(--space-5);
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgb(20 22 26 / 82%);
+  gap: var(--space-4);
+  background: var(--overlay-bg);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 5px 10px;
-  font-size: 12px;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
   color: var(--muted);
   backdrop-filter: blur(4px);
 }
@@ -313,16 +443,16 @@ kbd {
    away. */
 .section-row {
   position: absolute;
-  left: 12px;
+  left: var(--space-5);
   top: 52px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgb(20 22 26 / 82%);
+  gap: var(--space-3);
+  background: var(--overlay-bg);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 5px 10px;
-  font-size: 12px;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
   color: var(--muted);
   backdrop-filter: blur(4px);
 }
@@ -332,7 +462,7 @@ kbd {
 }
 .section-row .mono {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--text-xs);
   min-width: 4ch;
   text-align: right;
 }
@@ -347,15 +477,15 @@ kbd {
    column the height of the screen. */
 .inspector {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: var(--space-5);
+  right: var(--space-5);
   width: var(--inspector-w);
-  max-height: calc(100% - 24px);
+  max-height: calc(100% - var(--space-7));
   display: flex;
   flex-direction: column;
   background: var(--float);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   overflow: hidden;
 }
@@ -366,33 +496,33 @@ kbd {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 2px;
-  padding: 7px 10px;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--line);
-  font-size: 12px;
+  font-size: var(--text-sm);
   background: var(--panel);
 }
 .crumbs b {
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .crumbs .sep {
   color: var(--muted);
   font-style: normal;
-  padding: 0 3px;
+  padding: 0 var(--space-1);
 }
 .crumb {
   background: none;
   border: none;
-  padding: 0 1px;
+  padding: 0 var(--space-1);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .crumb:hover {
   color: var(--accent);
 }
 .crumb.dismiss {
   margin-left: auto;
-  padding: 0 4px;
+  padding: 0 var(--space-2);
 }
 
 /* --------------------------------------------------------------- controls */
@@ -401,23 +531,23 @@ kbd {
 }
 .group > summary {
   cursor: pointer;
-  padding: 8px 12px;
+  padding: var(--space-4) var(--space-5);
   font-weight: 600;
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--muted);
   list-style: none;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 .group > summary::-webkit-details-marker {
   display: none;
 }
 .group > summary::before {
   content: '▸';
-  font-size: 10px;
+  font-size: var(--text-2xs);
   transition: transform 0.12s;
 }
 .group[open] > summary::before {
@@ -432,7 +562,7 @@ kbd {
   text-transform: none;
   letter-spacing: 0;
   color: var(--accent);
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 .group > .body {
   display: none;
@@ -442,19 +572,19 @@ kbd {
    closed section would otherwise still lay out — and a control nobody can see
    is still a control on the page. */
 .group[open] > .body {
-  padding: 2px 12px 12px;
+  padding: var(--space-1) var(--space-5) var(--space-5);
   display: grid;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .field {
   display: grid;
   grid-template-columns: 1fr 88px;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
 }
 .field > label {
-  font-size: 12.5px;
+  font-size: var(--text-base);
   color: var(--muted);
 }
 .field.wide {
@@ -464,16 +594,16 @@ kbd {
   position: relative;
 }
 .field .unit input {
-  padding-right: 26px;
+  padding-right: var(--space-7);
   text-align: right;
 }
 .field .unit .suffix {
   position: absolute;
-  right: 6px;
+  right: var(--space-3);
   top: 50%;
   transform: translateY(-50%);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--muted);
   pointer-events: none;
 }
@@ -484,7 +614,7 @@ kbd {
 .infotip {
   position: relative;
   display: inline-block;
-  margin-left: 4px;
+  margin-left: var(--space-2);
   vertical-align: middle;
 }
 .infotip-btn {
@@ -496,9 +626,9 @@ kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--line);
+  border: 1px solid var(--edge);
   border-radius: 50%;
-  font: 600 10px/1 var(--sans);
+  font: 600 var(--text-2xs) / 1 var(--sans);
   font-style: italic;
   color: var(--muted);
 }
@@ -507,19 +637,25 @@ kbd {
   color: var(--text);
   border-color: var(--accent-dim);
 }
+/* `all: unset` drops the app-wide focus ring along with everything else, so
+   it is put back here rather than left to the hover colour alone. */
+.infotip-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
 .infotip-bubble {
   position: absolute;
   left: 0;
-  top: 20px;
+  top: var(--space-7);
   z-index: 40;
   width: max-content;
   max-width: 220px;
   background: var(--float);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow);
-  padding: 7px 9px;
-  font-size: 11.5px;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-xs);
   line-height: 1.4;
   color: var(--text);
   font-weight: 400;
@@ -532,25 +668,25 @@ kbd {
    own output at 76 pixels, not an icon somebody drew once. */
 .gallery {
   display: grid;
-  gap: 6px;
+  gap: var(--space-3);
 }
 .gallery-question {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--text-base);
   font-weight: 600;
   color: var(--text);
 }
 .gallery-options {
   display: grid;
-  gap: 4px;
+  gap: var(--space-2);
 }
 .gallery-option {
   display: grid;
   grid-template-columns: 76px 1fr;
-  gap: 9px;
+  gap: var(--space-4);
   align-items: center;
   text-align: left;
-  padding: 5px 7px;
+  padding: var(--space-2) var(--space-3);
 }
 /* Words only, where the difference is genuinely not a shape. */
 .gallery-option.words {
@@ -560,10 +696,8 @@ kbd {
   display: block;
   width: 76px;
   height: 60px;
-  border-radius: 4px;
-  /* A shade under the panel, so a pale blank reads as an object on a surface
-     rather than as a hole in one. */
-  background: #171a20;
+  border-radius: var(--radius-sm);
+  background: var(--pic-bg);
 }
 .gallery-pic svg {
   display: block;
@@ -572,42 +706,42 @@ kbd {
 }
 .gallery-text {
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: 0;
 }
 .gallery-text b {
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: var(--text-base);
 }
 .gallery-text > span {
-  font-size: 11px;
+  font-size: var(--text-xs);
   line-height: 1.35;
   color: var(--muted);
 }
 /* The reason an option cannot be used here. Shown, never hidden: an option
    nobody can see is an option nobody learns exists. */
 .gallery-text em {
-  font-size: 11px;
+  font-size: var(--text-xs);
   line-height: 1.35;
   font-style: normal;
   color: var(--warn);
 }
 .gallery-option.on {
   border-color: var(--accent);
-  background: rgb(240 160 75 / 10%);
+  background: var(--wash-accent);
 }
 .gallery-option.unavailable {
   opacity: 0.5;
   cursor: default;
 }
 .gallery-option.unavailable:hover {
-  border-color: var(--line);
+  border-color: var(--edge);
 }
 /* What the option under the pointer would cost, off the same build the model
    is showing. */
 .gallery-cost {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--text-xs);
   line-height: 1.45;
   color: var(--muted);
 }
@@ -626,7 +760,7 @@ kbd {
 }
 .gallery.wide .gallery-option {
   grid-template-columns: 1fr;
-  gap: 5px;
+  gap: var(--space-2);
 }
 .gallery.wide .gallery-pic {
   width: 100%;
@@ -636,67 +770,69 @@ kbd {
 /* Where find-by-name landed. Long enough to see, short enough not to nag. */
 .found {
   outline: 2px solid var(--accent);
-  outline-offset: 3px;
-  border-radius: 4px;
+  outline-offset: var(--space-1);
+  border-radius: var(--radius-sm);
 }
 
 .choice > label {
-  font-size: 12.5px;
+  font-size: var(--text-base);
   color: var(--muted);
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: var(--space-2);
 }
 .choice-options {
   display: grid;
-  gap: 4px;
+  gap: var(--space-2);
 }
 .choice-option {
   text-align: left;
   display: grid;
-  gap: 1px;
-  padding: 6px 9px;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
 }
 .choice-option b {
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: var(--text-base);
 }
 .choice-option span {
-  font-size: 11.5px;
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 .choice-option.on {
   border-color: var(--accent);
-  background: rgb(240 160 75 / 10%);
+  background: var(--wash-accent);
 }
 
 .hint {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--muted);
-  margin: -2px 0 4px;
+  /* Pulled up against the control above it: a hint belongs to that control,
+     not to the gap between two of them. */
+  margin: calc(var(--space-1) * -1) 0 var(--space-2);
 }
 .hint code {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 .row {
   display: flex;
-  gap: 6px;
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 .actions {
   display: flex;
-  gap: 6px;
+  gap: var(--space-3);
   flex-wrap: wrap;
-  padding: 10px 12px;
+  padding: var(--space-4) var(--space-5);
 }
 .derived {
   border-left: 2px solid var(--line);
-  padding-left: 8px;
+  padding-left: var(--space-4);
 }
 .derived-row {
   display: flex;
   justify-content: space-between;
-  font-size: 12.5px;
+  font-size: var(--text-base);
   color: var(--muted);
 }
 .derived-row b {
@@ -712,38 +848,38 @@ kbd {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 4px;
+  gap: var(--space-2);
 }
 .stack-item {
   width: 100%;
   text-align: left;
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-4);
   align-items: baseline;
 }
 .stack-item span {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--muted);
 }
 .stack-block,
 .sheet-size {
   display: grid;
-  gap: 8px;
-  padding: 8px 0;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
   border-top: 1px solid var(--line);
 }
 .roles {
   display: grid;
-  gap: 8px;
-  padding-top: 10px;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
   border-top: 1px solid var(--line);
 }
 .roles strong,
 .effect-head strong,
 .bay-head b {
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -751,8 +887,8 @@ kbd {
 
 .bay-card {
   display: grid;
-  gap: 8px;
-  padding: 8px 0;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
   border-top: 1px solid var(--line);
 }
 .bay-head {
@@ -762,13 +898,13 @@ kbd {
 }
 .drawer-list {
   display: grid;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 .effect {
   display: grid;
-  gap: 8px;
-  padding: 8px 0;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
   border-top: 1px solid var(--line);
 }
 .effect.off {
@@ -778,7 +914,7 @@ kbd {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
 }
 
 /* ------------------------------------------------------------- the run strip
@@ -791,14 +927,14 @@ kbd {
   background: var(--panel);
   display: flex;
   align-items: stretch;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
 }
 .run-scale {
   flex: 1;
   display: flex;
   align-items: stretch;
-  gap: 4px;
+  gap: var(--space-2);
   min-width: 0;
 }
 /* A grid, not a flex column: the stack's height is a percentage of the run's
@@ -821,10 +957,10 @@ kbd {
 .cab-head {
   background: none;
   border: none;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--edge);
   border-radius: 0;
-  padding: 1px 0 0;
-  font-size: 10.5px;
+  padding: var(--space-1) 0 0;
+  font-size: var(--text-2xs);
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
@@ -837,26 +973,26 @@ kbd {
 }
 .carc {
   position: relative;
-  border: 1px solid var(--line);
+  border: 1px solid var(--edge);
   border-bottom: none;
   background: var(--panel-2);
   display: flex;
   min-height: 8px;
 }
 .carc:last-child {
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--edge);
 }
 .carc.on {
   border-color: var(--accent);
-  background: rgb(240 160 75 / 12%);
+  background: var(--wash-accent);
 }
 .carc-tab {
   background: none;
   border: none;
-  border-right: 1px solid var(--line);
+  border-right: 1px solid var(--edge);
   border-radius: 0;
-  padding: 0 3px;
-  font-size: 9px;
+  padding: 0 var(--space-1);
+  font-size: var(--text-2xs);
   color: var(--muted);
   writing-mode: vertical-rl;
   text-orientation: mixed;
@@ -875,12 +1011,12 @@ kbd {
 .bay {
   background: none;
   border: none;
-  border-left: 1px solid var(--line);
+  border-left: 1px solid var(--edge);
   border-radius: 0;
   min-width: 6px;
   padding: 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-xs);
   line-height: 1;
   display: flex;
   align-items: center;
@@ -890,18 +1026,18 @@ kbd {
   border-left: none;
 }
 .bay:hover {
-  background: rgb(240 160 75 / 10%);
+  background: var(--wash-accent);
 }
 .bay.on {
-  background: rgb(240 160 75 / 26%);
+  background: var(--wash-accent-strong);
   color: var(--text);
 }
 .carc-remove {
   position: absolute;
   top: 1px;
   right: 1px;
-  padding: 0 4px;
-  font-size: 10px;
+  padding: 0 var(--space-2);
+  font-size: var(--text-2xs);
   line-height: 1.4;
   background: var(--panel);
   color: var(--muted);
@@ -918,17 +1054,17 @@ kbd {
 }
 .run-add-menu {
   position: absolute;
-  bottom: calc(100% + 6px);
+  bottom: calc(100% + var(--space-3));
   right: 0;
   z-index: 30;
   width: 420px;
   background: var(--float);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  padding: 6px;
+  padding: var(--space-3);
   display: grid;
-  gap: 4px;
+  gap: var(--space-2);
 }
 .run-add-menu .gallery-option {
   background: none;
@@ -936,7 +1072,7 @@ kbd {
 }
 .run-add-menu .gallery-option:hover {
   background: var(--panel-2);
-  border-color: var(--line);
+  border-color: var(--edge);
 }
 
 /* -------------------------------------------------------------- the doors */
@@ -958,8 +1094,8 @@ kbd {
 .diagnostics-sheet > header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 12px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--line);
 }
 .workshop-body {
@@ -967,11 +1103,11 @@ kbd {
 }
 .applied {
   border: 1px solid var(--accent-dim);
-  border-radius: var(--radius);
-  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-4);
   display: grid;
-  gap: 6px;
-  font-size: 12px;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
 }
 .applied p {
   margin: 0;
@@ -989,13 +1125,16 @@ kbd {
   z-index: 26;
   width: 100%;
   min-height: 160px;
-  max-height: calc(100% - 12px);
+  max-height: calc(100% - var(--space-5));
   background: var(--float);
   border-top: 1px solid var(--line);
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
 }
+/* A grab strip, not a gap: 7 px is the size of the thing, and the negative
+   margin is exactly its own height so it overlays the panel's top edge rather
+   than adding to it. Neither is a step on the spacing scale. */
 .diag-resize {
   height: 7px;
   margin-bottom: -7px;
@@ -1014,15 +1153,15 @@ kbd {
   overflow-y: auto;
 }
 .diag-topic {
-  padding: 3px 0;
+  padding: var(--space-1) 0;
 }
 .diag-topic + .diag-topic {
   border-top: 1px solid var(--line);
 }
 .diag-topic h3 {
   margin: 0;
-  padding: 7px 12px 1px;
-  font-size: 11px;
+  padding: var(--space-3) var(--space-5) var(--space-1);
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--muted);
@@ -1030,20 +1169,20 @@ kbd {
 .diagnostics-sheet ul {
   list-style: none;
   margin: 0;
-  padding: 2px 8px 8px;
+  padding: var(--space-1) var(--space-4) var(--space-4);
 }
 .diagnostic-diagram {
   display: block;
   width: min(220px, 100%);
   height: auto;
-  margin: 6px 0 2px;
+  margin: var(--space-3) 0 var(--space-1);
 }
 .diagnostics-sheet li {
   display: grid;
   grid-template-columns: 64px 1fr;
-  gap: 10px;
-  padding: 6px 8px;
-  border-radius: 4px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
   align-items: baseline;
 }
 .diagnostics-sheet li:hover {
@@ -1053,54 +1192,54 @@ kbd {
   cursor: pointer;
 }
 .diagnostics-sheet .msg {
-  font-size: 13px;
+  font-size: var(--text-base);
 }
 .diagnostics-sheet .msg.repeat {
   color: var(--muted);
-  font-size: 12px;
-  margin-top: 3px;
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
 }
 .diagnostics-sheet .links {
   display: flex;
-  gap: 14px;
-  margin-top: 3px;
+  gap: var(--space-5);
+  margin-top: var(--space-1);
 }
 .diagnostics-sheet .fix {
   color: var(--muted);
-  font-size: 12px;
-  margin-top: 2px;
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
 }
 .tag {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   text-align: center;
-  border-radius: 3px;
-  padding: 2px 0;
+  border-radius: var(--radius-xs);
+  padding: var(--space-1) 0;
 }
 .tag.error {
-  background: rgb(239 107 107 / 16%);
+  background: var(--wash-error);
   color: var(--error);
 }
 .tag.warning {
-  background: rgb(230 180 83 / 16%);
+  background: var(--wash-warn);
   color: var(--warn);
 }
 .tag.info {
-  background: rgb(107 168 239 / 14%);
+  background: var(--wash-info);
   color: var(--info);
 }
 
 /* The way out of a blocking diagnostic, with what it costs on the button. */
 .fixes {
   display: grid;
-  gap: 6px;
-  padding: 10px 12px;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--line);
 }
 .fixes strong {
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1108,10 +1247,10 @@ kbd {
 .fix-button {
   text-align: left;
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 .fix-button span {
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   color: var(--muted);
 }
 
@@ -1123,63 +1262,63 @@ kbd {
   position: absolute;
   inset: 0;
   z-index: 55;
-  background: rgb(8 9 12 / 62%);
+  background: var(--scrim);
   display: grid;
   justify-items: center;
   align-content: start;
-  padding: 6vh 16px 16px;
+  padding: 6vh var(--space-6) var(--space-6);
   overflow-y: auto;
 }
 .starters {
   width: min(880px, 100%);
   background: var(--float);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  padding: 14px 16px 16px;
+  padding: var(--space-5) var(--space-6) var(--space-6);
   display: grid;
-  gap: 8px;
+  gap: var(--space-4);
 }
 .starters header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
 }
 .starters h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-lg);
 }
 .starter-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 8px;
+  gap: var(--space-4);
 }
 .starter {
   display: grid;
-  gap: 3px;
+  gap: var(--space-1);
   text-align: left;
   align-content: start;
-  padding: 8px;
+  padding: var(--space-4);
 }
 .starter-pic {
   display: block;
   width: 100%;
   height: 130px;
-  border-radius: 4px;
-  background: #171a20;
+  border-radius: var(--radius-sm);
+  background: var(--pic-bg);
 }
 .starter b {
-  font-size: 13px;
+  font-size: var(--text-base);
 }
 .starter span {
-  font-size: 11.5px;
+  font-size: var(--text-sm);
   line-height: 1.4;
   color: var(--muted);
 }
 .starter em {
   font-style: normal;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--accent);
 }
 
@@ -1191,42 +1330,42 @@ kbd {
   width: min(1040px, 100%);
   background: var(--float);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  padding: 14px 16px 16px;
+  padding: var(--space-5) var(--space-6) var(--space-6);
   display: grid;
-  gap: 10px;
+  gap: var(--space-4);
 }
 .showroom header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
 }
 .showroom h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-lg);
 }
 .showroom-group h3 {
-  margin: 0 0 6px;
-  font-size: 12px;
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
   border-bottom: 1px solid var(--line);
-  padding-bottom: 4px;
+  padding-bottom: var(--space-2);
 }
 .showroom-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 10px;
+  gap: var(--space-4);
 }
 .showcase {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 8px;
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
   display: grid;
-  gap: 5px;
+  gap: var(--space-2);
   align-content: start;
 }
 /* Where the palette or a suggestion asked to land. Marked, not animated. */
@@ -1235,14 +1374,14 @@ kbd {
 }
 .showcase h4 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-base);
 }
 .showcase-pic {
   display: block;
   width: 100%;
   height: 140px;
-  border-radius: 4px;
-  background: #171a20;
+  border-radius: var(--radius-sm);
+  background: var(--pic-bg);
 }
 .showcase-pic svg {
   width: 100%;
@@ -1252,10 +1391,10 @@ kbd {
   display: grid;
   place-items: center;
   height: 52px;
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   color: var(--muted);
   text-align: center;
-  padding: 0 10px;
+  padding: 0 var(--space-4);
 }
 
 /* ------------------------------------------------------- export preview
@@ -1265,53 +1404,53 @@ kbd {
   width: min(880px, 100%);
   background: var(--float);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  padding: 14px 16px 16px;
+  padding: var(--space-5) var(--space-6) var(--space-6);
   display: grid;
-  gap: 10px;
+  gap: var(--space-4);
 }
 .export-preview header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
 }
 .export-preview h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-lg);
 }
 .export-thumbs {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 8px;
+  gap: var(--space-4);
   max-height: 46vh;
   overflow-y: auto;
 }
 .export-thumb {
   display: grid;
-  gap: 4px;
+  gap: var(--space-2);
 }
 .export-thumb svg {
   display: block;
   width: 100%;
   height: 110px;
-  background: #171a20;
-  border-radius: 4px;
+  background: var(--pic-bg);
+  border-radius: var(--radius-sm);
 }
 .export-thumb span {
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--muted);
 }
 .export-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
+  gap: var(--space-5);
   border-top: 1px solid var(--line);
-  padding-top: 10px;
+  padding-top: var(--space-4);
 }
 .export-summary h3 {
-  margin: 0 0 6px;
-  font-size: 12px;
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
@@ -1321,84 +1460,94 @@ kbd {
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 4px;
-  font-size: 12.5px;
+  gap: var(--space-2);
+  font-size: var(--text-base);
 }
 .export-preview-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-4);
   border-top: 1px solid var(--line);
-  padding-top: 10px;
+  padding-top: var(--space-4);
 }
 
 /* ------------------------------------------------------------ at the machine
    A different mode, not a responsive reflow: large type, high contrast, one
    assembly step at a time — meant to be read standing up, at arm's length,
-   with sawdust on your hands. R-22. The base font-size here is deliberately
-   raised and everything below scales off it. */
+   with sawdust on your hands. R-22. The type scale is re-pointed for this
+   subtree, so everything below really does scale off one decision rather than
+   carrying its own larger numbers. */
 .at-machine {
+  --text-2xs: 12px;
+  --text-xs: 13px;
+  --text-sm: 14px;
+  --text-base: 15px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 26px;
+
   width: min(1100px, 100%);
   height: min(900px, 92vh);
   background: var(--float);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  padding: 16px 20px 20px;
+  padding: var(--space-6) var(--space-6) var(--space-6);
   display: grid;
   grid-template-rows: auto 1fr;
-  gap: 14px;
-  font-size: 16px;
+  gap: var(--space-5);
+  font-size: var(--text-md);
   overflow: hidden;
 }
 .at-machine header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
 }
 .at-machine h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--text-xl);
 }
 .at-machine-tabs {
   display: flex;
-  gap: 6px;
+  gap: var(--space-3);
 }
 .at-machine-tabs button {
-  padding: 8px 16px;
-  font-size: 15px;
+  padding: var(--space-4) var(--space-6);
+  font-size: var(--text-base);
 }
 .at-machine-body {
   overflow-y: auto;
   display: grid;
-  gap: 14px;
+  gap: var(--space-5);
   align-content: start;
 }
 .at-machine-progress {
-  font-size: 18px;
+  font-size: var(--text-lg);
   font-weight: 600;
   margin: 0;
 }
 .at-machine-sheet h3 {
-  font-size: 16px;
-  margin: 0 0 8px;
+  font-size: var(--text-md);
+  margin: 0 0 var(--space-4);
   border-bottom: 1px solid var(--line);
-  padding-bottom: 4px;
+  padding-bottom: var(--space-2);
 }
 .at-machine-checklist {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 6px;
+  gap: var(--space-3);
 }
 .at-machine-checklist label {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-4);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 .at-machine-checklist input[type='checkbox'] {
@@ -1407,7 +1556,7 @@ kbd {
   flex: none;
 }
 .at-machine-checklist label:has(input:checked) {
-  background: rgb(111 196 138 / 12%);
+  background: var(--wash-ok);
   border-color: var(--ok);
 }
 .at-machine-checklist label:has(input:checked) span:not(.hint) {
@@ -1416,7 +1565,7 @@ kbd {
 }
 .at-machine-part-id {
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: var(--accent);
   min-width: 130px;
 }
@@ -1424,61 +1573,61 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: var(--space-6);
 }
 .at-machine-step-nav button {
-  padding: 10px 20px;
-  font-size: 16px;
+  padding: var(--space-4) var(--space-7);
+  font-size: var(--text-md);
 }
 .at-machine-step-nav span {
-  font-size: 15px;
+  font-size: var(--text-base);
   color: var(--muted);
   min-width: 140px;
   text-align: center;
 }
 .at-machine-step-title {
   text-align: center;
-  font-size: 22px;
+  font-size: var(--text-xl);
   margin: 0;
 }
 .at-machine-step-parts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
+  gap: var(--space-5);
   justify-items: center;
 }
 .at-machine-part-pic {
   margin: 0;
   display: grid;
-  gap: 6px;
+  gap: var(--space-3);
   justify-items: center;
 }
 .at-machine-part-pic svg {
   display: block;
   width: 140px;
   height: 140px;
-  background: #171a20;
-  border-radius: 6px;
+  background: var(--pic-bg);
+  border-radius: var(--radius-md);
 }
 .at-machine-pic-missing {
   width: 140px;
   height: 140px;
-  background: #171a20;
-  border-radius: 6px;
+  background: var(--pic-bg);
+  border-radius: var(--radius-md);
 }
 .at-machine-part-pic figcaption {
-  font-size: 13.5px;
+  font-size: var(--text-sm);
   text-align: center;
 }
 .at-machine-step-row {
-  font-size: 15px;
+  font-size: var(--text-base);
   margin: 0;
   text-align: center;
 }
 .at-machine-step-row b {
   color: var(--muted);
   font-weight: 600;
-  margin-right: 6px;
+  margin-right: var(--space-3);
 }
 
 /* ---------------------------------------------- explaining what is there
@@ -1487,11 +1636,11 @@ kbd {
    asked. */
 .machining {
   display: grid;
-  gap: 4px;
+  gap: var(--space-2);
 }
 .machining-item {
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .machining-head {
@@ -1502,29 +1651,29 @@ kbd {
   border-radius: 0;
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 8px;
+  gap: var(--space-4);
   align-items: baseline;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .machining-item.open .machining-head {
   background: var(--panel-2);
 }
 .machining-head span {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: var(--text-2xs);
   color: var(--muted);
 }
 .explain {
   display: grid;
-  gap: 6px;
-  padding: 6px;
+  gap: var(--space-3);
+  padding: var(--space-3);
 }
 .explain-pic {
   display: block;
   width: 100%;
   height: 120px;
-  border-radius: 4px;
-  background: #171a20;
+  border-radius: var(--radius-sm);
+  background: var(--pic-bg);
 }
 .explain-pic svg {
   width: 100%;
@@ -1532,27 +1681,27 @@ kbd {
 }
 .topic-body {
   display: grid;
-  gap: 4px;
+  gap: var(--space-2);
 }
 .topic-what,
 .topic-why {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 1.45;
 }
 .topic-why {
   color: var(--muted);
 }
 .topic-measures {
-  margin: 2px 0 0;
+  margin: var(--space-1) 0 0;
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 .topic-measures > div {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 8px;
-  font-size: 11.5px;
+  gap: var(--space-4);
+  font-size: var(--text-xs);
 }
 .topic-measures dt {
   color: var(--muted);
@@ -1563,12 +1712,12 @@ kbd {
   color: var(--accent);
 }
 .topic-source {
-  margin: 2px 0 0;
+  margin: var(--space-1) 0 0;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
-  font-size: 11px;
+  gap: var(--space-4);
+  font-size: var(--text-xs);
 }
 .topic-source .cite {
   font-family: var(--mono);
@@ -1580,24 +1729,24 @@ kbd {
    accent is a left rule rather than a fill: it should read as a note in the
    margin, not as something that needs answering. */
 .suggestion {
-  padding: 8px 10px;
+  padding: var(--space-4) var(--space-4);
   border-top: 1px solid var(--line);
   border-left: 2px solid var(--accent-dim);
   background: var(--panel);
   display: grid;
-  gap: 6px;
+  gap: var(--space-3);
 }
 .suggestion p {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 1.45;
   color: var(--muted);
 }
 .suggestion-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 11.5px;
+  gap: var(--space-4);
+  font-size: var(--text-xs);
 }
 .suggestion-actions .spacer {
   flex: 1;
@@ -1607,23 +1756,23 @@ kbd {
 .demonstrates {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 2px;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
 }
 .demonstrates i {
   font-style: normal;
-  font-size: 10.5px;
+  font-size: var(--text-2xs);
   color: var(--muted);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 1px 7px;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-3);
 }
 
 /* --------------------------------------------------------- find by name */
 .palette-backdrop {
   position: fixed;
   inset: 0;
-  background: rgb(8 9 12 / 62%);
+  background: var(--scrim);
   z-index: 60;
   display: grid;
   justify-items: center;
@@ -1631,26 +1780,26 @@ kbd {
   padding-top: 12vh;
 }
 .palette {
-  width: min(620px, calc(100% - 32px));
+  width: min(620px, calc(100% - var(--space-8)));
   background: var(--float);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  padding: 10px;
+  padding: var(--space-4);
   display: grid;
-  gap: 8px;
+  gap: var(--space-4);
 }
 .palette input {
   font-family: var(--sans);
-  font-size: 15px;
-  padding: 8px 10px;
+  font-size: var(--text-lg);
+  padding: var(--space-4) var(--space-4);
 }
 .palette ul {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
   max-height: 46vh;
   overflow-y: auto;
 }
@@ -1661,20 +1810,20 @@ kbd {
   border-color: transparent;
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 2px 10px;
+  gap: var(--space-1) var(--space-4);
 }
 .palette li button.on {
   background: var(--panel-2);
-  border-color: var(--line);
+  border-color: var(--edge);
 }
 .palette .where {
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--accent);
   font-family: var(--mono);
 }
 .palette .about {
   grid-column: 1 / -1;
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--muted);
 }
 
@@ -1683,10 +1832,10 @@ kbd {
 .palette-topics {
   list-style: none;
   margin: 0;
-  padding: 6px 0 0;
+  padding: var(--space-3) 0 0;
   border-top: 1px solid var(--line);
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 .palette-topics li button {
   width: 100%;
@@ -1695,7 +1844,7 @@ kbd {
   border-color: transparent;
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 2px 10px;
+  gap: var(--space-1) var(--space-4);
 }
 
 /* ------------------------------------------------------------- the menu */
@@ -1704,7 +1853,7 @@ kbd {
 }
 .menu > .panel {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + var(--space-3));
   left: 0;
   z-index: 40;
   width: 280px;
@@ -1712,52 +1861,65 @@ kbd {
   overflow-y: auto;
   background: var(--float);
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 10px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
   box-shadow: var(--shadow);
   display: grid;
-  gap: 8px;
+  gap: var(--space-4);
 }
 .menu .panel strong {
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 .menu-save {
   display: flex;
-  gap: 6px;
+  gap: var(--space-3);
 }
 .menu-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 2px;
+  gap: var(--space-1);
 }
 .menu-list li {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
 }
 .menu-item {
   flex: 1;
   text-align: left;
   background: none;
   border: 1px solid transparent;
-  padding: 5px 8px;
+  padding: var(--space-2) var(--space-4);
 }
 .menu-item:hover {
   background: var(--panel-2);
-  border-color: var(--line);
+  border-color: var(--edge);
 }
 .menu-delete {
-  padding: 5px 8px;
+  padding: var(--space-2) var(--space-4);
   color: var(--muted);
 }
 .menu-delete:hover {
   color: var(--error);
   border-color: var(--error);
+}
+/* The appearance switch: three options, one of them "follow the system",
+   which is where it starts. Behind the ☰ door rather than in the top bar,
+   because the resting control count is a budget R-17 set and a theme is
+   chosen once, not while working. */
+.menu-theme {
+  display: flex;
+  gap: var(--space-2);
+}
+.menu-theme button {
+  flex: 1;
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-2);
 }
 
 /* ---------------------------------------------------------- the output pack
@@ -1768,23 +1930,23 @@ kbd {
   position: absolute;
   inset: 0;
   overflow-y: auto;
-  padding: 16px;
+  padding: var(--space-6);
   background: var(--bg);
 }
 .pack-toolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-4);
   flex-wrap: wrap;
-  margin-bottom: 18px;
+  margin-bottom: var(--space-6);
 }
 .pack-section {
-  margin-bottom: 30px;
+  margin-bottom: var(--space-8);
 }
 .pack-section > h2,
 .guide-section h2 {
-  font-size: 12px;
-  margin: 0 0 10px;
+  font-size: var(--text-sm);
+  margin: 0 0 var(--space-4);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.6px;
@@ -1792,29 +1954,29 @@ kbd {
 }
 
 .sheet-card {
-  margin-bottom: 22px;
+  margin-bottom: var(--space-7);
 }
 .sheet-card h3 {
-  font-size: 13px;
-  margin: 0 0 6px;
+  font-size: var(--text-base);
+  margin: 0 0 var(--space-3);
   font-weight: 600;
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 .sheet-card h3 .meta {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--muted);
   font-weight: 400;
 }
 .sheet-svg {
   width: 100%;
   height: auto;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  background: var(--pic-bg);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-md);
 }
 /* On screen a full sheet at full width is a screen and a half each, so the
    pack is four screens before the cut list starts. It is printed at its own
@@ -1829,30 +1991,30 @@ kbd {
 }
 .legend {
   display: flex;
-  gap: 14px;
+  gap: var(--space-5);
   flex-wrap: wrap;
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--muted);
-  margin-bottom: 14px;
+  margin-bottom: var(--space-5);
 }
 .legend .swatch {
   width: 18px;
   height: 3px;
   display: inline-block;
   vertical-align: middle;
-  margin-right: 5px;
+  margin-right: var(--space-2);
 }
 
 table.parts {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: var(--text-base);
   font-family: var(--mono);
 }
 table.parts th,
 table.parts td {
   text-align: right;
-  padding: 4px 8px;
+  padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--line);
   white-space: nowrap;
 }
@@ -1876,82 +2038,95 @@ table.parts tbody tr:hover {
   background: var(--panel-2);
 }
 table.parts tbody tr.selected {
-  background: rgb(240 160 75 / 14%);
+  background: var(--wash-accent);
+}
+/* The id is a real button, so the row can be reached and chosen with a
+   keyboard rather than only clicked. It is styled as the plain text it looks
+   like — the row's own hover and selected states are what say it is live. */
+.row-pick {
+  all: unset;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.row-pick:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 .empty {
   color: var(--muted);
-  padding: 40px;
+  padding: var(--space-8);
   text-align: center;
 }
 
 .guide-section {
-  margin-bottom: 28px;
+  margin-bottom: var(--space-7);
 }
 .label-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 8px;
+  gap: var(--space-4);
 }
 .label-card {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-md);
   background: var(--panel);
-  padding: 8px 10px;
+  padding: var(--space-4) var(--space-4);
   break-inside: avoid;
 }
 .label-id {
   font-family: var(--mono);
   font-weight: 700;
-  font-size: 13px;
+  font-size: var(--text-base);
 }
 .label-desc {
-  font-size: 12px;
-  margin-top: 2px;
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
 }
 .label-meta,
 .label-face {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--muted);
-  margin-top: 3px;
+  margin-top: var(--space-1);
 }
 .steps {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 10px;
+  gap: var(--space-4);
   counter-reset: step;
 }
 .step {
   counter-increment: step;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-md);
   background: var(--panel);
-  padding: 10px 12px;
+  padding: var(--space-4) var(--space-5);
   break-inside: avoid;
 }
 .step-title {
   font-weight: 600;
-  font-size: 13px;
-  margin-bottom: 6px;
+  font-size: var(--text-base);
+  margin-bottom: var(--space-3);
 }
 .step-title::before {
   content: counter(step) '. ';
   color: var(--accent);
 }
 .step-row {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--muted);
-  margin-top: 3px;
+  margin-top: var(--space-1);
 }
 .step-tag {
   display: inline-block;
   min-width: 62px;
   color: var(--text);
   font-weight: 600;
-  margin-right: 4px;
+  margin-right: var(--space-2);
 }
 
 /* The measurement walkthrough: a modal, because it is a job you do standing in
@@ -1959,16 +2134,16 @@ table.parts tbody tr.selected {
 .wizard-backdrop {
   position: fixed;
   inset: 0;
-  background: rgb(8 9 12 / 72%);
+  background: var(--scrim-strong);
   display: grid;
   place-items: center;
   z-index: 70;
-  padding: 24px;
+  padding: var(--space-7);
 }
 .wizard {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   width: min(560px, 100%);
   max-height: 100%;
   display: flex;
@@ -1978,96 +2153,147 @@ table.parts tbody tr.selected {
 .wizard > header {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
   border-bottom: 1px solid var(--line);
 }
 .wizard > header strong {
   display: block;
-  font-size: 15px;
+  font-size: var(--text-lg);
 }
 .wizard-count {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .wizard > header button {
   margin-left: auto;
-  padding: 2px 8px;
+  padding: var(--space-1) var(--space-4);
 }
 .wizard-body {
-  padding: 16px;
+  padding: var(--space-6);
   overflow-y: auto;
   display: grid;
-  gap: 10px;
+  gap: var(--space-4);
 }
 .wizard-body p {
   margin: 0;
 }
 .wizard-list {
   margin: 0;
-  padding-left: 18px;
+  padding-left: var(--space-6);
   color: var(--muted);
   display: grid;
-  gap: 4px;
+  gap: var(--space-2);
 }
 .wizard-aside {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--text-base);
   border-left: 2px solid var(--line);
-  padding-left: 10px;
+  padding-left: var(--space-4);
 }
 .wizard-svg {
   width: 100%;
   height: auto;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 4px;
+  background: var(--pic-bg);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-sm);
 }
 .wizard-readout {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--ok);
   background: var(--panel-2);
-  border-radius: 4px;
-  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-4) var(--space-4);
 }
 .wizard-readout.bad {
   color: var(--warn);
 }
 .wizard-derived {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--text-base);
 }
 .wizard-escape > summary {
   cursor: pointer;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .wizard-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--text-base);
 }
 .wizard-table th {
   text-align: left;
   font-weight: 500;
   color: var(--muted);
-  padding: 4px 10px 4px 0;
+  padding: var(--space-2) var(--space-4) var(--space-2) 0;
   white-space: nowrap;
   vertical-align: top;
 }
 .wizard-table td {
-  padding: 4px 0;
+  padding: var(--space-2) 0;
   font-family: var(--mono);
 }
 .wizard > footer {
   display: flex;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
   border-top: 1px solid var(--line);
 }
 .wizard > footer .spacer {
   flex: 1;
+}
+
+/* ------------------------------------------------------- when it goes wrong
+   The error boundary. A tool with no server loses the design to a stray
+   exception unless something catches it, so this is deliberately the plainest
+   thing in the file: no store, no worker, no rendered geometry — only the
+   parameters, and a button that writes them to a file. */
+.crash {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  overflow-y: auto;
+  background: var(--bg);
+  color: var(--text);
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  padding: 10vh var(--space-6) var(--space-6);
+}
+.crash-card {
+  width: min(560px, 100%);
+  background: var(--float);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: var(--space-6);
+  display: grid;
+  gap: var(--space-4);
+}
+.crash-card h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+.crash-card p {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: 1.5;
+}
+.crash-card pre {
+  margin: 0;
+  padding: var(--space-4);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 30vh;
+  overflow-y: auto;
 }
 
 /* A short window puts the run strip and the inspector in each other's way
@@ -2091,9 +2317,34 @@ table.parts tbody tr.selected {
   }
 }
 
+/* Motion is decoration here — a disclosure triangle turning, a camera easing
+   to a stop — so somebody who has asked for less of it loses nothing by
+   getting none. The 3D view reads the same query for its own orbit damping;
+   see Viewport3D.tsx. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Screen-only chrome: hidden the moment the page prints, so the pack never
-   comes out with a run strip and a dark background wasted across it. */
+   comes out with a run strip and a dark background wasted across it. Paper is
+   light whatever the screen is, so the light half of every `light-dark()`
+   applies here — which is why this block no longer has to restate a colour. */
 @media print {
+  :root,
+  :root[data-theme] {
+    color-scheme: light;
+    /* Paper is the ground, so the drawing's own is white rather than the
+       tinted panel it sits on on screen — a full-page beige rectangle is real
+       ink. The layer colours are checked against both. */
+    --pic-bg: #fff;
+  }
   .no-print,
   .inspector,
   .workshop,
@@ -2111,7 +2362,6 @@ table.parts tbody tr.selected {
   body {
     overflow: visible;
     background: #fff;
-    color: #111;
   }
   .app,
   .stage {
@@ -2132,24 +2382,7 @@ table.parts tbody tr.selected {
     break-before: page;
   }
   .label-card,
-  .step,
-  .sheet-svg {
+  .step {
     background: #fff;
-    border-color: #999;
-    color: #111;
-  }
-  .pack-section > h2,
-  .guide-section h2,
-  .step-title,
-  .label-id {
-    color: #111;
-  }
-  .label-meta,
-  .label-face,
-  .step-row {
-    color: #444;
-  }
-  .step-title::before {
-    color: #111;
   }
 }

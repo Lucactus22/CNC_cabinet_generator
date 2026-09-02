@@ -48,8 +48,11 @@ export function Thumbnail({
     <path
       key={i}
       d={s.d}
-      fill={s.fill ?? 'none'}
-      stroke={s.stroke ?? 'none'}
+      // Through `style`, like every other themed drawing here: a shape can be
+      // filled with a custom property — a through cut is filled with whatever
+      // the picture's own ground is — and the style declaration is the form
+      // that is guaranteed to substitute one.
+      style={{ fill: s.fill ?? 'none', stroke: s.stroke ?? 'none' }}
       strokeWidth={(s.width ?? 0.5) * STROKE_SCALE}
       strokeLinejoin="round"
       vectorEffect="non-scaling-stroke"

@@ -13,16 +13,63 @@ import {
 } from '@cabgen/core';
 import { displayedProject, useStore, type SectionState } from '../store';
 import { dragPlanFor, dragReadout, snapDrag, type DragPlan } from '../drag';
+import { prefersReducedMotion, watchReducedMotion } from '../theme';
 
-const COLOURS = {
-  panel: 0xc8a578,
-  panelSelected: 0xf0a04b,
-  panelFaded: 0x6f6357,
-  edge: 0x3a3128,
-  feature: 0x3d2f1c,
-  room: 0x6f93bb,
-  bay: 0xf0a04b,
-  section: 0x6f93bb,
+/** Every tone the 3D scene is drawn in. */
+interface Scene {
+  panel: number;
+  panelSelected: number;
+  panelFaded: number;
+  edge: number;
+  feature: number;
+  room: number;
+  bay: number;
+  section: number;
+  background: number;
+  grid: number;
+  gridFaint: number;
+}
+
+/**
+ * The scene's own palette, one set per theme.
+ *
+ * The only colours in this app that are not in `styles.css`, because they are
+ * three.js materials and a stylesheet cannot reach them. The plywood tones
+ * hardly move between themes — a cabinet is the colour of a cabinet in any
+ * light — while everything the model is *drawn against* does: a dark viewport
+ * in the middle of a light window would defeat the whole point of R-23's light
+ * theme, which is a tool that can be read in daylight. `SCENE.light` is
+ * checked by eye against `styles.css`'s own `--bg` rather than by the contrast
+ * test, which reads CSS; what it has to be is a shade of the window it sits
+ * in, and a ground the panel tone stands out from.
+ */
+const SCENE: Record<'light' | 'dark', Scene> = {
+  dark: {
+    panel: 0xc8a578,
+    panelSelected: 0xf0a04b,
+    panelFaded: 0x6f6357,
+    edge: 0x3a3128,
+    feature: 0x3d2f1c,
+    room: 0x6f93bb,
+    bay: 0xf0a04b,
+    section: 0x6f93bb,
+    background: 0x14161a,
+    grid: 0x2f353f,
+    gridFaint: 0x22262e,
+  },
+  light: {
+    panel: 0xdcb98d,
+    panelSelected: 0xe08b1e,
+    panelFaded: 0xb3a795,
+    edge: 0x5c4a33,
+    feature: 0x6b5334,
+    room: 0x2f6ba0,
+    bay: 0xc4741a,
+    section: 0x2f6ba0,
+    background: 0xe7e3db,
+    grid: 0xbdb6a8,
+    gridFaint: 0xd2ccc0,
+  },
 };
 
 /** How much of the cabinet is left showing around an isolated part. */
@@ -33,6 +80,11 @@ const HOVER_OPACITY = 0.45;
  * a click. The same threshold the pick uses to tell a click from an orbit.
  */
 const DRAG_SLOP = 4;
+/** One press of an arrow, orbiting: about 6°, which is a nudge rather than a jump. */
+const STEP = Math.PI / 30;
+/** One press of + or −. */
+const DOLLY = 1.15;
+
 /** A bay is empty space, so it only ever shows as a tint over what is behind it. */
 const BAY_HOVER_OPACITY = 0.1;
 const BAY_SELECTED_OPACITY = 0.18;
@@ -66,6 +118,7 @@ export function Viewport3D({ hidden = false }: { hidden?: boolean }) {
   const exploded = useStore((s) => s.exploded);
   const setExploded = useStore((s) => s.setExploded);
   const section = useStore((s) => s.section);
+  const resolvedTheme = useStore((s) => s.resolvedTheme);
 
   const mount = useRef<HTMLDivElement>(null);
   const engine = useRef<Engine | null>(null);
@@ -80,59 +133,95 @@ export function Viewport3D({ hidden = false }: { hidden?: boolean }) {
     [project, selection],
   );
 
+  /**
+   * Everything a click in the model can land on, in one order, so a keyboard
+   * can walk it.
+   *
+   * R-23 asks for a keyboard route to everything the 3D view does by pointing.
+   * Most of it already had one — a bay is a button in the run strip, a
+   * divider's position is a field beside it, the section plane is a slider —
+   * but *a panel* had none at all: the only way to select one was to click it
+   * or find it in the cut list on the other surface. Bays come first because
+   * "drawers in that bay" is the interaction people repeat; both lists are in
+   * the builder's own order, so stepping through them walks the run left to
+   * right rather than in whatever order they were drawn.
+   */
+  const pickable = useMemo<Pick[]>(
+    () => [
+      ...project.bays.map((b) => ({ kind: 'bay' as const, id: b.id })),
+      ...project.parts.map((p) => ({ kind: 'part' as const, id: p.id })),
+    ],
+    [project],
+  );
+
+  const stepSelection = (by: number): void => {
+    if (pickable.length === 0) return;
+    const at = pickable.findIndex((p) => same(p, selected));
+    const from = at === -1 ? (by > 0 ? -1 : 0) : at;
+    const next = pickable[(from + by + pickable.length) % pickable.length]!;
+    select(selectionFor(project.bays, next));
+  };
+
   useEffect(() => {
     if (!mount.current) return;
-    const e = createEngine(mount.current, {
-      // Clicking the same thing again, or the background, brings the rest of
-      // the cabinet back — which means selecting the run, because selection
-      // always resolves.
-      onPick: (hit) => {
-        const state = useStore.getState();
-        const current = focusOf(state.project.bays, state.selection);
-        if (hit === null || same(hit, current)) {
-          select({ kind: 'run' });
-          return;
-        }
-        select(selectionFor(state.project.bays, hit));
+    // The theme is read once here rather than made a dependency: recreating
+    // the engine would throw away the camera the user has orbited to. The
+    // effect below hands a change to the live engine instead.
+    const e = createEngine(
+      mount.current,
+      {
+        // Clicking the same thing again, or the background, brings the rest of
+        // the cabinet back — which means selecting the run, because selection
+        // always resolves.
+        onPick: (hit) => {
+          const state = useStore.getState();
+          const current = focusOf(state.project.bays, state.selection);
+          if (hit === null || same(hit, current)) {
+            select({ kind: 'run' });
+            return;
+          }
+          select(selectionFor(state.project.bays, hit));
+        },
+        onHover: setHover,
+        onDragStart: (partId) => {
+          const state = useStore.getState();
+          // Nothing is where the parameters say while the model is blown apart,
+          // so a drag then would set a number off a panel that has been moved
+          // for show.
+          if (state.exploded > 0.001) return null;
+          const plan = dragPlanFor(state.project, state.params, partId);
+          drag.current = plan;
+          if (plan) setDragging(dragReadout(plan, plan.from, null));
+          return plan?.axis ?? null;
+        },
+        onDragMove: (deltaMm) => {
+          const plan = drag.current;
+          if (!plan) return;
+          const { value, why } = snapDrag(plan, plan.from + deltaMm);
+          setDragging(dragReadout(plan, value, why));
+          // An ordinary parameter update: undoable, autosaved, and identical to
+          // typing the number into the field this panel keeps.
+          useStore.getState().update((p) => plan.commit(p, value));
+        },
+        onDragEnd: () => {
+          drag.current = null;
+          setDragging(null);
+        },
+        onSection: (at) => {
+          const state = useStore.getState();
+          if (!state.section) return;
+          // Held inside the run: a cut dragged past the end of the cabinet takes
+          // the whole model with it and leaves an empty frame on screen.
+          const bounds = runBounds(state.project);
+          const axis = state.section.axis;
+          state.setSection({
+            ...state.section,
+            at: Math.min(bounds.max[axis], Math.max(bounds.min[axis], at)),
+          });
+        },
       },
-      onHover: setHover,
-      onDragStart: (partId) => {
-        const state = useStore.getState();
-        // Nothing is where the parameters say while the model is blown apart,
-        // so a drag then would set a number off a panel that has been moved
-        // for show.
-        if (state.exploded > 0.001) return null;
-        const plan = dragPlanFor(state.project, state.params, partId);
-        drag.current = plan;
-        if (plan) setDragging(dragReadout(plan, plan.from, null));
-        return plan?.axis ?? null;
-      },
-      onDragMove: (deltaMm) => {
-        const plan = drag.current;
-        if (!plan) return;
-        const { value, why } = snapDrag(plan, plan.from + deltaMm);
-        setDragging(dragReadout(plan, value, why));
-        // An ordinary parameter update: undoable, autosaved, and identical to
-        // typing the number into the field this panel keeps.
-        useStore.getState().update((p) => plan.commit(p, value));
-      },
-      onDragEnd: () => {
-        drag.current = null;
-        setDragging(null);
-      },
-      onSection: (at) => {
-        const state = useStore.getState();
-        if (!state.section) return;
-        // Held inside the run: a cut dragged past the end of the cabinet takes
-        // the whole model with it and leaves an empty frame on screen.
-        const bounds = runBounds(state.project);
-        const axis = state.section.axis;
-        state.setSection({
-          ...state.section,
-          at: Math.min(bounds.max[axis], Math.max(bounds.min[axis], at)),
-        });
-      },
-    });
+      useStore.getState().resolvedTheme,
+    );
     engine.current = e;
     return () => {
       e.dispose();
@@ -143,6 +232,10 @@ export function Viewport3D({ hidden = false }: { hidden?: boolean }) {
   useEffect(() => {
     engine.current?.setScene(project);
   }, [project]);
+
+  useEffect(() => {
+    engine.current?.setTheme(resolvedTheme);
+  }, [resolvedTheme]);
 
   useEffect(() => {
     engine.current?.setHighlight(selected, hover);
@@ -163,7 +256,51 @@ export function Viewport3D({ hidden = false }: { hidden?: boolean }) {
 
   return (
     <div className="viewport" style={hidden ? { display: 'none' } : undefined}>
-      <div ref={mount} style={{ position: 'absolute', inset: 0 }} />
+      <div
+        ref={mount}
+        className="scene"
+        style={{ position: 'absolute', inset: 0 }}
+        tabIndex={0}
+        role="group"
+        aria-label="The cabinet. Arrow keys step through its bays and panels, shift and an arrow turns it round, plus and minus zoom, and Escape goes back to the run."
+        onKeyDown={(e) => {
+          // Zoom before the shift branch, because `+` *is* Shift and `=` on
+          // most layouts: testing the modifier first made the key the label
+          // advertises the one key that did nothing.
+          if (e.key === '+' || e.key === '=') {
+            e.preventDefault();
+            engine.current?.orbit(0, 0, 1 / DOLLY);
+            return;
+          }
+          if (e.key === '-' || e.key === '_') {
+            e.preventDefault();
+            engine.current?.orbit(0, 0, DOLLY);
+            return;
+          }
+          // Shift turns the same arrows from "which thing" into "which way I
+          // am looking at it", so orbiting — the one thing in here with no
+          // control anywhere else — has a keyboard route too.
+          if (e.shiftKey) {
+            const swing = {
+              ArrowLeft: [-STEP, 0],
+              ArrowRight: [STEP, 0],
+              ArrowUp: [0, -STEP],
+              ArrowDown: [0, STEP],
+            }[e.key];
+            if (!swing) return;
+            e.preventDefault();
+            engine.current?.orbit(swing[0]!, swing[1]!, 1);
+            return;
+          }
+          if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            stepSelection(1);
+          } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            stepSelection(-1);
+          }
+        }}
+      />
       <div className="slider-row">
         <span>Explode</span>
         <input
@@ -207,6 +344,8 @@ export function Viewport3D({ hidden = false }: { hidden?: boolean }) {
           <>
             <b>{project.parts.length} parts</b> · click a bay to fill it, a panel to inspect it, and
             drag a divider or a fixed shelf to move it
+            <br />
+            or tab in here: arrows step through it, shift turns it round, + and − zoom
           </>
         )}
       </div>
@@ -352,9 +491,12 @@ function runBounds(project: ProjectResult): {
 
 interface Engine {
   setScene: (project: ProjectResult) => void;
+  /** Swing the camera round the model, in radians, and pull it in or out. */
+  orbit: (azimuth: number, elevation: number, dolly: number) => void;
   setHighlight: (selected: Pick | null, hover: Pick | null) => void;
   setExploded: (v: number) => void;
   setSection: (section: SectionState | null) => void;
+  setTheme: (theme: 'light' | 'dark') => void;
   dispose: () => void;
 }
 
@@ -376,9 +518,13 @@ const AXIS_DIR: Record<'x' | 'y' | 'z', THREE.Vector3> = {
   z: new THREE.Vector3(0, 1, 0),
 };
 
-function createEngine(host: HTMLElement, handlers: Handlers): Engine {
+function createEngine(host: HTMLElement, handlers: Handlers, theme: 'light' | 'dark'): Engine {
+  let ink: Scene = SCENE[theme];
+  // The last project built, kept so a theme change can rebuild the same scene
+  // in the other palette without the caller having to hand it back.
+  let shown: ProjectResult | null = null;
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x14161a);
+  scene.background = new THREE.Color(ink.background);
 
   const camera = new THREE.PerspectiveCamera(38, 1, 10, 30000);
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -389,8 +535,15 @@ function createEngine(host: HTMLElement, handlers: Handlers): Engine {
   host.appendChild(renderer.domElement);
 
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
+  // The camera coasting to a stop is the one piece of real motion in this app.
+  // Somebody who has asked for less of it gets an orbit that stops when the
+  // pointer does, which is the same control without the glide — and gets it
+  // the moment they ask, rather than on the next reload.
+  controls.enableDamping = !prefersReducedMotion();
   controls.dampingFactor = 0.08;
+  const unwatchMotion = watchReducedMotion((reduced) => {
+    controls.enableDamping = !reduced;
+  });
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.55));
   const key = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -413,7 +566,7 @@ function createEngine(host: HTMLElement, handlers: Handlers): Engine {
   scene.add(room);
   const sectionGroup = new THREE.Group();
   scene.add(sectionGroup);
-  const grid = new THREE.GridHelper(6000, 30, 0x2f353f, 0x22262e);
+  let grid = new THREE.GridHelper(6000, 30, ink.grid, ink.gridFaint);
   grid.position.y = -1;
   scene.add(grid);
 
@@ -688,7 +841,7 @@ function createEngine(host: HTMLElement, handlers: Handlers): Engine {
       // coordinate, negated — and flipping the normal flips its sign with it.
       clipPlane.set(dir, next.flip ? next.at : -next.at);
       if (!wasCutting) clip.push(clipPlane);
-      const built = sectionHandle(next, root);
+      const built = sectionHandle(next, root, ink);
       sectionGroup.add(built.fill, built.grab);
       sectionGrab = built.grab;
     } else if (wasCutting) {
@@ -700,6 +853,7 @@ function createEngine(host: HTMLElement, handlers: Handlers): Engine {
 
   return {
     setScene(project) {
+      shown = project;
       disposeGroup(root);
       disposeGroup(room);
       disposeGroup(bayGroup);
@@ -708,7 +862,7 @@ function createEngine(host: HTMLElement, handlers: Handlers): Engine {
       const bounds = new THREE.Box3();
 
       for (const part of project.parts) {
-        const built = buildPart(part);
+        const built = buildPart(part, ink);
         if (!built) continue;
         root.add(built.group);
         meshes.push(built);
@@ -716,13 +870,13 @@ function createEngine(host: HTMLElement, handlers: Handlers): Engine {
       }
 
       for (const bay of project.bays) {
-        const mesh = buildBay(bay);
+        const mesh = buildBay(bay, ink);
         bayGroup.add(mesh);
         bayMeshes.push({ mesh, bay });
       }
 
       const view = bounds.clone();
-      for (const loop of drawRoom(project)) {
+      for (const loop of drawRoom(project, ink)) {
         room.add(loop);
         view.expandByObject(loop);
       }
@@ -761,12 +915,47 @@ function createEngine(host: HTMLElement, handlers: Handlers): Engine {
       explode = v;
       bayGroup.visible = v <= 0.001;
     },
+    // The pointer orbits by dragging; this is the same movement for a
+    // keyboard. Done on the camera's own spherical coordinates rather than
+    // through OrbitControls, whose rotate methods are not part of its API —
+    // `update()` afterwards is what keeps damping and the target in step.
+    orbit(azimuth, elevation, dolly) {
+      const offset = camera.position.clone().sub(controls.target);
+      const spherical = new THREE.Spherical().setFromVector3(offset);
+      spherical.theta += azimuth;
+      // Held off the poles: straight overhead flips the horizon and leaves
+      // the next press turning the model the wrong way.
+      spherical.phi = Math.max(0.05, Math.min(Math.PI - 0.05, spherical.phi + elevation));
+      spherical.radius = Math.max(camera.near * 4, spherical.radius * dolly);
+      camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(spherical));
+      controls.update();
+    },
+    // The scene's colours are three.js materials, not stylesheet rules, so a
+    // theme change has to rebuild them. Everything the camera is pointed at is
+    // rebuilt from the same project, which is also what keeps the view — the
+    // frame is only taken once, and `framed` is already true by now.
+    setTheme(next) {
+      // Every panel is extruded again by the `setScene` below, so a call that
+      // changes nothing — the effect firing on mount for the theme the engine
+      // was built with — is worth stepping over rather than paying for.
+      if (SCENE[next] === ink) return;
+      ink = SCENE[next];
+      scene.background = new THREE.Color(ink.background);
+      scene.remove(grid);
+      grid.geometry.dispose();
+      (grid.material as THREE.Material).dispose();
+      grid = new THREE.GridHelper(6000, 30, ink.grid, ink.gridFaint);
+      grid.position.y = -1;
+      scene.add(grid);
+      if (shown) this.setScene(shown);
+    },
     setSection(next) {
       applySection(next);
     },
     dispose() {
       cancelAnimationFrame(raf);
       observer.disconnect();
+      unwatchMotion();
       renderer.domElement.removeEventListener('pointermove', onPointerMove);
       renderer.domElement.removeEventListener('pointerleave', onPointerLeave);
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
@@ -798,9 +987,9 @@ function createEngine(host: HTMLElement, handlers: Handlers): Engine {
       const mat = m.mesh.material as THREE.MeshLambertMaterial;
       const isFocus = m.part.id === focusPart;
 
-      if (!focusPart) mat.color.setHex(COLOURS.panel);
-      else if (isFocus) mat.color.setHex(COLOURS.panelSelected);
-      else mat.color.setHex(COLOURS.panelFaded);
+      if (!focusPart) mat.color.setHex(ink.panel);
+      else if (isFocus) mat.color.setHex(ink.panelSelected);
+      else mat.color.setHex(ink.panelFaded);
 
       const opacity = !isolating
         ? focusPart && !isFocus
@@ -854,14 +1043,14 @@ function centreOf(part: Part): THREE.Vector3 {
  * Back-face only and unlit: it must never hide what stands in front of it, and
  * a lit box in the middle of a cabinet would read as a panel that is not there.
  */
-function buildBay(bay: BayVolume): THREE.Mesh {
+function buildBay(bay: BayVolume, ink: Scene): THREE.Mesh {
   const w = bay.box.max.x - bay.box.min.x;
   const d = bay.box.max.y - bay.box.min.y;
   const h = bay.box.max.z - bay.box.min.z;
   const mesh = new THREE.Mesh(
     new THREE.BoxGeometry(Math.max(w, 1), Math.max(h, 1), Math.max(d, 1)),
     new THREE.MeshBasicMaterial({
-      color: COLOURS.bay,
+      color: ink.bay,
       transparent: true,
       opacity: 0,
       side: THREE.BackSide,
@@ -887,6 +1076,7 @@ function buildBay(bay: BayVolume): THREE.Mesh {
 function sectionHandle(
   section: SectionState,
   root: THREE.Group,
+  ink: Scene,
 ): { fill: THREE.Mesh; grab: THREE.Mesh } {
   const bounds = new THREE.Box3().setFromObject(root);
   if (bounds.isEmpty()) bounds.set(new THREE.Vector3(-1, -1, -1), new THREE.Vector3(1, 1, 1));
@@ -901,7 +1091,7 @@ function sectionHandle(
   const fill = new THREE.Mesh(
     new THREE.PlaneGeometry(width, height),
     new THREE.MeshBasicMaterial({
-      color: COLOURS.section,
+      color: ink.section,
       transparent: true,
       opacity: 0.05,
       side: THREE.DoubleSide,
@@ -911,7 +1101,7 @@ function sectionHandle(
   const grab = new THREE.Mesh(
     frameGeometry(width, height, band),
     new THREE.MeshBasicMaterial({
-      color: COLOURS.section,
+      color: ink.section,
       transparent: true,
       opacity: 0.55,
       side: THREE.DoubleSide,
@@ -962,14 +1152,14 @@ function frameGeometry(width: number, height: number, band: number): THREE.Shape
  * The geometry comes from the core, off the very numbers the scribe parts are
  * cut from, so what is on screen cannot drift from what is machined.
  */
-function drawRoom(project: ProjectResult): THREE.LineLoop[] {
+function drawRoom(project: ProjectResult, ink: Scene): THREE.LineLoop[] {
   const { opening, cabinets } = project.params;
   if (!opening.enabled) return [];
   const run = runSize(cabinets);
   const loops = openingWireframe(opening, fitOpening(opening, run), run);
   if (loops.length === 0) return [];
 
-  const material = new THREE.LineBasicMaterial({ color: COLOURS.room });
+  const material = new THREE.LineBasicMaterial({ color: ink.room });
   return loops.map((loop) => {
     const geom = new THREE.BufferGeometry().setFromPoints(
       loop.map((p) => new THREE.Vector3(p.x, p.z, -p.y)),
@@ -987,7 +1177,7 @@ interface BuiltPart {
 }
 
 /** Extrude one panel from its machining outline and place it in the assembly. */
-function buildPart(part: Part): BuiltPart | null {
+function buildPart(part: Part, ink: Scene): BuiltPart | null {
   const outline = tessellate(part.outline, 0.4);
   if (outline.length < 3) return null;
 
@@ -1008,7 +1198,7 @@ function buildPart(part: Part): BuiltPart | null {
   const mesh = new THREE.Mesh(
     geometry,
     new THREE.MeshLambertMaterial({
-      color: COLOURS.panel,
+      color: ink.panel,
       transparent: true,
       opacity: 1,
       // Ghosted panels must not occlude the one being looked at, so they are
@@ -1034,16 +1224,16 @@ function buildPart(part: Part): BuiltPart | null {
   const home = origin.clone().addScaledVector(n, -part.thickness);
   mesh.position.copy(home);
 
-  addFeatureLines(mesh, part);
+  addFeatureLines(mesh, part, ink);
 
   return { group, mesh, part, home, away: home.clone() };
 }
 
 /** Draw pockets and holes on the face they belong to, a hair proud of it. */
-function addFeatureLines(mesh: THREE.Mesh, part: Part): void {
+function addFeatureLines(mesh: THREE.Mesh, part: Part, ink: Scene): void {
   // One material per panel, so a panel's lines fade with it rather than with
   // every other panel's.
-  const material = new THREE.LineBasicMaterial({ color: COLOURS.feature, transparent: false });
+  const material = new THREE.LineBasicMaterial({ color: ink.feature, transparent: false });
   const lift = 0.35;
 
   for (const feat of part.features) {

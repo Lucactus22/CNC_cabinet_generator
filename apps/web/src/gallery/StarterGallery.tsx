@@ -6,6 +6,7 @@ import { Thumbnail } from './Thumbnail';
 import { STARTERS, type Starter } from './starters';
 import { topicById } from '../explain/topics';
 import type { View } from './render';
+import { useDialog } from '../components/overlays';
 
 /**
  * Pick a cabinet, not a set of defaults.
@@ -25,6 +26,7 @@ export function starterParams(live: ProjectParams, starter: Starter): ProjectPar
 }
 
 export function StarterGallery() {
+  const dialog = useDialog<HTMLElement>();
   const params = useStore((s) => s.params);
   const startFrom = useStore((s) => s.startFrom);
   const close = useStore((s) => s.setStartersOpen);
@@ -34,6 +36,10 @@ export function StarterGallery() {
     <div className="scrim" onClick={() => close(false)} role="presentation">
       <section
         className="starters"
+        ref={dialog}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
         aria-label="Start from a design"
         onClick={(e) => e.stopPropagation()}
       >

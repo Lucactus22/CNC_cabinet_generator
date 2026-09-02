@@ -1,16 +1,28 @@
 import { tessellate, type DxfDrawing, type Path } from '@cabgen/core';
 
-/** Line colour by layer, matching the DXF colour indices. */
+/**
+ * Line colour by layer, matching the DXF colour indices.
+ *
+ * The colours themselves live in `styles.css` rather than here, as
+ * `light-dark()` pairs: a sheet drawing is one of the things this app is
+ * *read* from, so it has to follow the theme, and R-23's contrast test checks
+ * both halves of every one of these against the ground they are drawn on and
+ * against paper. They are handed out as `var()` and applied through `style`,
+ * which is the form a custom property is guaranteed to substitute into —
+ * browsers do also substitute one written as a presentation attribute, but
+ * every themed drawing in this app uses the same form so there is nothing to
+ * remember.
+ */
 export function layerStyle(layer: string): { stroke: string; width: number; dash?: string } {
-  if (layer.startsWith('OUTLINE')) return { stroke: '#f0a04b', width: 1.6 };
-  if (layer.startsWith('THROUGH')) return { stroke: '#ef6b6b', width: 1.3 };
-  if (layer.startsWith('POCKET')) return { stroke: '#6fc48a', width: 1.1 };
-  if (layer.startsWith('DRILL')) return { stroke: '#6ba8ef', width: 1.1 };
-  if (layer.startsWith('TILE_REG')) return { stroke: '#c778dd', width: 1.3 };
-  if (layer.startsWith('TILE')) return { stroke: '#c778dd', width: 1, dash: '8 6' };
-  if (layer.startsWith('SHEET')) return { stroke: '#3a4150', width: 1, dash: '6 6' };
-  if (layer.startsWith('LABEL')) return { stroke: '#98a1b3', width: 0.8 };
-  return { stroke: '#98a1b3', width: 1 };
+  if (layer.startsWith('OUTLINE')) return { stroke: 'var(--layer-outline)', width: 1.6 };
+  if (layer.startsWith('THROUGH')) return { stroke: 'var(--layer-through)', width: 1.3 };
+  if (layer.startsWith('POCKET')) return { stroke: 'var(--layer-pocket)', width: 1.1 };
+  if (layer.startsWith('DRILL')) return { stroke: 'var(--layer-drill)', width: 1.1 };
+  if (layer.startsWith('TILE_REG')) return { stroke: 'var(--layer-tile)', width: 1.3 };
+  if (layer.startsWith('TILE')) return { stroke: 'var(--layer-tile)', width: 1, dash: '8 6' };
+  if (layer.startsWith('SHEET')) return { stroke: 'var(--layer-sheet)', width: 1, dash: '6 6' };
+  if (layer.startsWith('LABEL')) return { stroke: 'var(--layer-label)', width: 0.8 };
+  return { stroke: 'var(--layer-label)', width: 1 };
 }
 
 export const toPolyline = (path: Path, sagitta = 0.15): string =>
@@ -43,7 +55,7 @@ export function DrawingSvg({
             key={`p${i}`}
             points={pts}
             fill="none"
-            stroke={s.stroke}
+            style={{ stroke: s.stroke }}
             strokeWidth={s.width}
             strokeDasharray={s.dash}
             vectorEffect="non-scaling-stroke"
@@ -59,7 +71,7 @@ export function DrawingSvg({
             cy={c.y}
             r={c.radius}
             fill="none"
-            stroke={s.stroke}
+            style={{ stroke: s.stroke }}
             strokeWidth={s.width}
             vectorEffect="non-scaling-stroke"
           />
@@ -72,9 +84,8 @@ export function DrawingSvg({
             x={t.x}
             y={t.y}
             fontSize={t.height * 1.6}
-            fill="#98a1b3"
             transform={`translate(0, ${2 * t.y}) scale(1, -1)`}
-            style={{ fontFamily: 'ui-monospace, monospace' }}
+            style={{ fill: 'var(--layer-label)', fontFamily: 'ui-monospace, monospace' }}
           >
             {t.text}
           </text>

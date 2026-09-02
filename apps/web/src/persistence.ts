@@ -1,10 +1,12 @@
 import { normaliseParams, type ProjectParams } from '@cabgen/core';
 import type { WorkshopProfile, WorkshopSettings } from './workshop';
 import { emptyMachineProgress, type MachineProgress } from './machineProgress';
+import { isThemeChoice, type ThemeChoice } from './theme';
 
 const AUTOSAVE_KEY = 'cabgen:autosave';
 const LIBRARY_KEY = 'cabgen:library';
 const STARTERS_KEY = 'cabgen:starters-seen';
+const THEME_KEY = 'cabgen:theme';
 
 export interface LibraryEntry {
   id: string;
@@ -50,6 +52,35 @@ export function saveAutosave(params: ProjectParams): void {
 }
 
 /**
+ * The autosave exactly as it was written, un-normalised.
+ *
+ * For the error boundary and nothing else: after a crash, running the stored
+ * project back through `normaliseParams` risks the very code that just threw,
+ * and the point at that moment is to hand the bytes to the user, not to
+ * understand them.
+ */
+export function rawAutosave(): string | null {
+  try {
+    return localStorage.getItem(AUTOSAVE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Throw the autosave away. Also only for the error boundary: the one failure
+ * a reload cannot fix is a crash caused by the autosaved parameters
+ * themselves, which otherwise loops forever.
+ */
+export function forgetAutosave(): void {
+  try {
+    localStorage.removeItem(AUTOSAVE_KEY);
+  } catch {
+    // Nothing to do; a reload is still worth offering.
+  }
+}
+
+/**
  * Whether the gallery of starter designs has been past this browser before.
  *
  * Kept apart from the autosave because dismissing it without touching
@@ -70,6 +101,30 @@ export function markStartersSeen(): void {
     localStorage.setItem(STARTERS_KEY, 'yes');
   } catch {
     // Nothing to do; it will offer itself again next time.
+  }
+}
+
+/**
+ * Light, dark, or whatever the device says. Per-browser like everything else
+ * here, and deliberately *not* part of the project: which lights a workshop
+ * has is not a property of the furniture, and a design file that dragged
+ * somebody else's theme along with it would be the workshop-profile mistake
+ * `workshop.ts` exists to avoid, in miniature.
+ */
+export function loadTheme(): ThemeChoice {
+  try {
+    const raw = localStorage.getItem(THEME_KEY);
+    return isThemeChoice(raw) ? raw : 'system';
+  } catch {
+    return 'system';
+  }
+}
+
+export function saveTheme(choice: ThemeChoice): void {
+  try {
+    localStorage.setItem(THEME_KEY, choice);
+  } catch {
+    // See saveAutosave. Losing the preference costs one click next time.
   }
 }
 

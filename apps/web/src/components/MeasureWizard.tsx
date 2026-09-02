@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   DEFAULT_LEG_BACK,
   DEFAULT_LEG_RETURN,
@@ -16,6 +16,7 @@ import {
 } from '@cabgen/core';
 import { useStore } from '../store';
 import { NumberField, SelectField } from './Controls';
+import { useDialog } from './overlays';
 
 /**
  * A walkthrough for measuring the room, with a tape in one hand.
@@ -30,6 +31,7 @@ import { NumberField, SelectField } from './Controls';
  * halfway leaves the run exactly as it was.
  */
 export function MeasureWizard({ onClose }: { onClose: () => void }) {
+  const dialog = useDialog<HTMLDivElement>(onClose);
   const params = useStore((s) => s.params);
   const update = useStore((s) => s.update);
   const run = useMemo(() => runSize(params.cabinets), [params.cabinets]);
@@ -49,14 +51,6 @@ export function MeasureWizard({ onClose }: { onClose: () => void }) {
   const at = Math.min(step, steps.length - 1);
   const current = steps[at]!;
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const apply = (): void => {
     update((p) => {
       p.opening = { ...draft, enabled: true };
@@ -68,6 +62,8 @@ export function MeasureWizard({ onClose }: { onClose: () => void }) {
     <div className="wizard-backdrop" onClick={onClose} role="presentation">
       <div
         className="wizard"
+        ref={dialog}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label="Measure the opening"
@@ -443,10 +439,12 @@ function Readout({ children, bad = false }: { children: React.ReactNode; bad?: b
 // prose about which corner is which.
 // ---------------------------------------------------------------------------
 
-const WALL = '#6f93bb';
-const RUN = '#c8a578';
-const TAPE = '#f0a04b';
-const LABEL = '#98a1b3';
+// The diagram's own palette, from the stylesheet rather than from here, so
+// the walkthrough is legible in a bright room like everything else. See R-23.
+const WALL = 'var(--measure-wall)';
+const RUN = 'var(--measure-run)';
+const TAPE = 'var(--accent)';
+const LABEL = 'var(--muted)';
 
 function Frame({ children }: { children: React.ReactNode }) {
   return (
@@ -460,20 +458,29 @@ function Frame({ children }: { children: React.ReactNode }) {
 function PlanDiagram({ left, right }: { left: boolean; right: boolean }) {
   return (
     <Frame>
-      <line x1="60" y1="40" x2="280" y2="40" stroke={WALL} strokeWidth="5" />
-      <text x="170" y="30" fill={LABEL} fontSize="11" textAnchor="middle">
+      <line x1="60" y1="40" x2="280" y2="40" style={{ stroke: WALL }} strokeWidth="5" />
+      <text x="170" y="30" style={{ fill: LABEL }} fontSize="11" textAnchor="middle">
         back wall
       </text>
-      {left && <line x1="60" y1="40" x2="60" y2="130" stroke={WALL} strokeWidth="5" />}
-      {right && <line x1="280" y1="40" x2="280" y2="130" stroke={WALL} strokeWidth="5" />}
-      <rect x="72" y="44" width="196" height="62" fill={RUN} opacity="0.35" stroke={RUN} />
-      <text x="170" y="82" fill={LABEL} fontSize="11" textAnchor="middle">
+      {left && <line x1="60" y1="40" x2="60" y2="130" style={{ stroke: WALL }} strokeWidth="5" />}
+      {right && (
+        <line x1="280" y1="40" x2="280" y2="130" style={{ stroke: WALL }} strokeWidth="5" />
+      )}
+      <rect
+        x="72"
+        y="44"
+        width="196"
+        height="62"
+        style={{ fill: RUN, stroke: RUN }}
+        opacity="0.35"
+      />
+      <text x="170" y="82" style={{ fill: LABEL }} fontSize="11" textAnchor="middle">
         the run
       </text>
-      <text x="40" y="150" fill={LABEL} fontSize="11" textAnchor="middle">
+      <text x="40" y="150" style={{ fill: LABEL }} fontSize="11" textAnchor="middle">
         {left ? 'wall' : 'open'}
       </text>
-      <text x="300" y="150" fill={LABEL} fontSize="11" textAnchor="middle">
+      <text x="300" y="150" style={{ fill: LABEL }} fontSize="11" textAnchor="middle">
         {right ? 'wall' : 'open'}
       </text>
     </Frame>
@@ -484,8 +491,13 @@ function PlanDiagram({ left, right }: { left: boolean; right: boolean }) {
 function WidthDiagram() {
   return (
     <Frame>
-      <path d="M70 20 L70 140 L282 140 L272 20 Z" fill="none" stroke={WALL} strokeWidth="3" />
-      <line x1="60" y1="140" x2="300" y2="140" stroke={WALL} strokeWidth="3" />
+      <path
+        d="M70 20 L70 140 L282 140 L272 20 Z"
+        fill="none"
+        style={{ stroke: WALL }}
+        strokeWidth="3"
+      />
+      <line x1="60" y1="140" x2="300" y2="140" style={{ stroke: WALL }} strokeWidth="3" />
       <Tape x1="70" x2="273" y="42" label="at the top of the run" />
       <Tape x1="70" x2="282" y="128" label="at the floor" />
     </Frame>
@@ -496,14 +508,14 @@ function WidthDiagram() {
 function HeightDiagram() {
   return (
     <Frame>
-      <line x1="60" y1="24" x2="300" y2="24" stroke={WALL} strokeWidth="3" />
-      <line x1="60" y1="136" x2="300" y2="146" stroke={WALL} strokeWidth="3" />
-      <text x="180" y="16" fill={LABEL} fontSize="11" textAnchor="middle">
+      <line x1="60" y1="24" x2="300" y2="24" style={{ stroke: WALL }} strokeWidth="3" />
+      <line x1="60" y1="136" x2="300" y2="146" style={{ stroke: WALL }} strokeWidth="3" />
+      <text x="180" y="16" style={{ fill: LABEL }} fontSize="11" textAnchor="middle">
         ceiling, soffit or worktop
       </text>
       <VTape y1="24" y2="136" x="96" label="left" />
       <VTape y1="24" y2="146" x="264" label="right" />
-      <text x="180" y="163" fill={LABEL} fontSize="11" textAnchor="middle">
+      <text x="180" y="163" style={{ fill: LABEL }} fontSize="11" textAnchor="middle">
         floor
       </text>
     </Frame>
@@ -522,28 +534,28 @@ function CornerDiagram({ end }: { end: 'left' | 'right' }) {
   const X = (x: number): number => (flip ? 340 - x : x);
   return (
     <Frame>
-      <line x1={X(70)} y1="34" x2={X(290)} y2="34" stroke={WALL} strokeWidth="5" />
-      <line x1={X(70)} y1="34" x2={X(70)} y2="150" stroke={WALL} strokeWidth="5" />
-      <line x1={X(70)} y1="34" x2={X(196)} y2="34" stroke={TAPE} strokeWidth="3" />
-      <line x1={X(70)} y1="34" x2={X(70)} y2="122" stroke={TAPE} strokeWidth="3" />
+      <line x1={X(70)} y1="34" x2={X(290)} y2="34" style={{ stroke: WALL }} strokeWidth="5" />
+      <line x1={X(70)} y1="34" x2={X(70)} y2="150" style={{ stroke: WALL }} strokeWidth="5" />
+      <line x1={X(70)} y1="34" x2={X(196)} y2="34" style={{ stroke: TAPE }} strokeWidth="3" />
+      <line x1={X(70)} y1="34" x2={X(70)} y2="122" style={{ stroke: TAPE }} strokeWidth="3" />
       <line
         x1={X(196)}
         y1="34"
         x2={X(70)}
         y2="122"
-        stroke={TAPE}
+        style={{ stroke: TAPE }}
         strokeWidth="2"
         strokeDasharray="6 4"
       />
-      <circle cx={X(196)} cy="34" r="4" fill={TAPE} />
-      <circle cx={X(70)} cy="122" r="4" fill={TAPE} />
-      <text x={X(133)} y="22" fill={LABEL} fontSize="11" textAnchor="middle">
+      <circle cx={X(196)} cy="34" r="4" style={{ fill: TAPE }} />
+      <circle cx={X(70)} cy="122" r="4" style={{ fill: TAPE }} />
+      <text x={X(133)} y="22" style={{ fill: LABEL }} fontSize="11" textAnchor="middle">
         back wall
       </text>
-      <text x={X(114)} y="144" fill={LABEL} fontSize="11" textAnchor="middle">
+      <text x={X(114)} y="144" style={{ fill: LABEL }} fontSize="11" textAnchor="middle">
         side wall
       </text>
-      <text x={X(185)} y="116" fill={TAPE} fontSize="12" textAnchor="middle">
+      <text x={X(185)} y="116" style={{ fill: TAPE }} fontSize="12" textAnchor="middle">
         measure this
       </text>
     </Frame>
@@ -554,16 +566,16 @@ function CornerDiagram({ end }: { end: 'left' | 'right' }) {
 function BowDiagram() {
   return (
     <Frame>
-      <path d="M60 60 Q170 108 300 62" fill="none" stroke={WALL} strokeWidth="5" />
-      <line x1="70" y1="61" x2="292" y2="61" stroke={RUN} strokeWidth="4" />
-      <text x="181" y="46" fill={LABEL} fontSize="11" textAnchor="middle">
+      <path d="M60 60 Q170 108 300 62" fill="none" style={{ stroke: WALL }} strokeWidth="5" />
+      <line x1="70" y1="61" x2="292" y2="61" style={{ stroke: RUN }} strokeWidth="4" />
+      <text x="181" y="46" style={{ fill: LABEL }} fontSize="11" textAnchor="middle">
         straightedge held against the wall
       </text>
-      <line x1="176" y1="63" x2="176" y2="92" stroke={TAPE} strokeWidth="2" />
-      <text x="192" y="112" fill={TAPE} fontSize="12" textAnchor="start">
+      <line x1="176" y1="63" x2="176" y2="92" style={{ stroke: TAPE }} strokeWidth="2" />
+      <text x="192" y="112" style={{ fill: TAPE }} fontSize="12" textAnchor="start">
         the widest gap behind it
       </text>
-      <text x="181" y="138" fill={LABEL} fontSize="11" textAnchor="middle">
+      <text x="181" y="138" style={{ fill: LABEL }} fontSize="11" textAnchor="middle">
         wall, seen from above
       </text>
     </Frame>
@@ -573,11 +585,11 @@ function BowDiagram() {
 function Tape({ x1, x2, y, label }: { x1: string; x2: string; y: string; label: string }) {
   return (
     <>
-      <line x1={x1} y1={y} x2={x2} y2={y} stroke={TAPE} strokeWidth="2" />
+      <line x1={x1} y1={y} x2={x2} y2={y} style={{ stroke: TAPE }} strokeWidth="2" />
       <text
         x={(Number(x1) + Number(x2)) / 2}
         y={Number(y) - 6}
-        fill={TAPE}
+        style={{ fill: TAPE }}
         fontSize="11"
         textAnchor="middle"
       >
@@ -590,8 +602,13 @@ function Tape({ x1, x2, y, label }: { x1: string; x2: string; y: string; label: 
 function VTape({ x, y1, y2, label }: { x: string; y1: string; y2: string; label: string }) {
   return (
     <>
-      <line x1={x} y1={y1} x2={x} y2={y2} stroke={TAPE} strokeWidth="2" />
-      <text x={Number(x) + 8} y={(Number(y1) + Number(y2)) / 2} fill={TAPE} fontSize="11">
+      <line x1={x} y1={y1} x2={x} y2={y2} style={{ stroke: TAPE }} strokeWidth="2" />
+      <text
+        x={Number(x) + 8}
+        y={(Number(y1) + Number(y2)) / 2}
+        style={{ fill: TAPE }}
+        fontSize="11"
+      >
         {label}
       </text>
     </>

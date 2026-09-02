@@ -3,6 +3,7 @@ import { useStore } from '../store';
 import { saveBlob, zipFiles } from '../download';
 import { useSheetViews } from '../sheetViews';
 import { DrawingSvg } from './drawing';
+import { useDialog } from './overlays';
 
 /**
  * What is about to be produced, shown once before the zip actually
@@ -18,6 +19,7 @@ import { DrawingSvg } from './drawing';
  * this panel, so it cannot show something the actual export disagrees with.
  */
 export function ExportPreview() {
+  const dialog = useDialog<HTMLElement>();
   const project = useStore((s) => s.project);
   const params = useStore((s) => s.params);
   const safeNames = useStore((s) => s.safeNames);
@@ -47,6 +49,10 @@ export function ExportPreview() {
     <div className="scrim" onClick={close} role="presentation">
       <section
         className="export-preview"
+        ref={dialog}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
         aria-label="Export preview"
         onClick={(e) => e.stopPropagation()}
       >
@@ -83,7 +89,13 @@ export function ExportPreview() {
                 preserveAspectRatio="xMidYMid meet"
               >
                 <g transform={`translate(0, ${sheet.width}) scale(1, -1)`}>
-                  <rect x={0} y={0} width={sheet.length} height={sheet.width} fill="#1b1e24" />
+                  <rect
+                    x={0}
+                    y={0}
+                    width={sheet.length}
+                    height={sheet.width}
+                    style={{ fill: 'var(--pic-bg)' }}
+                  />
                   <DrawingSvg drawing={drawing} showLabels={false} />
                 </g>
               </svg>

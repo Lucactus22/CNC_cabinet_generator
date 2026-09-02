@@ -40,7 +40,19 @@ export function PartView() {
                 className={row.id === part?.id ? 'selected' : ''}
                 onClick={() => select({ kind: 'part', partId: row.id })}
               >
-                <td>{row.id}</td>
+                {/* The id is a real button so the row can be reached and
+                    chosen with a keyboard. A `<tr onClick>` cannot: it takes
+                    no focus and answers no key, which left the cut list — and
+                    with it every part drawing — mouse-only. */}
+                <td>
+                  <button
+                    className="row-pick"
+                    aria-pressed={row.id === part?.id}
+                    onClick={() => select({ kind: 'part', partId: row.id })}
+                  >
+                    {row.id}
+                  </button>
+                </td>
                 <td>{row.label}</td>
                 <td>{row.length}</td>
                 <td>{row.width}</td>
@@ -143,7 +155,7 @@ function PartDrawing({ part }: { part: Part }) {
                 y1={line.y1}
                 x2={line.x2}
                 y2={line.y2}
-                stroke="#ec4899"
+                style={{ stroke: 'var(--layer-band)' }}
                 strokeWidth={2.4}
                 strokeLinecap="round"
                 vectorEffect="non-scaling-stroke"
@@ -154,7 +166,7 @@ function PartDrawing({ part }: { part: Part }) {
       </svg>
       {part.bandedEdges.length > 0 && (
         <p className="hint" style={{ margin: '4px 0 0' }}>
-          <span style={{ color: '#ec4899' }}>▬</span> Banded:{' '}
+          <span style={{ color: 'var(--layer-band)' }}>▬</span> Banded:{' '}
           {part.bandedEdges.map((e) => `${e.edge} (${bandingName(e.materialId)})`).join(', ')}
         </p>
       )}
