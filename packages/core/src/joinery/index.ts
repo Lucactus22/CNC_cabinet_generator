@@ -11,6 +11,7 @@ import type {
 import { toLocal } from '../model/frame.js';
 import {
   buildParts,
+  type BayVolume,
   type BuildResult,
   type DrawerBottomNotchRequest,
   type HandleRequest,
@@ -62,6 +63,8 @@ export interface JoineryResult extends Assembly {
    * `export/assembly.ts`.
    */
   joints: JointRequest[];
+  /** Where every bay stands, so the interface can point at an opening. See `BayVolume`. */
+  bays: BayVolume[];
   hinges: HingeRequest[];
   handles: HandleRequest[];
   slides: SlideRequest[];
@@ -87,6 +90,7 @@ export function generate(params: ProjectParams): JoineryResult {
     warnings,
     notes: built.notes,
     joints: built.joints,
+    bays: built.bays,
     hinges: built.hinges,
     handles: built.handles,
     slides: built.slides,

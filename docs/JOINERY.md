@@ -311,6 +311,26 @@ the studs behind the wall.
 Only a wall cabinet turns this on; every other type leaves `hangingRail`
 disabled, because nothing else in this generator is hung rather than stood.
 
+## Fixed shelves
+
+A fixed shelf is housed in a stopped dado in each panel that bounds its bay,
+exactly as a divider is housed in the top and bottom. That is what makes it
+worth having over a loose shelf on pins: it stiffens the box across its width,
+and the joint carries load into the sides rather than into four small pegs.
+
+Where they sit is a layout choice, and it is stated as **the clear openings
+between them, bottom to top** — one more of them than there are shelves,
+counting the space above the top one. That is the number that matters at the
+bench: a stack of roasting tins needs 300 mm of clear height, and nobody
+measures to the middle of a shelf. It is the same shape as a carcass's explicit
+bay widths, one axis round, and it behaves the same way — heights that do not
+add up to the opening are spaced evenly instead, with a note saying so, because
+a stack of equal shelves somebody can cut beats one sized to numbers that leave
+the top shelf hanging out of the box.
+
+Left empty, they are spaced evenly, which is what every project cut before the
+heights existed was cut to.
+
 ## Shelf pins (32 mm system)
 
 The pin comes from the hardware catalogue, and the hole follows it:

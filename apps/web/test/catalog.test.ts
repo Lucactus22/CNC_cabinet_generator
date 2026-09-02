@@ -41,9 +41,27 @@ function everyBranchOn(): ProjectParams {
   base.dividerCount = 2;
   base.bayWidths = [200, 200, 200];
   base.bays = [
-    { shelves: 'adjustable', shelfCount: 0, doors: 'double', drawerFrontHeights: [] },
-    { shelves: 'fixed', shelfCount: 2, doors: 'left', drawerFrontHeights: [] },
-    { shelves: 'none', shelfCount: 0, doors: 'none', drawerFrontHeights: [200, 200, 200] },
+    {
+      shelves: 'adjustable',
+      shelfCount: 0,
+      shelfGaps: [],
+      doors: 'double',
+      drawerFrontHeights: [],
+    },
+    {
+      shelves: 'fixed',
+      shelfCount: 2,
+      shelfGaps: [300, 300, 300],
+      doors: 'left',
+      drawerFrontHeights: [],
+    },
+    {
+      shelves: 'none',
+      shelfCount: 0,
+      shelfGaps: [],
+      doors: 'none',
+      drawerFrontHeights: [200, 200, 200],
+    },
   ];
   base.back.style = 'rabbet';
   base.hangingRail.enabled = true;

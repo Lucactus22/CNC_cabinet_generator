@@ -254,6 +254,19 @@ export interface BaySpec {
   shelves: ShelfMode;
   /** Number of fixed shelves; ignored for adjustable and none. */
   shelfCount: number;
+  /**
+   * Explicit clear heights between the fixed shelves, bottom to top: what a
+   * woodworker calls the gap under a shelf. One more of them than there are
+   * shelves, and only read when `shelves` is `'fixed'`.
+   *
+   * Empty means space them evenly, which is the common case. Given heights
+   * that, plus the shelves' own thickness, add up to the opening are used as
+   * they stand; anything else falls back to the even split, exactly as
+   * `bayWidths` does — see `layoutShelves`. A shelf dragged in the 3D view
+   * writes here, so what it lands on is a number somebody can read and type
+   * over.
+   */
+  shelfGaps: number[];
   /** 'left' and 'right' name the side the hinges go on. */
   doors: DoorStyle;
   /**

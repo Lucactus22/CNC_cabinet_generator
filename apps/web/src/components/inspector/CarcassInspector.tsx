@@ -16,19 +16,35 @@ import { BayFront, BayInside, emptyBay, useBayPatch } from './BayControls';
 import { JoinerySection } from './JoinerySection';
 
 /**
+ * The parts of a carcass's controls, so something narrower than a carcass can
+ * ask for just the ones that decide it.
+ *
+ * Clicking a side panel should offer the box's size and how its panels meet,
+ * not the drawer stack three bays over. Naming the groups is what lets
+ * `PartInspector` do that without a second copy of the controls — two editors
+ * of one value that disagree is the risk R-20 names, and there is only ever
+ * one here.
+ */
+export type CarcassGroup =
+  'size' | 'bays' | 'panels' | 'joinery' | 'frame' | 'toe' | 'rail' | 'remove';
+
+/**
  * One box: its size, its panels, and what is in each bay.
  *
- * The bays are here rather than only behind their own selection because a bay
- * is not a thing you can point at in the model yet — R-20 owns making it one —
- * and because laying a carcass out is one job. Selecting a bay in the run
- * strip narrows to it; this is the same controls with the whole box in view.
+ * The bays are here as well as behind their own selection because laying a
+ * carcass out is one job. Selecting a bay — in the run strip, or by clicking
+ * into the opening itself since R-20 — narrows to it; this is the same
+ * controls with the whole box in view.
  */
 export function CarcassInspector({
   cabinetId,
   carcassId,
+  only,
 }: {
   cabinetId: string;
   carcassId: string;
+  /** Render only these groups. Everything, when it is left out. */
+  only?: CarcassGroup[];
 }) {
   const params = useStore((s) => s.params);
   const update = useStore((s) => s.update);
@@ -56,215 +72,224 @@ export function CarcassInspector({
     if (target) fn(target);
   };
   const patch = (fn: (c: Carcass) => void): void => update((p) => patchDraft(p, fn));
+  const shows = (group: CarcassGroup): boolean => only === undefined || only.includes(group);
 
   return (
     <>
-      <Group title="Size" open>
-        <TextField
-          label="Name"
-          value={spec.name}
-          param="cabinets[].carcasses[].name"
-          onChange={(v) => patch((c) => void (c.name = v))}
-        />
-        {below && (
-          <CheckField
-            label={`Match ${below.name.toLowerCase()} width`}
-            value={spec.linkWidthToBelow}
-            param="cabinets[].carcasses[].linkWidthToBelow"
-            onChange={(v) => patch((c) => void (c.linkWidthToBelow = v))}
+      {shows('size') && (
+        <Group title="Size" open>
+          <TextField
+            label="Name"
+            value={spec.name}
+            param="cabinets[].carcasses[].name"
+            onChange={(v) => patch((c) => void (c.name = v))}
           />
-        )}
-        {!linked && (
+          {below && (
+            <CheckField
+              label={`Match ${below.name.toLowerCase()} width`}
+              value={spec.linkWidthToBelow}
+              param="cabinets[].carcasses[].linkWidthToBelow"
+              onChange={(v) => patch((c) => void (c.linkWidthToBelow = v))}
+            />
+          )}
+          {!linked && (
+            <NumberField
+              label="Width"
+              value={spec.width}
+              min={100}
+              param="cabinets[].carcasses[].width"
+              onChange={(v) => patch((c) => void (c.width = v))}
+            />
+          )}
           <NumberField
-            label="Width"
-            value={spec.width}
+            label="Height"
+            value={spec.height}
             min={100}
-            param="cabinets[].carcasses[].width"
-            onChange={(v) => patch((c) => void (c.width = v))}
+            param="cabinets[].carcasses[].height"
+            onChange={(v) => patch((c) => void (c.height = v))}
           />
-        )}
-        <NumberField
-          label="Height"
-          value={spec.height}
-          min={100}
-          param="cabinets[].carcasses[].height"
-          onChange={(v) => patch((c) => void (c.height = v))}
-        />
-        <NumberField
-          label="Depth"
-          value={spec.depth}
-          min={100}
-          param="cabinets[].carcasses[].depth"
-          onChange={(v) => patch((c) => void (c.depth = v))}
-          title={
-            below
-              ? 'Shallower than the carcass below, which is what forms the ledge at the front.'
-              : undefined
-          }
-        />
-        <Hint>
-          {width.toFixed(0)} × {spec.height.toFixed(0)} × {spec.depth.toFixed(0)} mm
-          {below
-            ? // Against the box it actually stands on, not the one on the
-              // floor: in a stack of three, a middle box can be shallower than
-              // the base and still overhang the one carrying it.
-              `. Sits on the ${below.name.toLowerCase()}, flush at the wall, stepping back ${Math.max(
-                0,
-                below.depth - spec.depth,
-              ).toFixed(0)} mm at the front.`
-            : '.'}
-        </Hint>
-      </Group>
-
-      <Group title="Bays" open count={bayCount}>
-        <NumberField
-          label="Bays"
-          value={bayCount}
-          suffix=""
-          min={1}
-          max={9}
-          param="cabinets[].carcasses[].dividerCount"
-          onChange={(v) =>
-            patch((c) => {
-              const want = Math.min(9, Math.max(1, Math.round(v)));
-              c.dividerCount = want - 1;
-              while (c.bays.length < want) c.bays.push(emptyBay());
-              // Explicit widths are per bay, so a changed count makes the old
-              // list meaningless — it would silently fall back to an even
-              // split with the stale numbers still on screen.
-              if (c.bayWidths.length > 0 && c.bayWidths.length !== want) c.bayWidths = [];
-            })
-          }
-          title="Openings across the front. A full-depth divider stands between each pair."
-        />
-        <BayWidths cabinetIndex={cabinetIndex} carcassIndex={carcassIndex} />
-        {Array.from({ length: bayCount }, (_, i) => (
-          <BayCard
-            key={i}
-            cabinetId={cabinetId}
-            carcassId={carcassId}
-            bay={i}
-            onOpen={() => select({ kind: 'bay', cabinetId, carcassId, bay: i })}
+          <NumberField
+            label="Depth"
+            value={spec.depth}
+            min={100}
+            param="cabinets[].carcasses[].depth"
+            onChange={(v) => patch((c) => void (c.depth = v))}
+            title={
+              below
+                ? 'Shallower than the carcass below, which is what forms the ledge at the front.'
+                : undefined
+            }
           />
-        ))}
-      </Group>
+          <Hint>
+            {width.toFixed(0)} × {spec.height.toFixed(0)} × {spec.depth.toFixed(0)} mm
+            {below
+              ? // Against the box it actually stands on, not the one on the
+                // floor: in a stack of three, a middle box can be shallower than
+                // the base and still overhang the one carrying it.
+                `. Sits on the ${below.name.toLowerCase()}, flush at the wall, stepping back ${Math.max(
+                  0,
+                  below.depth - spec.depth,
+                ).toFixed(0)} mm at the front.`
+              : '.'}
+          </Hint>
+        </Group>
+      )}
 
-      <Group title="Panels">
-        <ChoiceGallery
-          gallery={TOP_STYLE}
-          value={spec.topStyle}
-          param="cabinets[].carcasses[].topStyle"
-          set={(p, v) => patchDraft(p, (c) => void (c.topStyle = v))}
-        />
-        {/* Shown on every carcass, not only the ones that can leave the bottom
+      {shows('bays') && (
+        <Group title="Bays" open count={bayCount}>
+          <NumberField
+            label="Bays"
+            value={bayCount}
+            suffix=""
+            min={1}
+            max={9}
+            param="cabinets[].carcasses[].dividerCount"
+            onChange={(v) =>
+              patch((c) => {
+                const want = Math.min(9, Math.max(1, Math.round(v)));
+                c.dividerCount = want - 1;
+                while (c.bays.length < want) c.bays.push(emptyBay());
+                // Explicit widths are per bay, so a changed count makes the old
+                // list meaningless — it would silently fall back to an even
+                // split with the stale numbers still on screen.
+                if (c.bayWidths.length > 0 && c.bayWidths.length !== want) c.bayWidths = [];
+              })
+            }
+            title="Openings across the front. A full-depth divider stands between each pair."
+          />
+          <BayWidths cabinetIndex={cabinetIndex} carcassIndex={carcassIndex} />
+          {Array.from({ length: bayCount }, (_, i) => (
+            <BayCard
+              key={i}
+              cabinetId={cabinetId}
+              carcassId={carcassId}
+              bay={i}
+              onOpen={() => select({ kind: 'bay', cabinetId, carcassId, bay: i })}
+            />
+          ))}
+        </Group>
+      )}
+
+      {shows('panels') && (
+        <Group title="Panels">
+          <ChoiceGallery
+            gallery={TOP_STYLE}
+            value={spec.topStyle}
+            param="cabinets[].carcasses[].topStyle"
+            set={(p, v) => patchDraft(p, (c) => void (c.topStyle = v))}
+          />
+          {/* Shown on every carcass, not only the ones that can leave the bottom
             out: a control that does not exist on the box you happen to be
             looking at is a capability nobody finds, so the option that cannot
             be used here is greyed with the reason instead of dropped. */}
-        <ChoiceGallery
-          gallery={FLOOR}
-          value={spec.floor}
-          param="cabinets[].carcasses[].floor"
-          set={(p, v) => patchDraft(p, (c) => void (c.floor = v))}
-          unavailable={(v) =>
-            v === 'below' && !below
-              ? 'This box is on the floor, so there is nothing under it to stand in.'
-              : undefined
-          }
-        />
-        {below && spec.floor === 'below' && (
-          <NumberField
-            label="Locating dado"
-            value={params.joinery.stackDadoDepth}
-            step={0.5}
-            min={0.5}
-            param="joinery.stackDadoDepth"
-            onChange={(v) =>
-              update((p) => {
-                p.joinery.stackDadoDepth = v;
-              })
+          <ChoiceGallery
+            gallery={FLOOR}
+            value={spec.floor}
+            param="cabinets[].carcasses[].floor"
+            set={(p, v) => patchDraft(p, (c) => void (c.floor = v))}
+            unavailable={(v) =>
+              v === 'below' && !below
+                ? 'This box is on the floor, so there is nothing under it to stand in.'
+                : undefined
             }
-            title="Kept shallow: the panel below is grooved on its underside too, and the two sets of pockets cross."
           />
-        )}
-        <ChoiceGallery
-          gallery={BACK_STYLE}
-          value={spec.back.style}
-          param="cabinets[].carcasses[].back.style"
-          set={(p, v) => patchDraft(p, (c) => void (c.back.style = v))}
-        />
-        {spec.back.style !== 'none' && (
-          <>
+          {below && spec.floor === 'below' && (
             <NumberField
-              label="Back inset"
-              value={spec.back.inset}
-              min={0}
-              param="cabinets[].carcasses[].back.inset"
-              onChange={(v) => patch((c) => void (c.back.inset = v))}
-              title={
-                spec.back.style === 'rabbet'
-                  ? 'How far the back sits forward of the true rear edge. Zero lands it flush, which is what makes the rabbet worth having.'
-                  : 'How far in from the rear edge the back sits, leaving room for scribing to the wall.'
+              label="Locating dado"
+              value={params.joinery.stackDadoDepth}
+              step={0.5}
+              min={0.5}
+              param="joinery.stackDadoDepth"
+              onChange={(v) =>
+                update((p) => {
+                  p.joinery.stackDadoDepth = v;
+                })
               }
+              title="Kept shallow: the panel below is grooved on its underside too, and the two sets of pockets cross."
             />
-            <SelectField
-              label="Back cut from"
-              value={spec.back.materialId}
-              param="cabinets[].carcasses[].back.materialId"
-              options={params.materials.map((m) => ({ value: m.id, label: m.name }))}
-              onChange={(v) => patch((c) => void (c.back.materialId = v))}
-              title="Usually thinner than the carcass: the back carries no load once the box is square."
-            />
-          </>
-        )}
-      </Group>
+          )}
+          <ChoiceGallery
+            gallery={BACK_STYLE}
+            value={spec.back.style}
+            param="cabinets[].carcasses[].back.style"
+            set={(p, v) => patchDraft(p, (c) => void (c.back.style = v))}
+          />
+          {spec.back.style !== 'none' && (
+            <>
+              <NumberField
+                label="Back inset"
+                value={spec.back.inset}
+                min={0}
+                param="cabinets[].carcasses[].back.inset"
+                onChange={(v) => patch((c) => void (c.back.inset = v))}
+                title={
+                  spec.back.style === 'rabbet'
+                    ? 'How far the back sits forward of the true rear edge. Zero lands it flush, which is what makes the rabbet worth having.'
+                    : 'How far in from the rear edge the back sits, leaving room for scribing to the wall.'
+                }
+              />
+              <SelectField
+                label="Back cut from"
+                value={spec.back.materialId}
+                param="cabinets[].carcasses[].back.materialId"
+                options={params.materials.map((m) => ({ value: m.id, label: m.name }))}
+                onChange={(v) => patch((c) => void (c.back.materialId = v))}
+                title="Usually thinner than the carcass: the back carries no load once the box is square."
+              />
+            </>
+          )}
+        </Group>
+      )}
 
-      <JoinerySection />
+      {shows('joinery') && <JoinerySection />}
 
-      <Group title="Face frame" count={spec.construction === 'face-frame' ? 'on' : undefined}>
-        <ChoiceGallery
-          gallery={CONSTRUCTION}
-          value={spec.construction}
-          param="cabinets[].carcasses[].construction"
-          set={(p, v) => patchDraft(p, (c) => void (c.construction = v))}
-        />
-        {spec.construction === 'face-frame' && (
-          <>
-            <SelectField
-              label="Frame stock"
-              value={spec.faceFrame.materialId}
-              param="cabinets[].carcasses[].faceFrame.materialId"
-              options={params.stockMaterials.map((m) => ({ value: m.id, label: m.name }))}
-              onChange={(v) => patch((c) => void (c.faceFrame.materialId = v))}
-            />
-            <NumberField
-              label="Stile width"
-              value={spec.faceFrame.stileWidth}
-              min={20}
-              param="cabinets[].carcasses[].faceFrame.stileWidth"
-              onChange={(v) => patch((c) => void (c.faceFrame.stileWidth = v))}
-              title="Outer stiles and every mid-stile are all milled to this width."
-            />
-            <NumberField
-              label="Rail width"
-              value={spec.faceFrame.railWidth}
-              min={20}
-              param="cabinets[].carcasses[].faceFrame.railWidth"
-              onChange={(v) => patch((c) => void (c.faceFrame.railWidth = v))}
-              title="The top and bottom rails, milled to this width."
-            />
-            <NumberField
-              label="Door overlay"
-              value={spec.faceFrame.overlay}
-              min={0}
-              param="cabinets[].carcasses[].faceFrame.overlay"
-              onChange={(v) => patch((c) => void (c.faceFrame.overlay = v))}
-              title="How far an overlay door reaches onto the surrounding frame member. A modest, consistent reveal is standard — covering the frame edge to edge would hide the reason to have one."
-            />
-          </>
-        )}
-      </Group>
+      {shows('frame') && (
+        <Group title="Face frame" count={spec.construction === 'face-frame' ? 'on' : undefined}>
+          <ChoiceGallery
+            gallery={CONSTRUCTION}
+            value={spec.construction}
+            param="cabinets[].carcasses[].construction"
+            set={(p, v) => patchDraft(p, (c) => void (c.construction = v))}
+          />
+          {spec.construction === 'face-frame' && (
+            <>
+              <SelectField
+                label="Frame stock"
+                value={spec.faceFrame.materialId}
+                param="cabinets[].carcasses[].faceFrame.materialId"
+                options={params.stockMaterials.map((m) => ({ value: m.id, label: m.name }))}
+                onChange={(v) => patch((c) => void (c.faceFrame.materialId = v))}
+              />
+              <NumberField
+                label="Stile width"
+                value={spec.faceFrame.stileWidth}
+                min={20}
+                param="cabinets[].carcasses[].faceFrame.stileWidth"
+                onChange={(v) => patch((c) => void (c.faceFrame.stileWidth = v))}
+                title="Outer stiles and every mid-stile are all milled to this width."
+              />
+              <NumberField
+                label="Rail width"
+                value={spec.faceFrame.railWidth}
+                min={20}
+                param="cabinets[].carcasses[].faceFrame.railWidth"
+                onChange={(v) => patch((c) => void (c.faceFrame.railWidth = v))}
+                title="The top and bottom rails, milled to this width."
+              />
+              <NumberField
+                label="Door overlay"
+                value={spec.faceFrame.overlay}
+                min={0}
+                param="cabinets[].carcasses[].faceFrame.overlay"
+                onChange={(v) => patch((c) => void (c.faceFrame.overlay = v))}
+                title="How far an overlay door reaches onto the surrounding frame member. A modest, consistent reveal is standard — covering the frame edge to edge would hide the reason to have one."
+              />
+            </>
+          )}
+        </Group>
+      )}
 
-      {onTheGround && (
+      {shows('toe') && onTheGround && (
         <Group title="Toe kick" count={spec.toeKick.enabled ? 'on' : undefined}>
           <CheckField
             label="Toe kick"
@@ -295,68 +320,72 @@ export function CarcassInspector({
         </Group>
       )}
 
-      <Group title="Hanging rail" count={spec.hangingRail.enabled ? 'on' : undefined}>
-        <CheckField
-          label="Hanging rail"
-          value={spec.hangingRail.enabled}
-          param="cabinets[].carcasses[].hangingRail.enabled"
-          onChange={(v) => patch((c) => void (c.hangingRail.enabled = v))}
-          title="A solid rail behind the top, to screw a wall cabinet to the wall through. The back panel alone is too thin to trust with the weight."
-        />
-        {spec.hangingRail.enabled && (
-          <>
-            <NumberField
-              label="Height"
-              value={spec.hangingRail.height}
-              min={20}
-              param="cabinets[].carcasses[].hangingRail.height"
-              onChange={(v) => patch((c) => void (c.hangingRail.height = v))}
-            />
-            <NumberField
-              label="Screw clearance"
-              value={spec.hangingRail.screwDiameter}
-              min={1}
-              param="cabinets[].carcasses[].hangingRail.screwDiameter"
-              onChange={(v) => patch((c) => void (c.hangingRail.screwDiameter = v))}
-              title="Sized to clear the screw's shank, not grip it."
-            />
-            <NumberField
-              label="Screw spacing"
-              value={spec.hangingRail.screwSpacing}
-              min={50}
-              param="cabinets[].carcasses[].hangingRail.screwSpacing"
-              onChange={(v) => patch((c) => void (c.hangingRail.screwSpacing = v))}
-              title="Kept under about one stud spacing (16 in = 406 mm) so the rail always lands on at least two."
-            />
-          </>
-        )}
-      </Group>
+      {shows('rail') && (
+        <Group title="Hanging rail" count={spec.hangingRail.enabled ? 'on' : undefined}>
+          <CheckField
+            label="Hanging rail"
+            value={spec.hangingRail.enabled}
+            param="cabinets[].carcasses[].hangingRail.enabled"
+            onChange={(v) => patch((c) => void (c.hangingRail.enabled = v))}
+            title="A solid rail behind the top, to screw a wall cabinet to the wall through. The back panel alone is too thin to trust with the weight."
+          />
+          {spec.hangingRail.enabled && (
+            <>
+              <NumberField
+                label="Height"
+                value={spec.hangingRail.height}
+                min={20}
+                param="cabinets[].carcasses[].hangingRail.height"
+                onChange={(v) => patch((c) => void (c.hangingRail.height = v))}
+              />
+              <NumberField
+                label="Screw clearance"
+                value={spec.hangingRail.screwDiameter}
+                min={1}
+                param="cabinets[].carcasses[].hangingRail.screwDiameter"
+                onChange={(v) => patch((c) => void (c.hangingRail.screwDiameter = v))}
+                title="Sized to clear the screw's shank, not grip it."
+              />
+              <NumberField
+                label="Screw spacing"
+                value={spec.hangingRail.screwSpacing}
+                min={50}
+                param="cabinets[].carcasses[].hangingRail.screwSpacing"
+                onChange={(v) => patch((c) => void (c.hangingRail.screwSpacing = v))}
+                title="Kept under about one stud spacing (16 in = 406 mm) so the rail always lands on at least two."
+              />
+            </>
+          )}
+        </Group>
+      )}
 
-      <ActionField param="cabinets[].carcasses[].id">
-        <button
-          disabled={cabinet.carcasses.length === 1}
-          title={
-            cabinet.carcasses.length === 1
-              ? 'A cabinet needs at least one carcass.'
-              : 'Remove this carcass from the stack'
-          }
-          onClick={() => {
-            const left = cabinet.carcasses.filter((_, i) => i !== carcassIndex);
-            const next = left[Math.min(carcassIndex, left.length - 1)];
-            update((p) => {
-              p.cabinets[cabinetIndex]!.carcasses.splice(carcassIndex, 1);
-            });
-            // Whatever took its place in the stack, not the cabinet above it.
-            select(
-              next
-                ? { kind: 'carcass', cabinetId, carcassId: next.id }
-                : { kind: 'cabinet', cabinetId },
-            );
-          }}
-        >
-          Remove this carcass
-        </button>
-      </ActionField>
+      {shows('remove') && (
+        <ActionField param="cabinets[].carcasses[].id">
+          <button
+            disabled={cabinet.carcasses.length === 1}
+            title={
+              cabinet.carcasses.length === 1
+                ? 'A cabinet needs at least one carcass.'
+                : 'Remove this carcass from the stack'
+            }
+            onClick={() => {
+              const left = cabinet.carcasses.filter((_, i) => i !== carcassIndex);
+              const next = left[Math.min(carcassIndex, left.length - 1)];
+              update((p) => {
+                p.cabinets[cabinetIndex]!.carcasses.splice(carcassIndex, 1);
+              });
+              // Whatever took its place in the stack, not the cabinet above it.
+              select(
+                next
+                  ? { kind: 'carcass', cabinetId, carcassId: next.id }
+                  : { kind: 'cabinet', cabinetId },
+              );
+            }}
+          >
+            Remove this carcass
+          </button>
+        </ActionField>
+      )}
     </>
   );
 }

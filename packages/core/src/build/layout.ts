@@ -50,21 +50,50 @@ export function layoutBays(spec: CarcassSpec, t: number): BayLayout {
   return { bays, dividerX, fellBackToEven };
 }
 
+export interface ShelfLayout {
+  /** Bottom face height of each fixed shelf, lowest first. */
+  zs: number[];
+  /** Set when explicit gaps did not add up and an even split was used instead. */
+  fellBackToEven: boolean;
+}
+
 /**
- * Evenly space `count` fixed shelves in a clear vertical opening, returning the
- * bottom face height of each.
+ * Stack `count` fixed shelves up a clear vertical opening.
+ *
+ * The exact mirror of `layoutBays`, one axis round: `gaps` are the clear
+ * openings between the shelves, bottom to top, and there is one more of them
+ * than there are shelves. Given ones that fit they are used as they stand;
+ * anything else is split evenly, because a stack of equal shelves you can cut
+ * beats one sized to numbers that do not reach the top of the box.
  */
-export function shelfHeights(z0: number, z1: number, count: number, t: number): number[] {
-  if (count <= 0) return [];
-  const gap = (z1 - z0 - count * t) / (count + 1);
-  const out: number[] = [];
+export function layoutShelves(
+  z0: number,
+  z1: number,
+  count: number,
+  t: number,
+  gaps: number[] = [],
+): ShelfLayout {
+  if (count <= 0) return { zs: [], fellBackToEven: false };
+  const available = z1 - z0 - count * t;
+
+  let heights: number[];
+  let fellBackToEven = false;
+  const explicit = gaps.filter((g) => g > 0);
+  if (explicit.length === count + 1 && Math.abs(sum(explicit) - available) < 0.5) {
+    heights = explicit.slice();
+  } else {
+    fellBackToEven = explicit.length > 0;
+    heights = new Array(count + 1).fill(available / (count + 1));
+  }
+
+  const zs: number[] = [];
   let z = z0;
   for (let i = 0; i < count; i++) {
-    z += gap;
-    out.push(z);
+    z += heights[i]!;
+    zs.push(z);
     z += t;
   }
-  return out;
+  return { zs, fellBackToEven };
 }
 
 /** Shelf pin hole heights under the 32 mm system, snapped to the pitch. */

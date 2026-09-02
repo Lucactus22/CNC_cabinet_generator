@@ -77,7 +77,12 @@ export function RunInspector() {
  * walkthrough — which derives it from three tape readings, or takes an
  * instrument reading under its own heading. See docs/OPENING.md.
  */
-function TheRoom() {
+/**
+ * The measured opening, and the strips cut to take up the gap between the run
+ * and the walls. Exported so clicking a scribe strip in the model can offer
+ * the thing that decides it.
+ */
+export function TheRoom() {
   const params = useStore((s) => s.params);
   const update = useStore((s) => s.update);
   const opening = params.opening;

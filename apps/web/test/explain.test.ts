@@ -269,8 +269,20 @@ describe('machining explains itself', () => {
     base.construction = 'face-frame';
     base.dividerCount = 1;
     base.bays = [
-      { shelves: 'adjustable', shelfCount: 0, doors: 'left', drawerFrontHeights: [] },
-      { shelves: 'none', shelfCount: 0, doors: 'none', drawerFrontHeights: [180, 180] },
+      {
+        shelves: 'adjustable',
+        shelfCount: 0,
+        shelfGaps: [],
+        doors: 'left',
+        drawerFrontHeights: [],
+      },
+      {
+        shelves: 'none',
+        shelfCount: 0,
+        shelfGaps: [],
+        doors: 'none',
+        drawerFrontHeights: [180, 180],
+      },
     ];
     base.hangingRail.enabled = true;
     p.hardware.handleId = 'bar-128';

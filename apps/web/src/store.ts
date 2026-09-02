@@ -23,6 +23,38 @@ import { applyWorkshop, workshopOf, type WorkshopProfile } from './workshop';
 export type Surface = 'bench' | 'output';
 
 /**
+ * A plane cut through the live assembly.
+ *
+ * A view setting rather than a parameter, the same as `exploded`: it changes
+ * nothing about what is cut, so saving it into the project would put a
+ * viewpoint in a file that describes furniture. `at` is an assembly-space
+ * coordinate on `axis`, and everything on the near side of it is clipped away.
+ */
+export interface SectionState {
+  axis: 'x' | 'y' | 'z';
+  at: number;
+  /** Which half is kept. Orbiting to the other side of the run needs the cut turned round. */
+  flip: boolean;
+}
+
+/**
+ * Where in the viewport something was picked: the screen rectangle the picked
+ * thing covers, in pixels from the stage's top left corner.
+ *
+ * The inspector is the same card wherever it sits — one editor of the
+ * parameters, never a second copy — so a click on the model moves the card to
+ * the click instead of opening a rival panel beside it. It is the *thing's*
+ * rectangle rather than the point clicked because a card placed off the point
+ * would still cover the bay it is about, which is the one thing it must not do.
+ */
+export interface Anchor {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+/**
  * A choice being *considered*, built but not committed.
  *
  * R-16 measured the cost of a construction choice as invisible: switching the
@@ -58,6 +90,10 @@ interface AppState {
   showroom: { topicId: string | null } | null;
   /** What the inspector is pointed at. Always resolves; see selection.ts. */
   selection: Selection;
+  /** Where the selection was made in the viewport, if it was. See `Anchor`. */
+  anchor: Anchor | null;
+  /** The section plane, when one is cut. See `SectionState`. */
+  section: SectionState | null;
   /** Set by the command palette so the control it found can scroll itself in and take focus. */
   focusParam: string | null;
   /**
@@ -88,7 +124,13 @@ interface AppState {
   setShowroom: (at: { topicId: string | null } | null) => void;
   setSafeNames: (v: boolean) => void;
   setDiagnosticsOpen: (open: boolean) => void;
-  select: (selection: Selection) => void;
+  /**
+   * Point the inspector at something. `anchor` is passed only by the viewport,
+   * which knows where the click landed; everything else leaves the card where
+   * it lives.
+   */
+  select: (selection: Selection, anchor?: Anchor | null) => void;
+  setSection: (section: SectionState | null) => void;
   /** Show a parameter: switch to wherever it lives and focus it. */
   reveal: (opts: {
     surface?: Surface;
@@ -244,6 +286,8 @@ export const useStore = create<AppState>((set, get) => {
     startersOpen: saved === null && !startersSeen(),
     showroom: null,
     selection: RUN,
+    anchor: null,
+    section: null,
     focusParam: null,
     safeNames: false,
     exploded: 0,
@@ -267,8 +311,12 @@ export const useStore = create<AppState>((set, get) => {
     // list is how you look at its drawing, and being thrown back to the bench
     // for it would make the table unusable. Anything that does want to change
     // surface says so through `reveal`.
-    select: (selection) =>
-      set((s) => ({ selection: settleSelection(s.params, s.project.parts, selection) })),
+    select: (selection, anchor = null) =>
+      set((s) => ({
+        selection: settleSelection(s.params, s.project.parts, selection),
+        anchor,
+      })),
+    setSection: (section) => set({ section }),
     reveal: ({ surface, workshop, selection, param }) => {
       // Cleared on a timer as well as by whichever control claims it: a
       // conditionally rendered parameter — the reveal that is only shown for
@@ -287,6 +335,8 @@ export const useStore = create<AppState>((set, get) => {
         // Whatever asked to be shown a control is standing in front of it.
         showroom: null,
         selection: selection ? settleSelection(s.params, s.project.parts, selection) : s.selection,
+        // Whatever was clicked in the model is not what asked for this.
+        anchor: null,
         focusParam: param ?? null,
       }));
     },

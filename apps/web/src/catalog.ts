@@ -380,6 +380,14 @@ export const CATALOG: CatalogEntry[] = [
     where: bench('bay', 'inside'),
   },
   {
+    path: 'cabinets[].carcasses[].bays[].shelfGaps',
+    covers: true,
+    label: 'Shelf heights',
+    about: 'Clear height under each fixed shelf. Left empty, they are spaced evenly.',
+    words: ['shelf height', 'shelf spacing', 'uneven shelves', 'gap', 'headroom'],
+    where: bench('bay', 'inside'),
+  },
+  {
     path: 'cabinets[].carcasses[].bays[].doors',
     label: 'Door',
     about: 'Open, a single door hinged left or right, or a pair.',

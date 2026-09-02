@@ -3,6 +3,9 @@ import { useStore } from '../../store';
 import { Group, Hint, Reveal, SelectField } from '../Controls';
 import { EffectList } from './EffectList';
 import { Machining } from '../Explain';
+import { BayInspector } from './BayInspector';
+import { CarcassInspector, type CarcassGroup } from './CarcassInspector';
+import { TheRoom } from './RunInspector';
 
 /**
  * Roles worth offering a banding rule for, each with the edges that are ever
@@ -32,11 +35,35 @@ const EDGE_LABEL: Record<PanelEdge, string> = {
 };
 
 /**
+ * Which of a carcass's controls decide a panel of each role.
+ *
+ * A side panel exists at the size the box is; a divider exists because of the
+ * bay count and moves with the bay widths; a toe rail is the toe kick. Roles
+ * missing from this are decided by their bay instead — see `PanelControls`.
+ */
+const DECIDED_BY_CARCASS: Partial<Record<PartRole, CarcassGroup[]>> = {
+  side: ['size', 'panels', 'joinery'],
+  top: ['size', 'panels', 'joinery'],
+  bottom: ['size', 'panels', 'joinery'],
+  back: ['panels'],
+  divider: ['bays', 'joinery'],
+  stretcher: ['size', 'panels'],
+  'toe-rail': ['toe'],
+  'hanging-rail': ['rail'],
+  stile: ['frame'],
+  rail: ['frame'],
+};
+
+/**
  * One blank: what it is, where it comes from, and what is done to its faces
  * and edges.
  *
  * R-16's measured answer to clicking a panel was fourteen characters of
  * sidebar, 5224 px down. This is what that click is supposed to bring up.
+ * R-20 added the half that was still missing: not only what the panel *is*,
+ * but the controls that would change it — a door's fronting, a shelf's height,
+ * the bay count a divider comes from — brought to the panel rather than left
+ * a level up in the hierarchy.
  */
 export function PartInspector({ partId }: { partId: string }) {
   const project = useStore((s) => s.project);
@@ -60,6 +87,8 @@ export function PartInspector({ partId }: { partId: string }) {
 
   return (
     <>
+      <PanelControls partId={partId} />
+
       <Group title="This panel" open>
         <Hint>
           <b>{part.label}</b>
@@ -111,6 +140,34 @@ export function PartInspector({ partId }: { partId: string }) {
       </Group>
     </>
   );
+}
+
+/**
+ * What would change this panel, brought to the panel.
+ *
+ * Every part is decided somewhere: in its bay, in its carcass, or — for a
+ * scribe strip — in the measured room. This is that level's own controls, not
+ * a copy of them, so a number typed here and the same number typed where it
+ * lives are the one parameter.
+ */
+function PanelControls({ partId }: { partId: string }) {
+  const project = useStore((s) => s.project);
+  const part = project.parts.find((p) => p.id === partId);
+  const bay = project.bays.find((b) => b.partIds.includes(partId));
+  if (!part) return null;
+
+  if (part.role === 'scribe') return <TheRoom />;
+
+  const groups = DECIDED_BY_CARCASS[part.role];
+  if (groups) {
+    return <CarcassInspector cabinetId={part.cabinetId} carcassId={part.carcassId} only={groups} />;
+  }
+  // Doors, drawer boxes and faces, and shelves: everything that exists because
+  // a bay was filled a particular way.
+  if (bay) {
+    return <BayInspector cabinetId={bay.cabinetId} carcassId={bay.carcassId} bay={bay.index} />;
+  }
+  return null;
 }
 
 /**

@@ -258,6 +258,39 @@ kbd {
   accent-color: var(--accent);
 }
 
+/* The section plane's own controls, under the explode slider: an axis, a
+   position, and the two things a cut always needs — turn it round, put it
+   away. */
+.section-row {
+  position: absolute;
+  left: 12px;
+  top: 52px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgb(20 22 26 / 82%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--muted);
+  backdrop-filter: blur(4px);
+}
+.section-row input[type='range'] {
+  width: 120px;
+  accent-color: var(--accent);
+}
+.section-row .mono {
+  font-family: var(--mono);
+  font-size: 11px;
+  min-width: 4ch;
+  text-align: right;
+}
+.section-row .pill.on {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 /* ------------------------------------------------------------- the inspector
    A floating card, only as tall as what is selected needs. That is what keeps
    the cabinet's share of the window up: at rest it holds three controls, not a
@@ -275,6 +308,14 @@ kbd {
   border-radius: 10px;
   box-shadow: var(--shadow);
   overflow: hidden;
+}
+/* Anchored to a click in the model, rather than parked in the corner: R-20's
+   "its controls, in the viewport". Positioned by the component, which is the
+   only thing that knows how tall the card came out. */
+.inspector.anchored {
+  top: auto;
+  right: auto;
+  max-height: calc(100% - 24px);
 }
 .inspector-body {
   overflow-y: auto;
