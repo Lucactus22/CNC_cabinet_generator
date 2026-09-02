@@ -1232,6 +1232,89 @@ pointer threshold and was walked in the running app instead.
 
 ---
 
+## What R-21 built, and what it measured
+
+R-17 had already folded a first version of most of this item into the shell
+it built — the readiness chip, repeats collapsed to a count, and the
+structured-fix mechanism F-1 is about, because R-17 could not honestly claim
+"J6 ≤ 2, offered" without *some* answer to the trap the old sidebar's "Set
+sheets to machine size" button was. Measured against `vite preview` on the
+production build, from a cleared `localStorage`, on **2026-09-02**:
+
+| | R-16, measured | R-21, measured |
+|---|---|---|
+| J6 first cuttable export from a fresh project | 3, off the beaten path, costing 2 sheets (R-16) | **2**, both offered, cheapest-clear sorted first — unchanged from R-17, confirmed live rather than re-derived |
+| Fix offered for the fresh project's 2 blocking errors | "Set sheets to machine size" — trades them for a worse one | **Two, honestly labelled**: "Rip the sheets…" (clears both) leads; "Set the sheets to the size of the bed" (leaves 1 blocking, costs 5 sheets) is still shown, never hidden, never claiming more than it does |
+| Diagnostics panel's share of the window | 26.4%, permanently, every tab | **0% at rest**; docked to the bottom of the stage only while open, cabinet visible above it |
+| Workshop errors visible before opening the door | no | **yes** — a count badge on the Workshop button itself |
+| A part too big, a sheet needing setups, a sagging shelf | a sentence | a sentence **and a diagram**, drawn from the same numbers |
+| Parts tab: rows visible while choosing one (F-13) | 2 of 21, drawing gone by row 15 | **21 of 21** — moot once R-17 turned the output pack into one scrolling document instead of a fixed-height tab fighting the old sidebar for space |
+
+**What was actually built here**, since the rest was already standing:
+
+- **Topic sections.** The collapsed groups (unchanged from R-17) are now
+  bucketed under a heading per topic — Machine, Nesting, Joinery and so on —
+  the section with the worst severity first. `apps/web/src/diagnosticsGrouping.ts`
+  is the new home for the grouping and bucketing logic, pulled out of the
+  component so it is importable by a plain test — a `.tsx` file never was.
+- **Diagrams for anything with a shape.** `Diagnostic` gained an optional
+  `spatial` field — a closed union, not a generic scene graph — set at the
+  three places in `checkManufacturability` that already have the numbers: a
+  part against the machine's travel with the overhang hatched, a sheet with a
+  dashed line at every seam, a shelf's span against the 40×-thickness rule of
+  thumb with what runs past it shaded. `DiagnosticDiagram.tsx` draws them as
+  small inline SVGs; nothing about a diagram can say something its sentence
+  does not, because both are read off the same payload.
+- **A readiness sentence, not just a coloured dot.** The panel's own header
+  now reads *"Not ready to cut — 2 blocking, 5 to check."* or *"Ready to cut
+  — 6 to check."* — the top-bar chip stays terse for its size, the panel says
+  it in full.
+- **Export explains itself.** The button stopped being `disabled`; blocked,
+  it stays a normal button styled to read as blocked, and clicking it opens
+  the diagnostics list instead of doing nothing. Verified in the browser: a
+  fresh project's Export DXF opens the panel rather than downloading; once
+  the top fix clears the errors, the same click downloads the zip.
+- **The workshop door's badge moved to where it is visible.** It used to sit
+  inside the drawer's own header — which nobody sees until they have already
+  opened it, defeating the point. It is on the `Workshop` button in the top
+  bar now, and scoped to the topics the drawer can actually fix (`machine`,
+  `nesting`, `hardware`), read from the one place — `diagnosticTopics.ts` —
+  that also gates the panel's "open the workshop" link, so the two cannot
+  drift apart about what is behind that door.
+- **Docked, not floating.** Raised mid-session by the person running the app,
+  who found the panel sitting as a card over the top-left corner of the
+  cabinet: it now docks along the bottom of the stage, full width, the
+  cabinet visible above it, with a drag handle on its top edge to resize.
+  Measured at 1440×900: docked flush to the bottom of the viewport, leaving
+  it visible from the top bar down to the panel — closer to a build tool's
+  problem list than a dialog sitting on top of the model, which is also a
+  more literal reading of "shown rather than described" than the card ever
+  was.
+
+**Defects found by testing it, not by reading it — all in the same
+mechanism.** The first cut styled the blocked Export button with
+`aria-disabled="true"` to keep it clickable while still reading as disabled.
+It does not read as merely "disabled-looking" — Playwright's own
+actionability check refuses to click an `aria-disabled` element at all,
+which is exactly what a screen reader tells its user too: *disabled*, when
+the button in fact still does something on every click. The attribute was
+dropped; the button is an ordinary enabled control with a `blocked` class for
+colour. Two more, both the "share a look that means something else" family:
+the button painted itself in the same red as an actual blocking error while
+a rebuild was merely in flight, on every keystroke that triggers one, which
+is not what red means anywhere else in this UI; and the output pack's own
+copy of the button, unlike the top bar's, did not special-case that same
+in-flight state, so a click mid-rebuild could open the diagnostics list only
+for it to read the stale, error-free previous build and say "Ready to cut" —
+directly contradicting the click that had just refused to export. Both fixed
+alongside the first. `apps/web/test/diagnostics.test.ts` and
+`packages/core/test/pipeline.test.ts` cover the mechanism and the three
+spatial payloads; the docking, the diagrams' legibility and this bug were
+found driving the built app with Playwright, per `CLAUDE.md`'s own rule that
+tests do not catch layout collapse.
+
+---
+
 ## What this does not decide
 
 Left open deliberately, for the item that hits them:

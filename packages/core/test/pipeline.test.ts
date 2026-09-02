@@ -195,6 +195,16 @@ describe('machine diagnostics', () => {
     const project = buildProject(defaultParams());
     const tiling = project.diagnostics.find((d) => d.message.includes('needs'));
     expect(tiling?.message).toContain('setups');
+    // R-21: the panel draws this as a sheet with its seams, rather than only
+    // saying "3 setups" — the seam positions come from the same step the
+    // sentence is built from, so a drift between the two is not possible.
+    expect(tiling?.spatial).toMatchObject({ kind: 'sheet-tiles', tiles: 3 });
+    const spatial = tiling!.spatial as Extract<typeof tiling.spatial, { kind: 'sheet-tiles' }>;
+    expect(spatial.step).toBeCloseTo(
+      defaultParams().machine.travelX - defaultParams().machine.tileOverlap,
+      6,
+    );
+    expect(spatial.length).toBeGreaterThan(spatial.step);
   });
 
   it('calls out a part too big for the machine in any orientation', () => {
@@ -207,6 +217,23 @@ describe('machine diagnostics', () => {
     );
     expect(errs.length).toBeGreaterThan(0);
     expect(errs[0]!.partIds?.length).toBe(1);
+    // The picture next to the machine's envelope this item's own problem
+    // statement asks for: the part's real blank size against the real travel,
+    // not the rounded numbers out of the sentence.
+    expect(errs[0]!.spatial).toMatchObject({
+      kind: 'part-vs-machine',
+      travelX: 300,
+      travelY: 300,
+      // Default tiling feeds along X, so only the fixed Y axis is actually
+      // blocking here — the diagram has to know that to draw the right edge
+      // as tileable rather than a hard wall.
+      feedAxis: 'x',
+    });
+    const spatial = errs[0]!.spatial as Extract<
+      NonNullable<(typeof errs)[0]['spatial']>,
+      { kind: 'part-vs-machine' }
+    >;
+    expect(Math.min(spatial.partW, spatial.partH)).toBeGreaterThan(300);
   });
 
   it('warns about a shelf long enough to sag', () => {
@@ -215,7 +242,17 @@ describe('machine diagnostics', () => {
     base(p).width = 1400;
     base(p).bays = [{ shelves: 'fixed', shelfCount: 2 }];
     const project = buildProject(p);
-    expect(project.diagnostics.some((d) => d.message.includes('sag'))).toBe(true);
+    const sag = project.diagnostics.find((d) => d.message.includes('sag'));
+    expect(sag).toBeDefined();
+    // The 40x-thickness rule of thumb lives in one place; the diagram has to
+    // draw the same limit the sentence warns against, not its own guess.
+    const part = project.parts.find((p2) => p2.id === sag!.partIds?.[0]);
+    expect(sag?.spatial).toEqual({
+      kind: 'shelf-span',
+      span: Math.max(part!.width, part!.height),
+      thickness: part!.thickness,
+      limit: part!.thickness * 40,
+    });
   });
 });
 

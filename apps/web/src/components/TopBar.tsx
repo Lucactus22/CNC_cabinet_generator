@@ -7,7 +7,8 @@ import {
 } from '@cabgen/core';
 import { useStore } from '../store';
 import { saveBlob, saveText, zipFiles } from '../download';
-import { summarise } from './DiagnosticsPanel';
+import { summarise } from '../diagnosticsGrouping';
+import { isWorkshopTopic } from '../diagnosticTopics';
 
 /**
  * The one row that is always there: what this is, whether it can be cut, and
@@ -43,6 +44,12 @@ export function TopBar() {
 
   const errors = project.diagnostics.filter((d) => d.severity === 'error').length;
   const warnings = project.diagnostics.filter((d) => d.severity === 'warning').length;
+  // The workshop door's own badge: visible without opening it, and scoped to
+  // what actually lives behind it, so it never claims a design problem is
+  // fixable in there.
+  const workshopErrors = project.diagnostics.filter(
+    (d) => d.severity === 'error' && isWorkshopTopic(d.topic),
+  ).length;
   // `project` runs a build behind `params` while the worker is still catching
   // up (R-12), so exporting mid-build would cut whatever the previous params
   // produced — wrong dimensions, or a blocking error the new params would
@@ -152,6 +159,7 @@ export function TopBar() {
         title="The machine, the tooling, the sheets and the hardware — the shop, not the cabinet"
       >
         Workshop
+        {workshopErrors > 0 && <span className="badge-count">{workshopErrors}</span>}
       </button>
       <button
         aria-pressed={surface === 'output'}
@@ -162,14 +170,23 @@ export function TopBar() {
         Output
       </button>
       <button
-        className="primary"
-        onClick={doExport}
-        disabled={blocked}
+        // Red only for an actual error — a rebuild in flight is not a
+        // problem, and painting it the same red as one would say it is.
+        className={`primary${errors > 0 ? ' blocked' : ''}`}
+        onClick={() => {
+          // A disabled button cannot explain itself, and `aria-disabled`
+          // would tell a screen reader it does nothing when it still does —
+          // this one stays a normal, focusable button, and clicking it while
+          // blocked opens the list that says why, rather than only refusing.
+          if (building) return;
+          if (blocked) setDiagnosticsOpen(true);
+          else doExport();
+        }}
         title={
           building
             ? 'Still catching up to your last change — wait a moment and try again.'
             : blocked
-              ? 'Fix the blocking diagnostics first, or the files will not be cuttable.'
+              ? 'Blocked — click to see what is stopping it.'
               : 'Sheet DXFs, per-tile DXFs and the cut list, as one zip.'
         }
       >
