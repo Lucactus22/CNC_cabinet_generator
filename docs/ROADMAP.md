@@ -1774,7 +1774,8 @@ the real design work here; get it right before any dragging.
 - [x] Clicking a bay opens its controls in the viewport — the builder records a
       `BayVolume` per opening and the view raycasts those, back-face only, so a
       bay is the space nothing standing in it claims; the inspector card moves
-      to the click and places itself clear of what it describes
+      opens that bay's controls in the inspector, which stays docked (see the
+      note below)
 - [x] Clicking a door, shelf or panel offers what applies to it — a door leads
       with its bay's fronting, a shelf with its heights, a divider with the bay
       count and widths, a side panel with the box's size, a scribe strip with
@@ -1791,6 +1792,15 @@ the real design work here; get it right before any dragging.
 - [x] The sidebar keeps only what is genuinely global — audited: the workshop
       drawer holds nothing about a particular cabinet, and the run's own
       inspector holds nothing narrower than the run. See the note below
+
+**"In the viewport" turned out to mean the controls, not the card.** The first
+version read the criterion literally and moved the inspector card to whatever
+had just been clicked in the model. Driven in the running app, that puts a
+300 px panel over the middle of the cabinet — the exact thing R-17's whole
+architecture exists to keep clear, and it costs the model the space the item
+before this one spent an XL getting back. The half worth having is that
+clicking a bay brings up *that bay's* controls at all; where they appear is
+better answered by "where controls always appear". The card is docked again.
 
 **The model gained a parameter, and it had to.** Fixed shelves were always
 evenly spaced: `BaySpec` had no way to say where one sits, so "drag a fixed

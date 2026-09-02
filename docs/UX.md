@@ -1161,10 +1161,9 @@ of you, and it belongs on the model. One control, stated rather than hidden.
 - **Bays are pickable, as the space they are.** A bay produces no part, so the
   builder now records where each one stands and the 3D view raycasts those
   volumes — back-face only, so anything standing in the opening is nearer and
-  wins, and what is left over is the empty space. Clicking it opens the bay's
-  own controls *at the bay*: the same inspector card, moved to the click and
-  placed clear of the thing it describes, never a second panel with a second
-  copy of the parameters in it.
+  wins, and what is left over is the empty space. Clicking it brings up that
+  bay's own controls in the inspector — the same card that answers every other
+  selection, never a second panel with a second copy of the parameters in it.
 - **Clicking a panel offers what would change it.** A door leads with its bay's
   fronting; a shelf with the bay's insides and its heights; a divider with the
   bay count and the widths; a side panel with the box's size and how its panels
@@ -1182,7 +1181,16 @@ of you, and it belongs on the model. One control, stated rather than hidden.
   the first time the dados, tongues and hinge cups inside the panels have been
   visible in place.
 
-**Two things the design gave under contact with the code.**
+**Three things the design gave under contact with the code.**
+
+- **"Its controls, in the viewport" means the controls, not the card.** The
+  first version took the criterion literally and moved the inspector card to
+  whatever had just been clicked in the model. Walked in the running app, that
+  is a 300 px panel over the middle of the cabinet — the one thing this
+  architecture exists to keep clear, and the space R-17 spent an XL winning
+  back. What the journey actually needed is that clicking a bay brings up *that
+  bay's* controls at all; where they appear is better answered by "where
+  controls always appear", which is also where the hand already looks. Docked.
 
 - **The whole plane cannot be the grab handle.** A translucent sheet spanning
   the run sits between the pointer and every panel behind it, so the first
