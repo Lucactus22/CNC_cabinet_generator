@@ -2161,18 +2161,138 @@ stray exception is the worst failure available.
 This delivers the accessibility and error-boundary lines on the release
 checklist; tick them there when it lands.
 
+**Revised while working it.** Three things the item as written did not settle:
+
+- *"A light theme following the system preference, switchable"* reads as two
+  mechanisms — a media query and a toggle — which is how it is normally built
+  and how the two end up disagreeing. It is one: every colour is written
+  `light-dark(light, dark)` under `color-scheme: light dark`, so the system
+  preference is followed by the stylesheet itself with no JavaScript and no
+  flash of the wrong theme on load, and the switch is a single `data-theme`
+  attribute that changes which half applies. Neither palette can be edited
+  without the other being read, which is also what makes the contrast test
+  below possible without a browser.
+- *"Contrast meets WCAG AA"* is two different thresholds, and the second is
+  the one this interface was actually failing. Text at 4.5:1 was fine
+  already; **the visible boundary of a control** (SC 1.4.11, 3:1) was not —
+  `--line` measured 1.29–1.47:1 against the surfaces it sat on, so every
+  input and button was identified by a border you could not see. That is now a second token,
+  `--edge`, held to 3:1 on every surface, and the same 3:1 floor applies to
+  the lines a sheet drawing is *read* from.
+- *"Type and spacing scales used throughout"* stops at the type and the space.
+  The size of a *named object* — a 76 px gallery tile, the 300 px inspector,
+  the 44 px top bar — is not spacing and is left alone, partly because
+  `docs/UX.md` measures the window's share against three of them and a scale
+  would move those numbers for no reason.
+
 **Acceptance criteria.**
-- [ ] Type and spacing scales defined once and used throughout
-- [ ] A light theme following the system preference, switchable
-- [ ] Every control reachable and operable from the keyboard, focus visible
-- [ ] An error boundary that keeps the design and offers to save it
-- [ ] Motion respects `prefers-reduced-motion`
-- [ ] Contrast meets WCAG AA in both themes
+- [x] Type and spacing scales defined once and used throughout
+- [x] A light theme following the system preference, switchable
+- [x] Every control reachable and operable from the keyboard, focus visible
+- [x] An error boundary that keeps the design and offers to save it
+- [x] Motion respects `prefers-reduced-motion`
+- [x] Contrast meets WCAG AA in both themes
 
 **Tests.** Keyboard navigation through the main flows, checked by hand in the
 running app for now — the automated version waits for R-24's harness, held
 back for the same reason R-14 itself was (see that item). An automated
 contrast check over both palettes.
+
+**What it cost, for the items that follow.** `styles.css` opens with the
+system: eight type steps, eight space steps, five radii and one palette
+written as `light-dark()` pairs, and every rule below spends those rather
+than inventing a number. `apps/web/test/contrast.test.ts` parses that block
+back out of the stylesheet and checks both halves — which is why
+`vitest.config.ts` now sets `css: true`, without which a CSS import in a test
+is replaced by an empty string and every assertion passes on nothing.
+`apps/web/src/theme.ts` and the store's `theme` / `resolvedTheme` are only
+the *override* and the one answer CSS cannot hand out: which half is in
+force, for the 3D view, whose scene is three.js materials. Three colour sets
+moved out of components and into the stylesheet — the DXF layers
+(`drawing.tsx`), the measurement diagram (`MeasureWizard.tsx`) and the ground
+a rendered picture sits on — so all three follow the theme and are checked by
+that test; the plywood tones in `gallery/render.ts` deliberately did not,
+because a cabinet is the colour of a cabinet in any light.
+`apps/web/src/components/overlays.ts` is the new home for overlay keyboard
+behaviour (`useDismissable`, `useDialog`), and `ErrorBoundary.tsx` wraps the
+app in `main.tsx`.
+
+**What the keyboard pass found.** Six things, none of them visible from
+reading the code:
+
+- **Escape did not close the measurement walkthrough** — the one dialog in
+  the app you most want to back out of, and eleven readings deep by the time
+  you want to. Its Escape listener was keyed on the `onClose` prop it was
+  handed, and `RunInspector` hands it a fresh arrow function every render, so
+  the listener was torn down and rebuilt on every render. The *global* Escape
+  handler runs first on the same key press, and its store update re-renders
+  the inspector during the event's own dispatch: by the time the event
+  reached the walkthrough's listener the DOM had marked it removed, and its
+  replacement had been added too late to be called. Both overlay hooks now
+  register once and read the callback from a ref, which no re-render can
+  catch out.
+- **The cut list was mouse-only.** Its rows are `<tr onClick>`, which takes no
+  focus and answers no key — so the only route to a part's drawing, and the
+  only route to selecting a part at all outside the 3D view, needed a
+  pointer. The id is a real button now.
+- **Find-by-name landed on the wrong thing.** `useReveal` focuses the first
+  `input, select, textarea, button` inside what it found, and an infotip's
+  button belongs to the *label*, so it comes first in the DOM: searching
+  *kickboard* put the keyboard on "What this does" rather than on the toe
+  kick. True since the infotips landed in R-22.
+- **The focus ring had been switched off.** `input:focus { outline: none }`
+  left a keyboard user with no way to tell which of sixty fields had focus.
+- **The 3D view could not be reached at all**, let alone orbited. It takes
+  focus now: arrows step through its bays and panels — the run strip could
+  already reach a bay, but nothing could reach a *panel* — shift and an arrow
+  turns the model, and + and − zoom.
+- **The printed pack kept the dark theme's brightness.** The print rules
+  turned the sheet white and left the strokes orange, which is a 2.1:1
+  cutting sheet on paper. Print now takes the light half of every colour and
+  a white drawing ground, and the contrast test checks every layer against
+  paper as well as against the screen.
+
+**What review found.** Six more, every one confirmed in the running app rather
+than argued from the diff:
+
+- **The contrast test could pass by having nothing to check.** Its colour
+  parser understands `#rgb`, `#rrggbb` and space-separated `rgb()`; anything
+  else — `rgba()`, `#rrggbbaa`, `oklch()`, `color-mix()` — was *silently
+  dropped from both palettes*, and the completeness check iterated only what
+  had parsed, so a new colour in a syntax it did not know would sail through
+  all thirteen assertions. Every declaration in `:root` is now either a
+  colour it read or a named entry on the scales, and an unreadable one fails
+  by name. A probe colour was added to prove that fires before it was
+  removed.
+- **The key the label advertises was the one key that did nothing.** `+` *is*
+  Shift and `=` on most layouts, and the shift-orbits branch returned before
+  the zoom keys were tested — so both `+` and `_` were dead while the
+  aria-label and the overlay promised them.
+- **Closing the showroom dropped focus at the top of the document.** The ☰
+  menu unmounts the item you clicked before the modal it opened has mounted,
+  so the dialog captured `document.body` as the thing to give focus back to —
+  and `body` is connected, so the guard did not catch it. The menu now hands
+  focus to the ☰ button on the way out, and `useDialog` refuses to focus
+  `body` at all.
+- **The resize separator reported its height against the wrong scale.** With
+  `aria-valuenow` and `aria-valuemin` but no `aria-valuemax`, assistive
+  technology measures against an implicit 100, reading a 340 px panel as far
+  past the end of its range.
+- **Every panel was extruded twice on load.** The theme effect fires on mount
+  with the theme the engine was already built with, and `setTheme` rebuilt
+  the scene unconditionally.
+- **Reduce Motion was read once, at startup**, which contradicted `theme.ts`'s
+  own claim that it is read when needed: turning it on mid-session left the
+  camera coasting until the next reload. The viewport subscribes to the query
+  now, as the CSS already effectively did.
+
+Review also cleared two things worth recording: `var()` **does** substitute
+into an SVG presentation attribute in Chromium, so the comments claiming
+otherwise were wrong and are now accurate — the style declaration is used
+because it is the form CSS guarantees, and `DiagnosticDiagram.tsx` was
+converted so there is one convention rather than two. And a theme change does
+not lose the explode offsets, the section cut or the highlight, because
+`setScene` recomputes and reapplies all three.
 
 ---
 
@@ -2206,7 +2326,7 @@ numbers rotting the first time somebody adds a control back.
 
 - [ ] Sample projects that load from the UI
 - [ ] A getting-started guide from parameters to cut parts
-- [ ] Keyboard accessibility and a React error boundary
+- [x] Keyboard accessibility and a React error boundary — delivered by R-23
 - [ ] Every known gap in [ARCHITECTURE.md](ARCHITECTURE.md) either closed or
       listed as a deliberate non-goal
 - [ ] Version bumped, tagged, deployed

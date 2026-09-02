@@ -57,14 +57,17 @@ export function DiagnosticsPanel() {
   const fixes = useMemo(() => offeredFixes(project.params, project), [project]);
   const errors = diagnostics.filter((d) => d.severity === 'error').length;
 
+  const maxHeight = (): number => window.innerHeight - MAX_HEIGHT_MARGIN;
+  const resizeBy = (delta: number): void =>
+    setHeight((h) => Math.min(maxHeight(), Math.max(MIN_HEIGHT, h + delta)));
+
   const startResize = (e: React.PointerEvent) => {
     e.preventDefault();
     dragging.current = { startY: e.clientY, startHeight: height };
     const onMove = (ev: PointerEvent) => {
       if (!dragging.current) return;
       const delta = dragging.current.startY - ev.clientY;
-      const max = window.innerHeight - MAX_HEIGHT_MARGIN;
-      setHeight(Math.min(max, Math.max(MIN_HEIGHT, dragging.current.startHeight + delta)));
+      setHeight(Math.min(maxHeight(), Math.max(MIN_HEIGHT, dragging.current.startHeight + delta)));
     };
     const onUp = () => {
       dragging.current = null;
@@ -79,7 +82,33 @@ export function DiagnosticsPanel() {
 
   return (
     <div className="diagnostics-sheet" role="dialog" aria-label="Diagnostics" style={{ height }}>
-      <div className="diag-resize" onPointerDown={startResize} title="Drag to resize" />
+      {/* A separator, not a decorative strip: a control that can only be
+          dragged is a control a keyboard cannot reach, and this one decides
+          how much of the cabinet stays visible. */}
+      <div
+        className="diag-resize"
+        role="separator"
+        aria-label="How tall the diagnostics list is"
+        aria-orientation="horizontal"
+        aria-valuenow={Math.round(height)}
+        aria-valuemin={MIN_HEIGHT}
+        // Without this, assistive technology measures against an implicit
+        // maximum of 100 and reads a 372 px panel as far past the end.
+        aria-valuemax={Math.round(maxHeight())}
+        tabIndex={0}
+        onPointerDown={startResize}
+        onKeyDown={(e) => {
+          const step = e.shiftKey ? 80 : 16;
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            resizeBy(step);
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            resizeBy(-step);
+          }
+        }}
+        title="Drag, or use the arrow keys, to resize"
+      />
       <header>
         <b>{readinessSummary(diagnostics)}</b>
         <button className="crumb dismiss" aria-label="Close" onClick={() => close(false)}>

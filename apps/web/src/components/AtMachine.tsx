@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { bboxOf, partDrawing, type CutListRow, type Part, type ProjectResult } from '@cabgen/core';
 import { activeMachineProgress, useStore } from '../store';
 import { DrawingSvg } from './drawing';
+import { useDialog } from './overlays';
 
 type Tab = 'cutting' | 'assembly';
 
@@ -18,6 +19,7 @@ type Tab = 'cutting' | 'assembly';
  * is set aside rather than silently misapplied. See machineProgress.ts.
  */
 export function AtMachine() {
+  const dialog = useDialog<HTMLElement>();
   const [tab, setTab] = useState<Tab>('cutting');
   const project = useStore((s) => s.project);
   const machineProgress = useStore((s) => s.machineProgress);
@@ -36,7 +38,14 @@ export function AtMachine() {
 
   return (
     <div className="scrim" role="presentation">
-      <section className="at-machine" aria-label="At the machine">
+      <section
+        className="at-machine"
+        ref={dialog}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label="At the machine"
+      >
         <header>
           <h2>At the machine</h2>
           <nav className="at-machine-tabs">

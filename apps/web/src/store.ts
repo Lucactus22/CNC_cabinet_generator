@@ -6,14 +6,17 @@ import {
   loadLibrary,
   loadMachineProgress,
   loadProfiles,
+  loadTheme,
   markStartersSeen,
   saveAutosave,
   saveLibrary,
   saveMachineProgress,
   saveProfiles,
+  saveTheme,
   startersSeen,
   type LibraryEntry,
 } from './persistence';
+import { applyTheme, resolveTheme, watchSystemTheme, type ThemeChoice } from './theme';
 import { cutListSignature, type MachineProgress } from './machineProgress';
 import { RUN, settleSelection, type Selection } from './selection';
 import { applyWorkshop, workshopOf, type WorkshopProfile } from './workshop';
@@ -106,6 +109,15 @@ interface AppState {
   workshopNotes: string[];
   /** The option under the pointer, built on the real design. Never committed. */
   preview: Preview | null;
+  /** Light, dark, or the device's own answer. Per-browser; see persistence.ts. */
+  theme: ThemeChoice;
+  /**
+   * Which half of that is actually painting. The stylesheet works this out for
+   * itself; the 3D view cannot, because its scene is three.js materials rather
+   * than CSS, so the answer is kept here for it to read.
+   */
+  resolvedTheme: 'light' | 'dark';
+  setTheme: (choice: ThemeChoice) => void;
   setSurface: (surface: Surface) => void;
   setWorkshopOpen: (open: boolean) => void;
   setPaletteOpen: (open: boolean) => void;
@@ -186,6 +198,12 @@ function makeId(): string {
 export const useStore = create<AppState>((set, get) => {
   const saved = loadAutosave();
   const initial = saved ?? defaultParams();
+  const theme = loadTheme();
+  applyTheme(theme);
+  // Only the device's own answer can change without an edit, and only while
+  // the choice is `system` — but resolving unconditionally means the listener
+  // needs no second copy of that rule to stay in step with.
+  watchSystemTheme(() => set((s) => ({ resolvedTheme: resolveTheme(s.theme) })));
 
   previewWorker.subscribe((project, tag) =>
     set((s) => (s.preview && s.preview.tag === tag ? { preview: { tag, project } } : {})),
@@ -290,6 +308,13 @@ export const useStore = create<AppState>((set, get) => {
     exportPreviewOpen: false,
     atMachine: false,
     machineProgress: loadMachineProgress(),
+    theme,
+    resolvedTheme: resolveTheme(theme),
+    setTheme: (choice) => {
+      applyTheme(choice);
+      saveTheme(choice);
+      set({ theme: choice, resolvedTheme: resolveTheme(choice) });
+    },
     setSurface: (surface) => set({ surface }),
     setWorkshopOpen: (workshopOpen) => set({ workshopOpen }),
     setPaletteOpen: (paletteOpen) => set({ paletteOpen }),

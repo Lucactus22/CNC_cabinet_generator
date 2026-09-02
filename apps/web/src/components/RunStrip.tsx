@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { cabinetPositions, layoutBays, newCabinetOfType, resolveWidths } from '@cabgen/core';
 import { useStore } from '../store';
 import { ChoiceGallery } from '../gallery/Gallery';
 import { CABINET_TYPE } from '../gallery/choices';
 import { sameSelection, type Selection } from '../selection';
+import { useDismissable } from './overlays';
 
 /**
  * The run, drawn to scale along the bottom of the bench.
@@ -31,6 +32,8 @@ export function RunStrip() {
   const [adding, setAdding] = useState(false);
   const [hoverCarcass, setHoverCarcass] = useState<string | null>(null);
   const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const closeAdding = useCallback(() => setAdding(false), []);
+  const addMenu = useDismissable<HTMLDivElement>(adding, closeAdding);
 
   const positions = cabinetPositions(params.cabinets);
   const runHeight =
@@ -168,7 +171,7 @@ export function RunStrip() {
         })}
       </div>
 
-      <div className="run-add">
+      <div className="run-add" ref={addMenu}>
         <button
           onClick={() => setAdding((v) => !v)}
           aria-expanded={adding}

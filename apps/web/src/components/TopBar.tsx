@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { cabinetPositions, normaliseParams } from '@cabgen/core';
 import { useStore } from '../store';
 import { saveText } from '../download';
 import { summarise } from '../diagnosticsGrouping';
 import { isWorkshopTopic } from '../diagnosticTopics';
+import { THEME_CHOICES } from '../theme';
+import { useDismissable } from './overlays';
 
 /**
  * The one row that is always there: what this is, whether it can be cut, and
@@ -212,21 +214,41 @@ function ProjectMenu({
   const loadFromLibrary = useStore((s) => s.loadFromLibrary);
   const deleteFromLibrary = useStore((s) => s.deleteFromLibrary);
   const reset = useStore((s) => s.reset);
+  const theme = useStore((s) => s.theme);
+  const setTheme = useStore((s) => s.setTheme);
   const [name, setName] = useState('');
+  const close = useCallback(() => setOpen(false), [setOpen]);
+  const host = useDismissable<HTMLDivElement>(open, close);
+
+  /**
+   * Shut the menu and do the thing, leaving the keyboard on the ☰ button.
+   *
+   * Without the focus move, the item that was clicked is unmounted before
+   * whatever it opened has mounted, so a modal reading `document.activeElement`
+   * for somewhere to return focus to finds `body` — and closing the showroom
+   * drops the keyboard at the top of the document.
+   */
+  const choose = (act: () => void): void => {
+    host.current?.querySelector<HTMLElement>('[aria-expanded]')?.focus();
+    setOpen(false);
+    act();
+  };
 
   return (
-    <div className="menu">
-      <button aria-expanded={open} onClick={() => setOpen(!open)} title="Open, save and reset">
+    <div className="menu" ref={host}>
+      <button
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        title="Open, save, reset and appearance"
+        aria-label="Project menu"
+      >
         ☰
       </button>
       {open && (
         <div className="panel">
           <div className="row">
             <button
-              onClick={() => {
-                setOpen(false);
-                onStartFrom();
-              }}
+              onClick={() => choose(onStartFrom)}
               title="Real cabinets to start from, shown as renders of what each one makes"
             >
               Start from a design…
@@ -234,38 +256,33 @@ function ProjectMenu({
             {/* Behind the door rather than in the top bar: the resting control
                 count is a budget R-17 set and this is not worth one of them. */}
             <button
-              onClick={() => {
-                setOpen(false);
-                onShowroom();
-              }}
+              onClick={() => choose(onShowroom)}
               title="Every joint, panel, front and surface this can cut, rendered"
             >
               What this can make…
             </button>
-            <button
-              onClick={() => {
-                setOpen(false);
-                onOpenFile();
-              }}
-            >
-              Open a file…
-            </button>
-            <button
-              onClick={() => {
-                setOpen(false);
-                onSaveFile();
-              }}
-            >
-              Save a file
-            </button>
-            <button
-              onClick={() => {
-                setOpen(false);
-                reset();
-              }}
-            >
-              Start again
-            </button>
+            <button onClick={() => choose(onOpenFile)}>Open a file…</button>
+            <button onClick={() => choose(onSaveFile)}>Save a file</button>
+            <button onClick={() => choose(reset)}>Start again</button>
+          </div>
+
+          {/* Behind the door rather than in the top bar: the resting control
+              count is a budget R-17 set, and appearance is chosen once and
+              then left alone. Starting on "System" is what makes that
+              affordable — most people never open this at all. */}
+          <strong>Appearance</strong>
+          <div className="menu-theme" role="group" aria-label="Appearance">
+            {THEME_CHOICES.map((choice) => (
+              <button
+                key={choice.id}
+                className={theme === choice.id ? 'on' : undefined}
+                aria-pressed={theme === choice.id}
+                title={choice.title}
+                onClick={() => setTheme(choice.id)}
+              >
+                {choice.label}
+              </button>
+            ))}
           </div>
 
           <strong>Designs kept in this browser</strong>

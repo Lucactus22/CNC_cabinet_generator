@@ -1315,6 +1315,86 @@ tests do not catch layout collapse.
 
 ---
 
+## What R-23 built, and what it measured
+
+The one finding in this document that did not come from a journey — *the
+interface is dark only, in a tool used in daylight and under workshop lights* —
+plus the pass nobody had done: driving the whole app with a keyboard and
+nothing else. Measured against `vite preview` on production builds of the
+commit before and the commit after, at 1440 × 900, from a cleared
+`localStorage`, on **2026-09-02**.
+
+| | before | after |
+|---|---|---|
+| The app on a device set to light | `#14161a` — dark, always | **follows the device**, and switchable in the ☰ menu |
+| Distinct literal font sizes in `styles.css` | 15 | **0** — one scale of 8 steps, re-pointed once for the workshop view |
+| Distinct literal spacings | 21 | **1** — the 7 px grab strip, which is a size, not a gap |
+| Distinct literal corner radii | 6 | **0** |
+| A control's own border, against what it sits on | 1.29–1.47:1 | **3.13–4.76:1**, both themes, every surface |
+| The sheet's own edge on the sheet preview | 1.63:1 — invisible | **3.59:1** |
+| A cut line on the printed pack | 2.11–2.14:1 on white | **6.9–8.0:1** |
+| Focus ring on a field | `outline: none` | **2 px, offset, on `:focus-visible` only** |
+| The 3D view, from the keyboard | not focusable at all | **arrows step through bays and panels, shift turns it, + and − zoom** |
+| Selecting a part with a keyboard | impossible anywhere | the model, or the cut list's own id button |
+| Escape in the measurement walkthrough | **does nothing** | closes it |
+| Controls the shell renders at rest | 26 | **26** — the theme switch is behind the ☰ door |
+| Cabinet's share of the window | 84.4% gross / 73.0% net | **84.4% / 73.1%** |
+
+**The palette is one thing, not two.** "Follows the system preference,
+switchable" is normally built as a media query plus a toggle, which is how the
+two end up disagreeing. Every colour here is written `light-dark(light, dark)`
+on one line under `color-scheme: light dark`, so the device's own answer is the
+stylesheet's, with no JavaScript and no flash of the wrong theme on load, and
+choosing sets one attribute that says which half applies. Nothing is restated,
+so neither palette can be edited without the other being read — and
+`apps/web/test/contrast.test.ts` reads those very declarations back out of the
+file and checks both halves. It composites the tints too: a 10% wash moves the
+ground under it, and text that was legible on the bare surface is not
+automatically legible on the tinted one.
+
+**The contrast finding that mattered was not the text.** Text was already at
+4.5:1 in the dark. What failed was SC 1.4.11 — the *visible boundary of a
+control* — at 1.29:1: a field you could only find by clicking where you
+remembered one being, which in a bright room is most of them. That is now a
+second token held to 3:1 everywhere, and the same floor applies to every line a
+drawing is read from, on screen and on paper. The printed pack was the worst of
+it: the print rules turned the sheet white and left the strokes at their
+dark-theme brightness, so the cut list you take to the machine came out at
+2.1:1.
+
+**Five things the keyboard pass found by walking, not by reading.** Every one
+of them was verified on the build before this item as well as after.
+
+- **Escape did not close the measurement walkthrough** — eleven readings deep,
+  the one dialog you most want to back out of. Its Escape listener was keyed on
+  an `onClose` prop `RunInspector` rebuilds every render, so it was torn down
+  and re-added constantly; the *global* Escape handler runs first on the same
+  key press, and its store update re-rendered the inspector during that event's
+  own dispatch, so the listener was marked removed before the event reached it
+  and its replacement arrived too late to be called. The overlay hooks now
+  register once and read the callback from a ref.
+- **The cut list was mouse-only.** `<tr onClick>` takes no focus and answers no
+  key, so the only route to a part's drawing needed a pointer.
+- **Find-by-name landed on the explanation, not the control.** `useReveal`
+  focuses the first form element inside what it found, and an infotip's button
+  belongs to the label, so it comes first in the DOM: searching *kickboard* put
+  the keyboard on "What this does". Live since the infotips landed in R-22.
+- **The focus ring was switched off** on every field, by an `outline: none`
+  that predates all of Milestone F.
+- **The 3D view could not be reached.** It takes focus now, and the arrows step
+  through the same bays and panels a click reaches. Orbiting had no keyboard
+  route anywhere in the app; shift and an arrow is it.
+
+**Two decisions worth writing down.** The theme switch is behind the ☰ door
+rather than in the top bar, because the resting control count is a budget R-17
+set and appearance is chosen once, not while working — starting on "System" is
+what makes that affordable. And a nested part on the sheet preview is still
+pickable only by pointer: the cut list directly beneath it reaches the same
+part and names it, and twenty-one extra tab stops per sheet would be a worse
+route, not a second one.
+
+---
+
 ## What this does not decide
 
 Left open deliberately, for the item that hits them:

@@ -81,7 +81,14 @@ function useReveal(param: string | undefined) {
     // and focusing its *first* tile would preview a choice nobody asked for,
     // and read as though that were the current answer.
     const chosen = host.current.querySelector<HTMLElement>('[aria-pressed="true"]');
-    const first = host.current.querySelector<HTMLElement>('input, select, textarea, button');
+    // Never the info button, which sits *before* the field in the DOM because
+    // it belongs to the label: `querySelector` answers in document order, so
+    // searching "kickboard" used to land the keyboard on "What this does"
+    // rather than on the toe kick itself. Found by walking R-23's keyboard
+    // pass; it has been true since the infotips landed in R-22.
+    const first = host.current.querySelector<HTMLElement>(
+      'input, select, textarea, button:not(.infotip-btn)',
+    );
     (chosen ?? first)?.focus();
     host.current.classList.add('found');
     const t = setTimeout(() => {

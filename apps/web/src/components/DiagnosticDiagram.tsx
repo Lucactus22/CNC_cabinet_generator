@@ -87,7 +87,7 @@ function PartVsMachine({ s }: { s: Extract<DiagnosticSpatial, { kind: 'part-vs-m
         width={envW * scale}
         height={envH * scale}
         fill="none"
-        stroke={LINE}
+        style={{ stroke: LINE }}
         strokeWidth={1.5}
         strokeDasharray={boundedX && boundedY ? undefined : '4 3'}
       />
@@ -97,8 +97,7 @@ function PartVsMachine({ s }: { s: Extract<DiagnosticSpatial, { kind: 'part-vs-m
         y={y(ph)}
         width={pw * scale}
         height={ph * scale}
-        fill="rgb(230 180 83 / 10%)"
-        stroke={MUTED}
+        style={{ fill: 'var(--wash-warn)', stroke: MUTED }}
         strokeWidth={1.25}
       />
       {/* the overhang, hatched */}
@@ -108,7 +107,7 @@ function PartVsMachine({ s }: { s: Extract<DiagnosticSpatial, { kind: 'part-vs-m
           y={y(ph)}
           width={overW * scale}
           height={ph * scale}
-          fill={ERROR}
+          style={{ fill: ERROR }}
           fillOpacity={0.35}
         />
       )}
@@ -118,21 +117,21 @@ function PartVsMachine({ s }: { s: Extract<DiagnosticSpatial, { kind: 'part-vs-m
           y={y(ph)}
           width={pw * scale}
           height={overH * scale}
-          fill={ERROR}
+          style={{ fill: ERROR }}
           fillOpacity={0.35}
         />
       )}
       {!boundedX && (
-        <text x={x(pw) + 3} y={y(ph / 2)} fill={MUTED} fontSize={8}>
+        <text x={x(pw) + 3} y={y(ph / 2)} style={{ fill: MUTED }} fontSize={8}>
           feeds →
         </text>
       )}
       {!boundedY && (
-        <text x={x(pw / 2)} y={y(ph) - 3} fill={MUTED} fontSize={8} textAnchor="middle">
+        <text x={x(pw / 2)} y={y(ph) - 3} style={{ fill: MUTED }} fontSize={8} textAnchor="middle">
           feeds ↑
         </text>
       )}
-      <text x={ox} y={H - 3} fill={MUTED} fontSize={9}>
+      <text x={ox} y={H - 3} style={{ fill: MUTED }} fontSize={9}>
         {s.travelX.toFixed(0)} × {s.travelY.toFixed(0)} mm travel
       </text>
     </Frame>
@@ -156,7 +155,7 @@ function SheetTiles({ s }: { s: Extract<DiagnosticSpatial, { kind: 'sheet-tiles'
         width={s.length * scale}
         height={bandH}
         fill="none"
-        stroke={LINE}
+        style={{ stroke: LINE }}
         strokeWidth={1.5}
       />
       {seams.map((pos, i) => (
@@ -166,7 +165,7 @@ function SheetTiles({ s }: { s: Extract<DiagnosticSpatial, { kind: 'sheet-tiles'
           y1={oy - 4}
           x2={ox + pos * scale}
           y2={oy + bandH + 4}
-          stroke={WARN}
+          style={{ stroke: WARN }}
           strokeWidth={1.5}
           strokeDasharray="4 3"
         />
@@ -179,7 +178,7 @@ function SheetTiles({ s }: { s: Extract<DiagnosticSpatial, { kind: 'sheet-tiles'
             key={i}
             x={ox + ((from + to) / 2) * scale}
             y={oy + bandH / 2 + 3}
-            fill={MUTED}
+            style={{ fill: MUTED }}
             fontSize={9}
             textAnchor="middle"
           >
@@ -187,7 +186,7 @@ function SheetTiles({ s }: { s: Extract<DiagnosticSpatial, { kind: 'sheet-tiles'
           </text>
         );
       })}
-      <text x={ox} y={oy + bandH + 18} fill={MUTED} fontSize={9}>
+      <text x={ox} y={oy + bandH + 18} style={{ fill: MUTED }} fontSize={9}>
         {s.length.toFixed(0)} mm · {s.tiles} setups, {s.step.toFixed(0)} mm apart
       </text>
     </Frame>
@@ -208,25 +207,38 @@ function ShelfSpan({ s }: { s: Extract<DiagnosticSpatial, { kind: 'shelf-span' }
       title={`Shelf spanning ${s.span.toFixed(0)} millimetres, safe to about ${s.limit.toFixed(0)}`}
     >
       {/* supports at either end */}
-      <path d={`M${ox - 6},${y + 6} L${ox},${y - 6} L${ox + 6},${y + 6} Z`} fill={MUTED} />
-      <path d={`M${endX - 6},${y + 6} L${endX},${y - 6} L${endX + 6},${y + 6} Z`} fill={MUTED} />
+      <path
+        d={`M${ox - 6},${y + 6} L${ox},${y - 6} L${ox + 6},${y + 6} Z`}
+        style={{ fill: MUTED }}
+      />
+      <path
+        d={`M${endX - 6},${y + 6} L${endX},${y - 6} L${endX + 6},${y + 6} Z`}
+        style={{ fill: MUTED }}
+      />
       {/* the safe run */}
-      <line x1={ox} y1={y} x2={limitX} y2={y} stroke={MUTED} strokeWidth={2} />
+      <line x1={ox} y1={y} x2={limitX} y2={y} style={{ stroke: MUTED }} strokeWidth={2} />
       {/* what runs past the rule of thumb */}
-      <line x1={limitX} y1={y} x2={endX} y2={y} stroke={WARN} strokeWidth={2} />
-      <line x1={limitX} y1={y - 8} x2={limitX} y2={y + 8} stroke={WARN} strokeWidth={1.25} />
+      <line x1={limitX} y1={y} x2={endX} y2={y} style={{ stroke: WARN }} strokeWidth={2} />
+      <line
+        x1={limitX}
+        y1={y - 8}
+        x2={limitX}
+        y2={y + 8}
+        style={{ stroke: WARN }}
+        strokeWidth={1.25}
+      />
       {/* the sag it reads as */}
       <path
         d={`M${ox},${y} Q${(ox + endX) / 2},${sagY} ${endX},${y}`}
         fill="none"
-        stroke={WARN}
+        style={{ stroke: WARN }}
         strokeWidth={1}
         strokeDasharray="2 3"
       />
-      <text x={ox} y={y + 24} fill={MUTED} fontSize={9}>
+      <text x={ox} y={y + 24} style={{ fill: MUTED }} fontSize={9}>
         {s.span.toFixed(0)} mm span
       </text>
-      <text x={limitX} y={y - 12} fill={WARN} fontSize={9} textAnchor="middle">
+      <text x={limitX} y={y - 12} style={{ fill: WARN }} fontSize={9} textAnchor="middle">
         ~{s.limit.toFixed(0)} mm safe
       </text>
     </Frame>

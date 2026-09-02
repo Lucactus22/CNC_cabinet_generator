@@ -20,23 +20,23 @@ export function SheetView() {
     <>
       <div className="legend">
         <span>
-          <i className="swatch" style={{ background: '#f0a04b' }} />
+          <i className="swatch" style={{ background: 'var(--layer-outline)' }} />
           Profile
         </span>
         <span>
-          <i className="swatch" style={{ background: '#6fc48a' }} />
+          <i className="swatch" style={{ background: 'var(--layer-pocket)' }} />
           Pocket
         </span>
         <span>
-          <i className="swatch" style={{ background: '#ef6b6b' }} />
+          <i className="swatch" style={{ background: 'var(--layer-through)' }} />
           Through cut
         </span>
         <span>
-          <i className="swatch" style={{ background: '#6ba8ef' }} />
+          <i className="swatch" style={{ background: 'var(--layer-drill)' }} />
           Drilling
         </span>
         <span>
-          <i className="swatch" style={{ background: '#c778dd' }} />
+          <i className="swatch" style={{ background: 'var(--layer-tile)' }} />
           Tile seam and pins
         </span>
       </div>
@@ -58,7 +58,13 @@ export function SheetView() {
           >
             {/* DXF has Y running up, SVG has it running down. */}
             <g transform={`translate(0, ${sheet.width}) scale(1, -1)`}>
-              <rect x={0} y={0} width={sheet.length} height={sheet.width} fill="#1b1e24" />
+              <rect
+                x={0}
+                y={0}
+                width={sheet.length}
+                height={sheet.width}
+                style={{ fill: 'var(--pic-bg)' }}
+              />
               {tiles?.tiles.slice(0, -1).map((t) => (
                 <line
                   key={t.index}
@@ -66,7 +72,7 @@ export function SheetView() {
                   y1={tiles.axis === 'x' ? 0 : t.to}
                   x2={tiles.axis === 'x' ? t.to : sheet.length}
                   y2={tiles.axis === 'x' ? sheet.width : t.to}
-                  stroke="#c778dd"
+                  style={{ stroke: 'var(--layer-tile)' }}
                   strokeWidth={1}
                   strokeDasharray="10 8"
                   vectorEffect="non-scaling-stroke"
@@ -79,10 +85,12 @@ export function SheetView() {
                   y={p.y}
                   width={p.w}
                   height={p.h}
-                  fill={selected === p.partId ? 'rgba(240,160,75,0.20)' : 'transparent'}
                   stroke="none"
                   onClick={() => select({ kind: 'part', partId: p.partId })}
-                  style={{ cursor: 'pointer' }}
+                  style={{
+                    fill: selected === p.partId ? 'var(--wash-accent-strong)' : 'transparent',
+                    cursor: 'pointer',
+                  }}
                 />
               ))}
               <DrawingSvg drawing={drawing} />
