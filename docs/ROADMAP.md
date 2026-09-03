@@ -2424,10 +2424,12 @@ figure in [UX.md](UX.md) was measured at, because Playwright's
 - [x] Version bumped — 1.0.0 in all three `package.json` files and in the
       lockfile, and the version line in [README](../README.md) and at the top
       of this file
-- [ ] Tagged and deployed — both happen on `main`, not on the branch this was
-      worked on. `.github/workflows/pages.yml` deploys every push to `main`,
-      so merging releases it; the tag is `git tag -a v1.0.0` on the merge
-      commit
+- [x] Tagged and deployed — both on `main` rather than on the branch this was
+      worked on. Merging PR #27 ran `.github/workflows/pages.yml`, which is
+      what puts a build on the site, and `v1.0.0` is an annotated tag on that
+      merge commit. The tag deliberately points at the merge rather than at
+      this line being ticked: it marks the code that was released, and the
+      tick is bookkeeping written afterwards
 
 ---
 
