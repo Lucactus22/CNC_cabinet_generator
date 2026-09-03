@@ -7,6 +7,7 @@ Parametric cabinet designer that outputs CNC-ready DXF. Read this first, then
 
 | I want to… | Read |
 |---|---|
+| Use it, start to finish | [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) |
 | Understand how it fits together | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | Know what to build next | [docs/ROADMAP.md](docs/ROADMAP.md) |
 | Understand who it is for, and why the interface is shaped that way | [docs/UX.md](docs/UX.md) |
@@ -24,8 +25,9 @@ Parametric cabinet designer that outputs CNC-ready DXF. Read this first, then
 ```bash
 npm install
 npm run dev          # http://localhost:5173
-npm test             # 845 tests, ~5s
-npm run typecheck    # both packages
+npm test             # 944 tests, ~10s — core, plus the app under jsdom
+npm run test:e2e     # 17 Playwright walks of the journeys, on a real build
+npm run typecheck    # both packages, and the end-to-end walks
 npm run lint         # ESLint, including the core dependency boundary rule
 npm run format       # Prettier, writes in place
 npm run build        # production build of the web app
@@ -108,6 +110,12 @@ cd apps/web && npx vite build && npx vite preview --port 4173 --strictPort
 Then drive it with Playwright (Chromium is at `/opt/pw-browsers/chromium`, which
 is the executable itself, not a directory), screenshot the area you changed, and
 read the screenshot. Watch the console for errors while you are there.
+
+`npm run test:e2e` does the driving part for you: `apps/web/e2e` builds the app,
+serves it, and walks the journeys, counting the interactions each one takes. It
+is not a substitute for looking — a walk cannot see that a panel has collapsed
+on top of itself — but a change to the shell that breaks a route fails there
+before you have to find it by hand.
 
 [docs/UX.md](docs/UX.md) records how the interface was measured and driven this
 way, and the interaction counts any change to the shell has to beat.

@@ -20,6 +20,7 @@ export function TopBar() {
   const params = useStore((s) => s.params);
   const project = useStore((s) => s.project);
   const building = useStore((s) => s.building);
+  const buildError = useStore((s) => s.buildError);
   const surface = useStore((s) => s.surface);
   const setSurface = useStore((s) => s.setSurface);
   const workshopOpen = useStore((s) => s.workshopOpen);
@@ -53,7 +54,7 @@ export function TopBar() {
   // up (R-12), so exporting mid-build would cut whatever the previous params
   // produced — wrong dimensions, or a blocking error the new params would
   // have raised that this stale `project` does not carry yet.
-  const blocked = building || errors > 0;
+  const blocked = building || errors > 0 || buildError !== null;
 
   const runWidth = cabinetPositions(params.cabinets).reduce((a, c) => a + c.w, 0);
   const height = Math.max(
@@ -104,6 +105,7 @@ export function TopBar() {
       <span className="badge">
         {runWidth.toFixed(0)} × {height.toFixed(0)} mm · {project.parts.length} parts ·{' '}
         {project.nest.sheets.length} sheets{building ? ' · updating…' : ''}
+        {buildError !== null && ' · out of date'}
       </span>
 
       <span className="spacer" />
@@ -129,13 +131,13 @@ export function TopBar() {
       </button>
 
       <button
-        className={`chip ${errors ? 'error' : warnings ? 'warning' : 'ok'}`}
+        className={`chip ${errors || buildError ? 'error' : warnings ? 'warning' : 'ok'}`}
         aria-expanded={diagnosticsOpen}
         onClick={() => setDiagnosticsOpen(!diagnosticsOpen)}
-        title="What stands between this and the machine"
+        title={buildError ?? 'What stands between this and the machine'}
       >
-        <i className={`dot ${errors ? 'error' : warnings ? 'warning' : 'ok'}`} />
-        {summarise(project.diagnostics)}
+        <i className={`dot ${errors || buildError ? 'error' : warnings ? 'warning' : 'ok'}`} />
+        {buildError !== null ? 'cannot build' : summarise(project.diagnostics)}
       </button>
 
       <button
@@ -177,11 +179,13 @@ export function TopBar() {
           else setExportPreviewOpen(true);
         }}
         title={
-          building
-            ? 'Still catching up to your last change — wait a moment and try again.'
-            : blocked
-              ? 'Blocked — click to see what is stopping it.'
-              : 'See what is about to be cut, then download the zip.'
+          buildError !== null
+            ? `${buildError} What is on screen is older than what you have typed, so nothing here can be cut. Undo the last change.`
+            : building
+              ? 'Still catching up to your last change — wait a moment and try again.'
+              : blocked
+                ? 'Blocked — click to see what is stopping it.'
+                : 'See what is about to be cut, then download the zip.'
         }
       >
         Export DXF
@@ -288,6 +292,7 @@ function ProjectMenu({
           <strong>Designs kept in this browser</strong>
           <div className="menu-save">
             <input
+              aria-label="Name this design"
               placeholder="Name this design…"
               value={name}
               onChange={(e) => setName(e.target.value)}

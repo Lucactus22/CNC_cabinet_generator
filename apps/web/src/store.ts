@@ -64,6 +64,17 @@ interface AppState {
   project: ProjectResult;
   /** True from the moment `params` changes until the worker's rebuild for it lands. */
   building: boolean;
+  /**
+   * Why the last build did not finish, when it did not.
+   *
+   * `project` is then a build older than `params` and stays on screen,
+   * because a blank cabinet would lose more than a stale one. What must not
+   * happen is exporting it: the zip would carry the previous parameters'
+   * geometry with nothing to say so, which is this codebase's worst failure.
+   * So this blocks export the same way an error diagnostic does, and the top
+   * bar says it out loud rather than sitting on *updating…* for ever.
+   */
+  buildError: string | null;
   surface: Surface;
   /** The workshop settings, open over whichever surface is showing. */
   workshopOpen: boolean;
@@ -209,10 +220,16 @@ export const useStore = create<AppState>((set, get) => {
     set((s) => (s.preview && s.preview.tag === tag ? { preview: { tag, project } } : {})),
   );
 
+  worker.onError((message) =>
+    set({ building: false, buildError: `The design could not be built: ${message}` }),
+  );
+  previewWorker.onError(() => set({ preview: null }));
+
   worker.subscribe((project) =>
     set((s) => ({
       project,
       building: worker.isBusy(),
+      buildError: null,
       // A part that has stopped existing cannot stay selected: the inspector
       // would be describing a panel that is no longer cut. Settled against the
       // *current* parameters rather than the ones this build came from — a
@@ -285,6 +302,7 @@ export const useStore = create<AppState>((set, get) => {
     params: initial,
     project: buildProject(initial),
     building: false,
+    buildError: null,
     surface: 'bench',
     workshopOpen: false,
     paletteOpen: false,

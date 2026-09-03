@@ -81,6 +81,17 @@ also produced, so a cabinet with no doors gets no door steps without this
 stage knowing that in advance. Scribe strips and wall fixing come last,
 because both happen on site rather than at the bench.
 
+**Every request gets exactly one reply, including the ones that fail.**
+`buildProject` is not meant to throw, and if it does, the honest answer is not
+silence: a throw that posted nothing left the client believing a build was
+still running for the rest of the session — the top bar stuck on *updating…*,
+export refused with "wait a moment and try again", and no diagnostic anywhere.
+The worker catches it and posts the reason; `store.buildError` holds it, the
+chip reads *cannot build*, and export is refused. That last part is the one
+that matters: the project still on screen is a build *older* than the
+parameters, so exporting it would write the previous cabinet's geometry with
+nothing to say so.
+
 It is pure and fast enough (single-digit milliseconds for a modest project)
 that the UI re-runs the whole thing on every keystroke. **Keep it pure.** No
 I/O, no randomness, no `Date.now()`, no mutation of the input — that purity is
@@ -358,6 +369,8 @@ components/overlays.ts      the keyboard behaviour every popover and modal share
 sheetViews.ts                one nested sheet's SVG, shared by the output pack and the export preview so neither can show something the other disagrees with
 drag.ts                     what dragging a panel in the model would set
 theme.ts                    light or dark, and who decides
+../test                     the shell rendered, under jsdom
+../e2e                      the journeys of UX.md, walked and counted
 ```
 
 Four pieces carry the design:
@@ -563,13 +576,38 @@ implementations to agree by construction. See [DXF.md](DXF.md).
 
 ## Testing
 
-Tests live in `packages/core/test`, with the web app's own in `apps/web/test` —
-the catalogue pair above, the gallery, the explanations, the drag arithmetic,
-the machine-progress signature, and `contrast.test.ts`, which reads `styles.css`
-itself. That last one is why `vitest.config.ts` sets `css: true`: with the
+Tests live in `packages/core/test`, with the web app's own in `apps/web/test`
+and the walks through a real browser in `apps/web/e2e`. Three runs, because
+they need three different things:
+
+| Run | What it is | Command |
+|---|---|---|
+| `logic` | everything in core, plus the app tests that exercise plain functions — the catalogue pair, the gallery, the explanations, the drag arithmetic, the machine-progress signature, and `contrast.test.ts`, which reads `styles.css` itself | `npm test` |
+| `components` | `*.test.tsx`: the shell rendered under jsdom — the readiness chip and the export gate, the inspector answering a selection, the diagnostics list, find-by-name, the starter gallery, the workshop drawer, the run strip, at-the-machine, and the error boundary | `npm test` |
+| end-to-end | `apps/web/e2e`: Playwright against `vite preview` on the production build, walking the journeys of [UX.md](UX.md) and counting the interactions each takes | `npm run test:e2e` |
+
+`vitest.workspace.ts` is what splits the first two; both extend
+`vitest.config.ts`, which is why `css: true` is stated once — with the
 default, a CSS import in a test is replaced by an empty string, and every
-assertion in it would pass by having nothing to check. The end-to-end pass over
-the journeys is R-24.
+assertion in `contrast.test.ts` would pass by having nothing to check.
+
+**The component run needs a `Worker` that jsdom does not have.**
+`apps/web/test/setup/dom.ts` supplies one that runs `buildProject` on the main
+thread behind the real worker's own message protocol, and posts the reply on a
+timer rather than returning it — the app genuinely spends time with `project`
+one build behind `params`, and refusing to export during it is what stops a zip
+being written from the previous parameters' geometry. `holdBuilds()` there keeps
+a build in flight so that state can be asserted standing still.
+
+**The end-to-end run is what stops [UX.md](UX.md)'s numbers rotting.** Those
+counts are the one claim in this repository that nothing else can check: they
+live in a document, and a document cannot notice when somebody puts a control
+back into a route. `apps/web/e2e/walk.ts` counts interactions to that
+document's own definition — one click, or one field given a value — and reads
+the design back out of the app's *autosave* rather than a hook hung on
+`window`, so a passing walk also says that reloading would come back to the
+same cabinet. A count that changes there is not automatically a failure; it
+means the route changed and UX.md has to be re-measured and told about it.
 
 `test/golden/default-0.1/` holds the sheet DXF the 0.1 default project exported,
 before R-03 turned two hardcoded carcasses into a run of cabinets. `golden.test.ts`
@@ -606,12 +644,28 @@ person will delete.
 
 ## Known gaps
 
-Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
+Honest list. At 1.0 every one of them is **deliberate**, with a reason rather
+than a roadmap item behind it — see *Deliberately not in 1.0* in
+[ROADMAP.md](ROADMAP.md), where they are recorded as decisions:
 
-- the web app has the catalogue, gallery, explanation, drag and contrast
-  tests; no component or end-to-end coverage of the shell itself, so the
-  keyboard pass is walked by hand in the running app until R-24 lands the
-  harness that could assert it
+- **the WebGL scene is not rendered by any test.** `Viewport3D.tsx` is the
+  one component neither run mounts, because three.js needs a GPU context that
+  neither jsdom nor a headless browser gives honestly — a test over it could
+  assert that something was drawn without being able to say what. What the
+  viewport *decides* is covered, because it was deliberately factored out to
+  be: `drag.ts` says what a drag would set and `drag.test.ts` pins it,
+  `selection.ts` resolves what a pick means. The section plane is the part
+  with neither — it is store state plus inline three.js clipping, and nothing
+  tests it. Whatever else is rendered inside that canvas is walked
+  end-to-end, by keyboard, in `apps/web/e2e/keyboard.spec.ts`
+- the pack's own components — `OutputPack`, `BuildGuide`, `PartView`,
+  `SheetView`, `Showroom`, `HardwarePanel`, `MeasureWizard`, `Explain`,
+  `DiagnosticDiagram` — are covered by tests of what they draw
+  (`sheetViews.ts`, `export/part.ts`, `explain/`, `gallery/render.ts`) and by
+  the end-to-end walks that open them, but not as components. The drawing is
+  the part that would be expensive to get wrong, and it is the part that is
+  pinned; a component test asserting a heading is present buys less than it
+  costs to keep
 - a nested part is pickable by clicking its rectangle on the sheet preview and
   by no key, deliberately: the cut list directly under it reaches the same
   part and says which one it is, and twenty-one extra tab stops per sheet

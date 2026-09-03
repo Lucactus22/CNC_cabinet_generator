@@ -1395,6 +1395,94 @@ route, not a second one.
 
 ---
 
+## What R-24 built, and what it measured
+
+Every number in this document was taken by hand. That is the one claim in the
+repository nothing could check: a document cannot notice when somebody puts a
+control back into a route, and the counts above would have gone quietly wrong
+the first time one did. R-24 turns the seven journeys into walks that count
+themselves, and adds the component tests and the automated keyboard pass R-23
+deferred here.
+
+Three runs, split by what they need. `logic` and `components` are
+`vitest.workspace.ts`; the walks are Playwright against `vite preview` on the
+production build — the same thing every figure above was measured on.
+
+| Run | Covers | Tests |
+|---|---|---|
+| `logic` | core, and the app's plain functions | 903 |
+| `components` | the shell rendered under jsdom | 41 |
+| end-to-end | the journeys, in a real browser | 17 |
+
+**The journeys, walked and counted.** An interaction is what this document
+already defined it as: one click, or one field given a value. Hovering is not
+one, which matters twice — the remove button on a carcass appears under the
+pointer, and an option's cost appears on hover before it is committed.
+
+One ruling this document had left implicit, now that something depends on it:
+**a query typed into find-by-name and the Enter that commits it are one act,
+not two.** J2's six is three capabilities at two acts each — open the palette,
+name the thing — and under the other reading it would be nine. `Walk.find()`
+in `apps/web/e2e/walk.ts` is where that lives, so a route that grows a
+keystroke moves the count.
+
+| Journey | This document says | Walked |
+|---|---|---|
+| J1 build the thing in my head | 8, no scrolling | **8**, and the page does not scroll at all |
+| J2 three capabilities, each explained | 6 | **6**, each landing on a control that says what it is |
+| J3 fit a real room | no angle can be typed | **no field in the room panel has "angle" in its label** |
+| J4 drawers in that bay | 2 | **2** |
+| J5 change the joint | 3, cost before committing | **3**, with the cost read off the hover |
+| J6 first cuttable export | 2, offered, cost stated | **2**, and the export preview really opens after them |
+| J7 re-cut one part | ≤ 3 | **3**, and the file that comes out really has an outline in it |
+| Controls at rest | 26 | **26** on a new browser, **23** once R-19's once-only line is spent |
+| Cabinet's share of the window | 84.4% gross, 73.1% net (R-23) | **84.4% / 73.1%** with the suggestion line up, **84.4% / 75.7%** once it is spent |
+
+The at-rest figure needed splitting. R-23 measured 26 with R-19's suggestion
+line showing, which is right for a browser that has never held a project and
+wrong for every session after: dismissing it leaves **23**, for good. Against
+R-17's budget of 20 the three are all later items' own deliberate additions —
+*At the machine* in the top bar and the info button beside the project's name
+(R-22), and the section-plane button in the viewport (R-20). Both numbers are
+pinned exactly rather than as ceilings, for the reason the golden DXF files
+are: a budget that drifts one control at a time stops being a budget.
+
+**Three accessibility defects, found the moment a test asked for a control by
+name.** All had survived R-23's pass, which was done by hand.
+
+| | Before | After |
+|---|---|---|
+| A field's `<label>` | attached to nothing — no `htmlFor`, no wrapping | tied to its own control |
+| What a screen reader called an explained field | "Bays, What this does" — the info button was inside the label | "Bays" |
+| The explode slider, the section slider, and the two "name this…" fields | no accessible name at all | named |
+
+The third only surfaced because the at-rest walk was changed to list what it
+was counting rather than only count it: the explode slider had been passing as
+a control called `range`, which is its `type` attribute.
+
+The first is the worse of the two: a label attached to nothing is decoration.
+A screen reader announced *edit, 900* with no idea it was a width, and clicking
+the word did not put the caret in the field. Fifty-odd controls, in a tool
+whose whole interface is fields. It is exactly the class of thing a person
+driving the app with a keyboard does not notice — the field is still reachable,
+still typable, still visibly labelled — and exactly what asking for a control
+*by its label* finds in the first minute.
+
+**One defect that is not about the keyboard.** A build that threw posted
+nothing back, so the worker client believed one was still running for the rest
+of the session: *updating…* in the top bar for ever, export refused, and
+nothing anywhere saying why. It now replies with the reason, and export is
+refused rather than allowed on the older project still on screen — the half
+that matters, since that project is a build behind what has been typed.
+
+**One thing the walks deliberately do not cover.** The three.js scene needs
+WebGL, which neither jsdom nor a headless browser gives honestly, so the
+viewport's raycasting and drag arithmetic stay covered as the plain functions
+they were deliberately factored into — `selection.ts` and `drag.ts` — rather
+than through a canvas nothing can read back.
+
+---
+
 ## What this does not decide
 
 Left open deliberately, for the item that hits them:
