@@ -563,13 +563,56 @@ implementations to agree by construction. See [DXF.md](DXF.md).
 
 ## Testing
 
-Tests live in `packages/core/test`, with the web app's own in `apps/web/test` —
-the catalogue pair above, the gallery, the explanations, the drag arithmetic,
-the machine-progress signature, and `contrast.test.ts`, which reads `styles.css`
-itself. That last one is why `vitest.config.ts` sets `css: true`: with the
+**Two suites, split by speed rather than by subject.**
+
+`npm test` is vitest: `packages/core/test`, plus the web app's own in
+`apps/web/test` — the catalogue pair above, the gallery, the explanations, the
+drag arithmetic, the machine-progress signature, `contrast.test.ts` which reads
+`styles.css` itself, and R-24's component tests of the inspector, the workshop
+drawer and the keyboard. It runs in about nine seconds and is what anybody
+editing the geometry runs on every save.
+
+`npm run test:e2e` is Playwright: it builds the app, serves it with `vite
+preview` and drives Chromium. It takes about two minutes, so it is deliberately
+not part of `npm test` — a fast suite that stopped being fast would stop being
+run. CI runs both, on separate jobs.
+
+`contrast.test.ts` is why `vitest.config.ts` sets `css: true`: with the
 default, a CSS import in a test is replaced by an empty string, and every
-assertion in it would pass by having nothing to check. The end-to-end pass over
-the journeys is R-24.
+assertion in it would pass by having nothing to check.
+
+### Testing the web app
+
+A component test renders one panel against the **real** store and the **real**
+pipeline. `apps/web/test/setup/dom.ts` is loaded for every test file and gives
+jsdom the four things `apps/web` needs from a browser that jsdom does not have
+— chiefly a `Worker` that runs `buildProject` in process and hands the result
+back through `onmessage`, so a panel under test drives the same pipeline the
+app does and a test can be wrong about the geometry rather than about a mock.
+It is inert under the `node` environment the core's own tests run in, and each
+web test file opts into jsdom with a `// @vitest-environment jsdom` docblock,
+so a file says which world it runs in rather than a glob saying it elsewhere.
+
+`apps/web/test/setup/app.tsx` is the harness: `resetStore`, `settle` and
+`changedPaths`. The store is a module singleton — it opens two workers and
+reads `localStorage` at import time — so isolation is putting it back to what a
+fresh browser sees, not building a second one; a second store would be a copy
+of the thing under test. `changedPaths` diffs two parameter sets into dotted
+paths with array indices collapsed to `[]`, which is the same form `catalog.ts`
+writes a control's `param` in. That is what lets one test sweep every numeric
+field the inspector renders and assert each writes the path it claims and
+nothing outside it — the runtime half of the promise `catalog.test.ts` makes
+statically.
+
+`apps/web/e2e/` holds the Playwright suite: the seven journeys with their
+interaction counts, the flows (a parameter reaching the model, an effect, the
+zip), the shell's own measurements, and the half of the keyboard pass that
+needs a browser. `bench.ts` owns the definition of an interaction — docs/UX.md's
+own: `press`, `fill` and `choose` count, `hover` does not — and every act waits
+for the worker to catch up, because the interface is allowed to lag a build
+behind the parameters and an assertion made in that gap reads the previous
+cabinet. It is its own TypeScript project, with Node's types, because the
+end-to-end suite reads files off disk and `apps/web` must not be able to.
 
 `test/golden/default-0.1/` holds the sheet DXF the 0.1 default project exported,
 before R-03 turned two hardcoded carcasses into a run of cabinets. `golden.test.ts`
@@ -608,10 +651,11 @@ person will delete.
 
 Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
-- the web app has the catalogue, gallery, explanation, drag and contrast
-  tests; no component or end-to-end coverage of the shell itself, so the
-  keyboard pass is walked by hand in the running app until R-24 lands the
-  harness that could assert it
+- the shell renders **26** controls at rest against R-17's stated budget of
+  20 — R-22's "At the machine" door and its info buttons, neither of which
+  re-stated the budget. R-24's walk asserts 26 rather than 20, so the figure
+  cannot drift further unnoticed; whether to raise the budget or trim the
+  shell is R-25's to settle
 - a nested part is pickable by clicking its rectangle on the sheet preview and
   by no key, deliberately: the cut list directly under it reaches the same
   part and says which one it is, and twenty-one extra tab stops per sheet

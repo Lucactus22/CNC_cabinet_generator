@@ -24,12 +24,17 @@ Parametric cabinet designer that outputs CNC-ready DXF. Read this first, then
 ```bash
 npm install
 npm run dev          # http://localhost:5173
-npm test             # 845 tests, ~5s
-npm run typecheck    # both packages
+npm test             # 910 tests, ~9s — geometry, and the web app under jsdom
+npm run test:e2e     # 27 Playwright walks: builds, serves and drives the app
+npm run typecheck    # core, the web app, and the end-to-end project
 npm run lint         # ESLint, including the core dependency boundary rule
 npm run format       # Prettier, writes in place
 npm run build        # production build of the web app
 ```
+
+`npm test` is the one to run on every save. `npm run test:e2e` takes about two
+minutes because it builds and serves the app; run it before committing anything
+that touches the shell. CI runs both.
 
 ## What this project is about
 
@@ -74,7 +79,8 @@ strategy.
 
 An item is not finished until all of these are true:
 
-- [ ] `npm test`, `npm run typecheck` and `npm run lint` pass
+- [ ] `npm test`, `npm run typecheck` and `npm run lint` pass, and
+      `npm run test:e2e` too if the change touches `apps/web`
 - [ ] New behaviour is covered by tests that say *why the failure would matter*
 - [ ] It has been checked in the running app, not just in tests
 - [ ] Every diagnostic it can produce has been seen to fire
@@ -84,13 +90,17 @@ An item is not finished until all of these are true:
 ## Testing
 
 Pin behaviour that would be expensive to get wrong in plywood, not
-implementation details. Three kinds carry their weight:
+implementation details. Four kinds carry their weight:
 
 1. **Construction values** — exact numbers with a source. `tan(82.5°)` for the
    dogbone sweep; the hinge cup centre at boring distance plus radius.
 2. **Invariants** — mirrored side panels are exact mirrors; every part lands on
    its box; no part crosses a tile seam it could have avoided.
 3. **Diagnostics** — every warning and error has a test that makes it fire.
+4. **The interface's own measurements** — a control writes the parameter it
+   claims and no other; the journeys still cost what [docs/UX.md](docs/UX.md)
+   says they cost. A number that lives only in a document rots the first time
+   somebody adds a control.
 
 When a test fails, work out whether the code or the assertion is wrong before
 changing either. Several assertions in this repo were wrong on first writing,
@@ -99,7 +109,12 @@ and finding that out was the point.
 ## Verifying in the app
 
 Tests do not catch layout collapse, a blank canvas or a control that does
-nothing. Build, serve, and drive it:
+nothing. `npm run test:e2e` is the automated half — it builds, serves and
+drives the app, and it asserts the journey counts, the resting control count
+and the model's share of the window, so a change to the shell that moves any of
+them fails there rather than in a document nobody re-measured.
+
+It still does not look at the thing. Build, serve, and drive it yourself:
 
 ```bash
 cd apps/web && npx vite build && npx vite preview --port 4173 --strictPort

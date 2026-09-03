@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useStore } from '../store';
 
 /**
@@ -133,6 +141,26 @@ export function InfoTip({ text }: { text: string }) {
   );
 }
 
+/**
+ * A field's visible name, and the id its control is named by.
+ *
+ * Two things were wrong with the plain `<label>` this replaces, both found by
+ * the automated accessibility pass R-23 deferred to R-24. It had no `for` and
+ * did not wrap its control, so **every input, select and checkbox in the app
+ * was anonymous** to a screen reader — the one thing a label exists to do. And
+ * the info button has to live inside it, because `.field` is a two-column grid
+ * and a third child breaks the row — which would have made the accessible name
+ * "Width i" once the `for` was added. So the name is pinned to the text alone.
+ */
+function FieldLabel({ id, label, title }: { id: string; label: string; title?: string }) {
+  return (
+    <label htmlFor={id}>
+      <span id={`${id}-label`}>{label}</span>
+      {title && <InfoTip text={title} />}
+    </label>
+  );
+}
+
 export function NumberField({
   label,
   value,
@@ -155,14 +183,14 @@ export function NumberField({
   param?: string;
 }) {
   const host = useReveal(param);
+  const id = useId();
   return (
     <div className="field" title={title} ref={host} data-param={param}>
-      <label>
-        {label}
-        {title && <InfoTip text={title} />}
-      </label>
+      <FieldLabel id={id} label={label} title={title} />
       <div className="unit">
         <input
+          id={id}
+          aria-labelledby={`${id}-label`}
           type="number"
           value={Number.isFinite(value) ? round(value) : ''}
           step={step}
@@ -198,13 +226,16 @@ export function SelectField<T extends string>({
   param?: string;
 }) {
   const host = useReveal(param);
+  const id = useId();
   return (
     <div className={wide ? 'field wide' : 'field'} title={title} ref={host} data-param={param}>
-      <label>
-        {label}
-        {title && <InfoTip text={title} />}
-      </label>
-      <select value={value} onChange={(e) => onChange(e.target.value as T)}>
+      <FieldLabel id={id} label={label} title={title} />
+      <select
+        id={id}
+        aria-labelledby={`${id}-label`}
+        value={value}
+        onChange={(e) => onChange(e.target.value as T)}
+      >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
@@ -237,10 +268,13 @@ export function ChoiceField<T extends string>({
   param?: string;
 }) {
   const host = useReveal(param);
+  const id = useId();
   return (
     <div className="choice" ref={host} data-param={param}>
-      <label>{label}</label>
-      <div className="choice-options">
+      {/* A `for` would be a lie — there is no one control to point at — so the
+          row of options is a named group instead, which is what it is. */}
+      <label id={id}>{label}</label>
+      <div className="choice-options" role="group" aria-labelledby={id}>
         {options.map((o) => (
           <button
             key={o.value}
@@ -272,13 +306,17 @@ export function CheckField({
   param?: string;
 }) {
   const host = useReveal(param);
+  const id = useId();
   return (
     <div className="field" title={title} ref={host} data-param={param}>
-      <label>
-        {label}
-        {title && <InfoTip text={title} />}
-      </label>
-      <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} />
+      <FieldLabel id={id} label={label} title={title} />
+      <input
+        id={id}
+        aria-labelledby={`${id}-label`}
+        type="checkbox"
+        checked={value}
+        onChange={(e) => onChange(e.target.checked)}
+      />
     </div>
   );
 }
@@ -295,10 +333,16 @@ export function TextField({
   param?: string;
 }) {
   const host = useReveal(param);
+  const id = useId();
   return (
     <div className="field wide" ref={host} data-param={param}>
-      <label>{label}</label>
-      <input value={value} onChange={(e) => onChange(e.target.value)} />
+      <FieldLabel id={id} label={label} />
+      <input
+        id={id}
+        aria-labelledby={`${id}-label`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
     </div>
   );
 }

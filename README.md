@@ -10,7 +10,8 @@ your computer.
 ```bash
 npm install
 npm run dev      # http://localhost:5173
-npm test
+npm test         # geometry and the web app
+npm run test:e2e # builds, serves and drives it in a browser
 ```
 
 **Version 0.1.** A run of cabinets, cutting real parts. See

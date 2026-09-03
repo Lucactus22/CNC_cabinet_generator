@@ -6,3 +6,8 @@ dist/
 coverage/
 scratch/
 *.tsbuildinfo
+
+# Playwright's own output: traces and the HTML report, both regenerated
+# by every run of `npm run test:e2e`.
+test-results/
+playwright-report/

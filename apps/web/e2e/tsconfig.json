@@ -1,0 +1,15 @@
+{
+  // The end-to-end suite runs in Node and drives a browser, so it needs Node's
+  // own types — which `apps/web` deliberately does not have, because nothing
+  // in the app may reach for the filesystem. Kept as its own project rather
+  // than widening the app's `types`, so that boundary stays where it is.
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"]
+  },
+  "include": ["**/*.ts"]
+}

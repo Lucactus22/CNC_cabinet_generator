@@ -27,7 +27,36 @@ jobs:
         run: npx tsc --noEmit -p packages/core/tsconfig.json
       - name: Typecheck web
         run: npx tsc --noEmit -p apps/web/tsconfig.json
+      # The end-to-end suite runs in Node and drives a browser, so it is the
+      # one project in the repo that needs Node's own types.
+      - name: Typecheck end-to-end
+        run: npx tsc --noEmit -p apps/web/e2e/tsconfig.json
       - name: Test
         run: npm test
       - name: Build
         run: npm run build -w @cabgen/web
+
+  # Separate from the job above so a failing journey says so on its own line,
+  # and so the six-second unit suite is never waiting on a browser download.
+  # It builds and serves the app itself — see playwright.config.ts.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end
+        run: npm run test:e2e
+      # The trace of a failed walk is worth more than its stack: it carries the
+      # DOM at every step, which is what an interaction count is made of.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

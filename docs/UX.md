@@ -872,7 +872,7 @@ change is also made in the item itself in [ROADMAP.md](ROADMAP.md).
 | **R-21** Diagnostics that show you | **Confirmed and re-scoped up.** F-1 is now this item's headline: the structured-fix mechanism must be *correct*, not just present, and "Set sheets to machine size" — which the item cites as the pattern to follow — is measurably a trap on the default project. Add: a fix that would raise a new blocking error must not be offered as a fix. Also add F-2's routing — the *fix* moves to the workshop surface, the diagnostic stays global, because these are the errors that block export — and F-13. |
 | **R-22** Confidence at export, workshop view | **Confirmed, and given one more thing to own.** J7 makes "any single part re-exportable on its own" the highest-value line in the item, not an afterthought — it is the only journey in the seven that cannot be completed at all. F-10 adds one: the tablet cannot hover, so no explanation may live only in a `title`. And the profile R-17 makes reusable is `localStorage`, so it does not reach the tablet at all — whichever item takes that device seriously owns getting a project and a profile across the gap. |
 | **R-23** Polish and accessibility | **Confirmed unchanged.** The dark-only finding is its light theme; the keyboard pass and the error boundary stand as written. |
-| **R-24** Test the web app | **Confirmed unchanged**, and it now has something concrete to pin: the journey counts in this document, as Playwright walks. That is what stops R-17's numbers rotting. |
+| **R-24** Test the web app | **Confirmed unchanged**, and it now has something concrete to pin: the journey counts in this document, as Playwright walks. That is what stops R-17's numbers rotting. *Landed — see "What R-24 built, and what it measured" below.* |
 | **R-25** Release | **Confirmed unchanged.** |
 
 **Nothing is dropped.** The one thing this research would have dropped — a
@@ -1392,6 +1392,78 @@ what makes that affordable. And a nested part on the sheet preview is still
 pickable only by pointer: the cut list directly beneath it reaches the same
 part and names it, and twenty-one extra tab stops per sheet would be a worse
 route, not a second one.
+
+---
+
+## What R-24 built, and what it measured
+
+Every figure above this line was taken once, by hand, by whoever was working
+the item that produced it, and then written down. A written number is a number
+that rots: the first person to add a control moves it and nothing says so. This
+item turns the walks into tests. Measured the same way as everything above —
+Playwright against `vite preview` on the production build, from a cleared
+`localStorage`, at 1440 × 900 — on **2026-09-03**.
+
+| | last recorded | R-24, asserted |
+|---|---|---|
+| J1 build the thing in my head | 8, no scrolling (R-17) | **8**, 0 px, and the cabinet checked against the target field by field |
+| J2 reach three capabilities, explained | 6 (R-17); 13 named before a click (R-19) | **2** through the project menu, each explained where it lands; **13** named on a fresh browser |
+| J3 fit a real room | no angle can be typed (R-17) | **no angle can be typed** — asserted as the absence of a control, plus the read-out and its provenance |
+| J4 drawers in that bay | 2 (R-17), 2 by pointing at the bay (R-20) | **2**, 0 px, and the model answers a click |
+| J5 change the joint | 3, cost stated on hover (R-18) | **3**, and the cost line is read off the hover before the click |
+| J6 first cuttable export | 2, offered, cost on the button (R-21) | **2**, cheapest-clear first, the trap still shown and honestly labelled |
+| J7 re-cut one part | 3 (R-22) | **3**, and the file that arrives is named for the part |
+| Controls the shell renders at rest | 26 (R-23) | **26**, with the top bar and the inspector broken out |
+| Cabinet's share of the window | 84.4% / 73.1% (R-23) | **84.4% gross, 73.1–75.7% net** — the range is the quiet suggestion, which costs the card 111 px |
+
+**Two suites, split by speed.** `npm test` is vitest under jsdom and runs in
+nine seconds; `npm run test:e2e` builds the app, serves it and drives Chromium,
+and takes two minutes. Folding the second into the first would have made the
+one anybody runs on every save slow enough to stop being run. The split is also
+where R-23's keyboard pass divides: an overlay's focus trap and a field's
+accessible name are DOM facts, so they are fast; a focus **ring** is a painted
+rectangle and the 3D view's arrows move a three.js camera, so they are not.
+
+**The component tests exercise the real pipeline, not a mock of it.** The store
+opens a worker at module scope, and jsdom has none — so the harness gives it
+one that runs `buildProject` in process. A panel under test therefore builds
+the same cabinet the app would, which is what makes the inspector sweep
+possible: every numeric field it renders, for every kind of selection, is
+nudged and the parameters diffed, and each must write the path its catalogue
+entry claims and nothing outside it. `catalog.test.ts` already proved every
+parameter is *claimed* by a control; nothing until now proved a control
+claiming `carcasses[].width` writes the width rather than the depth. Miswiring
+one deliberately makes the sweep fail by name.
+
+**Two defects, found in the first five minutes of writing those tests.** Both
+in `Controls.tsx`, both invisible to every screenshot ever taken of this app,
+and both squarely in this document's territory:
+
+- **Every field in the app was anonymous.** All five field components rendered
+  a `<label>` with no `for` that did not wrap its control — a styled caption,
+  not a label. A screen reader announced sixty-odd inputs as "edit text,
+  blank". It surfaced as a test asking for the field called "Width" and being
+  told nothing answers to that name. R-23's keyboard pass had walked past it:
+  the keyboard reached every field, and did so silently.
+- **And the obvious fix would have made it worse.** R-22's info button lives
+  *inside* the label, because `.field` is a two-column grid and a third child
+  breaks the row — so the moment a `for` landed, half the fields were named
+  "Fit to a measured opening i". The accessible name is pinned to the label's
+  text alone now, and a test asserts the label is longer than the name wherever
+  there is an info button.
+
+**One number here was two items stale, and the walk is what caught it.** The
+resting-control budget R-17 was set is ≤ 20; R-20 last recorded 21 against it;
+R-23's own row above already said 26. R-22 added the "At the machine" door and
+an info button beside every explained field and neither item re-stated the
+budget it had spent. The walk asserts 26 with the surfaces broken out, so the
+next one is caught at the commit rather than two items later.
+
+**What the walks deliberately do not assert.** Seconds. Every "floor" in this
+document is the script's own wall clock and is worth having as a note about the
+route, but as a test it would measure the CI runner rather than the interface.
+The counts are asserted as ceilings, not equalities, for the same reason a
+route that gets shorter is not a regression.
 
 ---
 

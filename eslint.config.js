@@ -74,10 +74,19 @@ export default tseslint.config(
     },
   },
 
+  // Anything that runs under a test runner or a build tool rather than in the
+  // page: the two suites, the end-to-end walks, and the configs.
   {
-    files: ['**/*.test.ts', '**/vite.config.ts'],
+    files: [
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/e2e/**/*.ts',
+      '**/vite.config.ts',
+      '**/vitest.config.ts',
+      'playwright.config.ts',
+    ],
     languageOptions: {
-      globals: globals.node,
+      globals: { ...globals.node, ...globals.browser },
     },
   },
 

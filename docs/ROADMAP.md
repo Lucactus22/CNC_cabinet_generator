@@ -974,8 +974,11 @@ in a text field so a field's own native undo is not shadowed.
   component reading `future` for no change at all. It now reuses the
   existing array when there is nothing to clear.
 
-**Tests.** `apps/web` has no automated test harness yet (R-14); verified in
-the running app instead — see the definition of done in `CLAUDE.md`.
+**Tests.** `apps/web` had no automated test harness when this landed (R-14);
+verified in the running app instead — see the definition of done in
+`CLAUDE.md`. **R-24** built the harness, and the undo behaviour this item is
+about is now pinned by it: a field change through the inspector is one undo
+step, and applying a workshop profile is another.
 
 ---
 
@@ -1416,8 +1419,9 @@ every parameter of a project with every branch switched on must be claimed by a
 catalogue entry (or by an explicit "not a control, because…"), and every
 catalogue entry's path must appear as a `param` on a control in the source.
 The journeys were walked with Playwright and the counts recorded in
-[UX.md](UX.md), but not landed as tests — the harness for that is R-24, which
-exists so it is built once against the shape the redesign actually shipped.*
+[UX.md](UX.md); **R-24** landed them as tests, along with a sweep that checks
+each of those controls writes the path it claims — which is the runtime half
+the static pair could not reach.*
 
 **Risks.** The largest item on the roadmap and the easiest to half-finish,
 leaving two interfaces at once. Land the shell and the navigation first, migrate
@@ -2193,10 +2197,11 @@ checklist; tick them there when it lands.
 - [x] Motion respects `prefers-reduced-motion`
 - [x] Contrast meets WCAG AA in both themes
 
-**Tests.** Keyboard navigation through the main flows, checked by hand in the
-running app for now — the automated version waits for R-24's harness, held
-back for the same reason R-14 itself was (see that item). An automated
-contrast check over both palettes.
+**Tests.** An automated contrast check over both palettes. Keyboard navigation
+through the main flows was checked by hand in the running app here and
+automated by **R-24**, which has an assertion for each of the six things the
+pass below found — split between `apps/web/test/keyboard.test.tsx` and
+`apps/web/e2e/keyboard.spec.ts` by whether it needs a real browser.
 
 **What it cost, for the items that follow.** `styles.css` opens with the
 system: eight type steps, eight space steps, five radii and one palette
@@ -2316,6 +2321,104 @@ keyboard-navigation pass R-23 deferred to here, for the same reason.
 [UX.md](UX.md) are already scripted walks with recorded interaction counts.
 Landing them as Playwright tests that assert the counts is what stops R-17's
 numbers rotting the first time somebody adds a control back.
+
+**Revised while working it.** This item had a goal and no acceptance criteria,
+like R-13 and R-15 before it, so the list below was written in the doing, from
+the goal's own two sentences plus R-16's line above, rather than found
+pre-written. Two things the goal as written did not settle:
+
+- *"Component tests … plus a handful of Playwright tests"* reads as one suite
+  with two halves. It is **two suites with different jobs and different
+  speeds**: vitest under jsdom runs in nine seconds and is what anybody editing
+  the geometry runs on every save, so it stays `npm test`; Playwright builds
+  the app, serves it and drives a browser, takes about two minutes, and is
+  `npm run test:e2e`. Folding the second into the first would have made the
+  fast suite slow enough to stop being run, which is how a safety net stops
+  catching anything.
+- *"The automated keyboard-navigation pass R-23 deferred"* splits across both,
+  and the split is not arbitrary: an overlay's focus trap and a field's
+  accessible name are DOM facts and belong in the fast suite; a focus **ring**
+  is a painted rectangle and the 3D view's arrow keys move a three.js camera,
+  and neither exists without a real browser.
+
+**Acceptance criteria.**
+- [x] A component-test harness for `apps/web`: jsdom, the app's own store, and
+      the real `buildProject` standing in for the worker, so a panel under test
+      drives the same pipeline the app does and a test can be wrong about the
+      geometry
+- [x] The inspector tested against the selection — every level of the model
+      brings up its own controls, a bay shows itself and no other, a selection
+      that stops existing narrows rather than blanking — and **every numeric
+      field swept**: it must write the parameter its catalogue entry claims and
+      nothing outside it
+- [x] The workshop surface tested: no control in it writes anything under a
+      cabinet, a profile applies as one undoable update that reports what it
+      repointed, and the door's badge counts only what is behind it
+- [x] Playwright end-to-end tests over the flows R-14 named: change a parameter
+      and see the model redraw, add an effect, export the zip — and read the
+      zip's own central directory back, so "it downloaded something" becomes
+      "it downloaded an archive a tool can open"
+- [x] The seven journeys of [UX.md](UX.md) walked as Playwright tests with the
+      interaction counts asserted — J1 ≤ 8, J2 ≤ 6, J4 ≤ 2, J5 ≤ 3, J6 ≤ 2,
+      J7 ≤ 3, and for J3 that no route accepts a typed corner angle at any
+      count
+- [x] The shell's own measurements pinned: controls at rest, the model's share
+      of the window at both sizes, and the diagnostics panel taking none of it
+      until it is opened
+- [x] R-23's keyboard pass automated — every one of the six things it found by
+      walking has an assertion, split between the two suites by whether it
+      needs a browser
+- [x] Both suites run in CI, on separate jobs, and `npm test` stays the fast one
+
+**What the automated pass found, and it was not in the tests.** Two defects in
+`Controls.tsx`, both in the first five minutes of writing the inspector tests,
+and both invisible to every screenshot anybody has taken of this app:
+
+- **Every field in the app was anonymous.** `NumberField`, `SelectField`,
+  `CheckField`, `TextField` and `ChoiceField` each rendered a `<label>` with no
+  `for` that did not wrap its control — which is a styled caption, not a label.
+  A screen reader announced sixty-odd inputs as "edit text, blank". It was
+  found by a test asking for the field called "Width" and being told no form
+  control answers to that name. R-23's keyboard pass could not have found it:
+  the *keyboard* reached everything, and did so silently.
+- **And fixing that alone would have made it worse.** The info button R-22 put
+  beside every explained label lives *inside* the label, because `.field` is a
+  two-column grid and a third child breaks the row — so the moment the `for`
+  landed, half the fields were named "Fit to a measured opening i". The name is
+  pinned to the label's text alone, and a test asserts the label is longer than
+  the name wherever there is an info button.
+
+**What it cost, for the items that follow.** `apps/web/test/setup/dom.ts` is
+loaded for every test file and gives jsdom the four things `apps/web` needs
+from a browser and jsdom does not have — chiefly a `Worker` that runs the real
+`buildProject` in process, so a component test exercises the whole pipeline
+rather than a mock of it. It is inert under the `node` environment
+`packages/core`'s tests run in. `apps/web/test/setup/app.tsx` is the harness:
+`resetStore` (through `load`, deliberately — see its comment on the edit-burst
+window), `settle`, and a `changedPaths` diff that reports moved leaves in the
+same dotted form `catalog.ts` writes a control's `param`. `vitest.config.ts`
+gained the setup file and `.tsx` in its include; test files opt into jsdom with
+a `// @vitest-environment jsdom` docblock rather than a glob, so a file says
+which world it runs in. `apps/web/e2e/bench.ts` is the Playwright fixture, and
+it owns the definition of an interaction: `press`, `fill` and `choose` count,
+`hover` does not, and every one of them waits for the worker to catch up.
+`@playwright/test` is pinned rather than floated, because a walk that measures
+the window is measuring a particular browser.
+
+`apps/web/e2e/` is its own TypeScript project (`types: ["node"]`) rather than
+part of `apps/web`: the end-to-end suite reads files off disk and the app must
+never be able to, and widening the app's own `types` to let the tests compile
+would have quietly removed that boundary.
+
+**The resting-control number the roadmap still quotes is two items out of
+date.** R-17's criterion above reads *≤ 20*, and R-20 last recorded 21 against
+it. The suite measures **26**, which is exactly what [UX.md](UX.md)'s R-23 row
+already says — R-22 added the "At the machine" door and an info button beside
+every explained field, and neither item re-stated the budget it had spent. 26
+is what the walk asserts, with the top bar and the inspector broken out so a
+future drift says *which* surface grew. Whether the budget should be raised to
+26 or the shell trimmed back to 20 is a design decision, not a test's, and it
+is left to R-25's own pass over the known gaps.
 
 ---
 
