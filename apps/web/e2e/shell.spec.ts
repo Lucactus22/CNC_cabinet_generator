@@ -18,21 +18,25 @@ test.describe('the resting state', () => {
    * R-16 measured 39 controls rendered at rest, out of 129 the sidebar could
    * render on the default project and 243 with every branch switched on.
    * R-17 took it to 20, R-20 to 21 with the section-plane button, and R-23
-   * re-measured the whole page at **26** — the difference being R-22's own
-   * two additions, the "At the machine" door and the info button beside every
-   * explained field, plus the three of a quiet suggestion that has not been
-   * dismissed yet.
+   * re-measured the whole page at 26 — the difference being R-22's own two
+   * additions, the "At the machine" door and the info button beside every
+   * explained field.
    *
-   * 26 is therefore the number to hold, not 20, and the breakdown is asserted
-   * so a future drift says *which* surface grew rather than only that one did.
+   * There are **two** resting states and the first version of this test
+   * conflated them, asserting ≤ 26 against a state that renders 23 — three
+   * controls of slack in the one budget the walk exists to hold. They are
+   * separated now: **23** before the quiet suggestion appears, and **26**
+   * while one is up, which can happen at most six times in the life of a
+   * browser. The breakdown is asserted too, so a future drift says *which*
+   * surface grew rather than only that one did.
    */
-  test('the shell renders 26 controls or fewer, and the model keeps the window', async ({
+  test('the shell renders 23 controls at rest, and the model keeps the window', async ({
     page,
   }) => {
     const bench = await Bench.open(page);
 
     const controls = await bench.controlsAtRest();
-    expect(controls, `controls at rest: ${controls}`).toBeLessThanOrEqual(26);
+    expect(controls, `controls at rest: ${controls}`).toBeLessThanOrEqual(23);
 
     const where = await page.evaluate(() => {
       // On screen, the same way the total is counted: the top bar carries a
@@ -54,8 +58,9 @@ test.describe('the resting state', () => {
     // selected, and it is the one a new door gets added to.
     expect(where.topbar, `top bar controls: ${where.topbar}`).toBeLessThanOrEqual(9);
     // "All of them about the selection" was the other half of R-17's
-    // criterion: the inspector holds the run's own controls and a suggestion.
-    expect(where.inspector, `inspector controls: ${where.inspector}`).toBeLessThanOrEqual(8);
+    // criterion: at rest the inspector holds the run's own four.
+    expect(where.inspector, `inspector controls: ${where.inspector}`).toBeLessThanOrEqual(4);
+    expect(where.runstrip, `run strip controls: ${where.runstrip}`).toBeLessThanOrEqual(8);
 
     // The cabinet is the workspace, not a preview panel. R-16 measured 42.7%
     // of the window at this size; R-17 was set ≥ 70% and measured 84.4% gross
@@ -65,6 +70,31 @@ test.describe('the resting state', () => {
     const measured = `gross ${share.gross.toFixed(1)}%, net ${share.net.toFixed(1)}%, card ${share.card}px`;
     expect(share.gross, measured).toBeGreaterThanOrEqual(80);
     expect(share.net, measured).toBeGreaterThanOrEqual(70);
+  });
+
+  /**
+   * The other resting state: a quiet suggestion under the inspector, which is
+   * the 26 R-23 recorded. It costs three controls and 111 px of the card, and
+   * it is spent for good the moment it is dismissed — so it is asserted
+   * separately rather than folded into the budget above as slack.
+   */
+  test('and 26 while a quiet suggestion is up', async ({ page }) => {
+    const bench = await Bench.open(page);
+    // Waited for rather than slept through: the suggestion is gated on a
+    // settled selection with nothing building, so it lands after the build
+    // the shell opens on.
+    await expect(page.locator('.suggestion')).toBeVisible();
+
+    const controls = await bench.controlsAtRest();
+    expect(controls, `controls with a suggestion up: ${controls}`).toBeLessThanOrEqual(26);
+
+    // It must not cost the model its budget either — R-19 measured 73.5% net
+    // with one showing against 76.0% without.
+    const share = await bench.modelShare();
+    expect(
+      share.net,
+      `net ${share.net.toFixed(1)}%, card ${share.card}px with a suggestion up`,
+    ).toBeGreaterThanOrEqual(70);
   });
 
   /** The same budget at the smaller size docs/UX.md also measures. */

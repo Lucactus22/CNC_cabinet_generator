@@ -84,6 +84,7 @@ function Profiles() {
     <Group title="This workshop" open count={profiles.length || undefined}>
       <div className="menu-save">
         <input
+          aria-label="Name this workshop"
           placeholder="Name this workshop…"
           value={name}
           onChange={(e) => setName(e.target.value)}

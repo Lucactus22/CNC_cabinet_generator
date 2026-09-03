@@ -2348,12 +2348,14 @@ pre-written. Two things the goal as written did not settle:
       geometry
 - [x] The inspector tested against the selection — every level of the model
       brings up its own controls, a bay shows itself and no other, a selection
-      that stops existing narrows rather than blanking — and **every numeric
-      field swept**: it must write the parameter its catalogue entry claims and
-      nothing outside it
-- [x] The workshop surface tested: no control in it writes anything under a
-      cabinet, a profile applies as one undoable update that reports what it
-      repointed, and the door's badge counts only what is behind it
+      that stops existing narrows rather than blanking — and every numeric
+      field it renders swept, with the branches switched on: 30 parameters,
+      each of which must be written at or under the path its catalogue entry
+      claims and nowhere outside it
+- [x] The workshop surface tested: the same sweep over its own 19 numeric
+      parameters, no control in it writing anything under a cabinet, a profile
+      applying as one undoable update that reports what it repointed, and the
+      door's badge counting only what is behind it
 - [x] Playwright end-to-end tests over the flows R-14 named: change a parameter
       and see the model redraw, add an effect, export the zip — and read the
       zip's own central directory back, so "it downloaded something" becomes
@@ -2362,17 +2364,24 @@ pre-written. Two things the goal as written did not settle:
       interaction counts asserted — J1 ≤ 8, J2 ≤ 6, J4 ≤ 2, J5 ≤ 3, J6 ≤ 2,
       J7 ≤ 3, and for J3 that no route accepts a typed corner angle at any
       count
-- [x] The shell's own measurements pinned: controls at rest, the model's share
-      of the window at both sizes, and the diagnostics panel taking none of it
-      until it is opened
-- [x] R-23's keyboard pass automated — every one of the six things it found by
-      walking has an assertion, split between the two suites by whether it
-      needs a browser
+- [x] The shell's own measurements pinned: controls at rest — both resting
+      states, 23 and 26 — the model's share of the window at both sizes, and
+      the diagnostics panel taking none of it until it is opened
+- [x] R-23's keyboard pass automated — five of the six things it found by
+      walking have an assertion here, split between the two suites by whether
+      they need a browser; the sixth, the printed pack's brightness, was
+      already pinned by `contrast.test.ts`
+- [x] And a sweep over whole surfaces asking every control what it is called,
+      because the first version of that test was scoped to where the defect
+      had been noticed and missed three more instances of it
 - [x] Both suites run in CI, on separate jobs, and `npm test` stays the fast one
 
-**What the automated pass found, and it was not in the tests.** Two defects in
-`Controls.tsx`, both in the first five minutes of writing the inspector tests,
-and both invisible to every screenshot anybody has taken of this app:
+**What the automated pass found, and none of it was in the tests.** Four
+defects, all in the accessible names of controls, all invisible to every
+screenshot anybody has taken of this app. The first two came out of the first
+five minutes of writing the inspector tests; the other two came out of review
+pointing out that the test written for them was scoped to the component where
+the bug had been noticed rather than to the app:
 
 - **Every field in the app was anonymous.** `NumberField`, `SelectField`,
   `CheckField`, `TextField` and `ChoiceField` each rendered a `<label>` with no
@@ -2387,6 +2396,21 @@ and both invisible to every screenshot anybody has taken of this app:
   landed, half the fields were named "Fit to a measured opening i". The name is
   pinned to the label's text alone, and a test asserts the label is longer than
   the name wherever there is an info button.
+- **The same defect was still live on the export toolbar.** `OutputPack.tsx`'s
+  "safe layer names" checkbox is a hand-written label rather than one of the
+  five field components, and it announced itself as *"safe layer names What
+  this does"* — with the fix already in the tree and a test for it passing.
+- **And two controls on the resting bench had no name at all**: the explode
+  slider and the section plane's position slider, both captioned by a plain
+  `<span>` beside them. Named now, along with the three fields that had only a
+  `placeholder`.
+
+The answer to all four is a sweep over whole surfaces reading Chromium's own
+accessibility tree. Its own first cut had the disease it was written for — it
+took any quoted string on the line as the name, and on a slider that is the
+*value*, so an unnamed slider read as one called "0". Every assertion in both
+suites earns its place the same way: remove the behaviour it names and watch
+it fail.
 
 **What it cost, for the items that follow.** `apps/web/test/setup/dom.ts` is
 loaded for every test file and gives jsdom the four things `apps/web` needs
@@ -2403,7 +2427,10 @@ which world it runs in. `apps/web/e2e/bench.ts` is the Playwright fixture, and
 it owns the definition of an interaction: `press`, `fill` and `choose` count,
 `hover` does not, and every one of them waits for the worker to catch up.
 `@playwright/test` is pinned rather than floated, because a walk that measures
-the window is measuring a particular browser.
+the window is measuring a particular browser, and the suite never reuses a
+running preview server — one left over from an earlier session serves the
+`dist` it was started with, and a mutation test caught the whole suite passing
+against bytes that were no longer in the tree.
 
 `apps/web/e2e/` is its own TypeScript project (`types: ["node"]`) rather than
 part of `apps/web`: the end-to-end suite reads files off disk and the app must
@@ -2411,14 +2438,18 @@ never be able to, and widening the app's own `types` to let the tests compile
 would have quietly removed that boundary.
 
 **The resting-control number the roadmap still quotes is two items out of
-date.** R-17's criterion above reads *≤ 20*, and R-20 last recorded 21 against
-it. The suite measures **26**, which is exactly what [UX.md](UX.md)'s R-23 row
-already says — R-22 added the "At the machine" door and an info button beside
-every explained field, and neither item re-stated the budget it had spent. 26
-is what the walk asserts, with the top bar and the inspector broken out so a
-future drift says *which* surface grew. Whether the budget should be raised to
-26 or the shell trimmed back to 20 is a design decision, not a test's, and it
-is left to R-25's own pass over the known gaps.
+date, and there are two of it.** R-17's criterion above reads *≤ 20*, and R-20
+last recorded 21. Measured: **23** at rest, and **26** once the quiet
+suggestion appears under the inspector — which is the figure
+[UX.md](UX.md)'s R-23 row records, taken with one showing. R-22 added the "At
+the machine" door and an info button beside every explained field, and neither
+item re-stated the budget it had spent.
+
+Both states are asserted separately, and the first version of this suite is
+why: it asserted ≤ 26 against the state that renders 23, leaving three
+controls of slack in the one budget the walk exists to hold. Whether the budget
+should be raised or the shell trimmed back is a design decision, not a test's,
+and it is left to R-25's own pass over the known gaps.
 
 ---
 

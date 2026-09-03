@@ -28,8 +28,10 @@
  * rather than the branch a browser takes.
  *
  * **`scrollIntoView` / `URL.createObjectURL`** — unimplemented in jsdom and
- * called by find-by-name and by every download path. Recorded rather than
- * discarded, so a test can assert that a file was actually offered.
+ * called by find-by-name and by every download path. Each blob handed out is
+ * recorded in `objectUrls`, so a component test of a download path can assert
+ * a file was actually offered; the end-to-end suite checks the real ones by
+ * catching the browser's own download event instead.
  */
 import { buildProject, type ProjectParams } from '@cabgen/core';
 

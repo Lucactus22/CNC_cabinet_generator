@@ -24,8 +24,8 @@ Parametric cabinet designer that outputs CNC-ready DXF. Read this first, then
 ```bash
 npm install
 npm run dev          # http://localhost:5173
-npm test             # 910 tests, ~9s — geometry, and the web app under jsdom
-npm run test:e2e     # 27 Playwright walks: builds, serves and drives the app
+npm test             # 912 tests, ~9s — geometry, and the web app under jsdom
+npm run test:e2e     # 29 Playwright walks: builds, serves and drives the app
 npm run typecheck    # core, the web app, and the end-to-end project
 npm run lint         # ESLint, including the core dependency boundary rule
 npm run format       # Prettier, writes in place

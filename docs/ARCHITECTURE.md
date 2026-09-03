@@ -606,13 +606,20 @@ statically.
 
 `apps/web/e2e/` holds the Playwright suite: the seven journeys with their
 interaction counts, the flows (a parameter reaching the model, an effect, the
-zip), the shell's own measurements, and the half of the keyboard pass that
-needs a browser. `bench.ts` owns the definition of an interaction — docs/UX.md's
-own: `press`, `fill` and `choose` count, `hover` does not — and every act waits
-for the worker to catch up, because the interface is allowed to lag a build
-behind the parameters and an assertion made in that gap reads the previous
-cabinet. It is its own TypeScript project, with Node's types, because the
-end-to-end suite reads files off disk and `apps/web` must not be able to.
+zip), the shell's own measurements, the half of the keyboard pass that needs a
+browser, and a sweep asking every control on every surface what it is called.
+`bench.ts` owns the definition of an interaction — docs/UX.md's own: `press`,
+`fill` and `choose` count, `hover` does not — and every act waits for the
+worker to catch up, because the interface is allowed to lag a build behind the
+parameters and an assertion made in that gap reads the previous cabinet. It is
+its own TypeScript project, with Node's types, because the end-to-end suite
+reads files off disk and `apps/web` must not be able to.
+
+**The suite always rebuilds and re-serves the app.** `reuseExistingServer` is
+off even locally: a `vite preview` left running from an earlier session serves
+the `dist` it was started with, and the whole suite once passed against bytes
+that were no longer in the tree. Six seconds a run is the price of the harness
+not having the failure mode it exists to catch.
 
 `test/golden/default-0.1/` holds the sheet DXF the 0.1 default project exported,
 before R-03 turned two hardcoded carcasses into a run of cabinets. `golden.test.ts`
@@ -651,11 +658,11 @@ person will delete.
 
 Honest list, all tracked in [ROADMAP.md](ROADMAP.md):
 
-- the shell renders **26** controls at rest against R-17's stated budget of
-  20 — R-22's "At the machine" door and its info buttons, neither of which
-  re-stated the budget. R-24's walk asserts 26 rather than 20, so the figure
-  cannot drift further unnoticed; whether to raise the budget or trim the
-  shell is R-25's to settle
+- the shell renders **23** controls at rest — 26 while a quiet suggestion is
+  up — against R-17's stated budget of 20. The difference is R-22's "At the
+  machine" door and its info buttons, neither of which re-stated the budget.
+  R-24's walk asserts both states, so the figure cannot drift further
+  unnoticed; whether to raise the budget or trim the shell is R-25's to settle
 - a nested part is pickable by clicking its rectangle on the sheet preview and
   by no key, deliberately: the cut list directly under it reaches the same
   part and says which one it is, and twenty-one extra tab stops per sheet

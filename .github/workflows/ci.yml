@@ -37,7 +37,7 @@ jobs:
         run: npm run build -w @cabgen/web
 
   # Separate from the job above so a failing journey says so on its own line,
-  # and so the six-second unit suite is never waiting on a browser download.
+  # and so the nine-second unit suite is never waiting on a browser download.
   # It builds and serves the app itself — see playwright.config.ts.
   e2e:
     runs-on: ubuntu-latest

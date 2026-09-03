@@ -288,6 +288,7 @@ function ProjectMenu({
           <strong>Designs kept in this browser</strong>
           <div className="menu-save">
             <input
+              aria-label="Name this design"
               placeholder="Name this design…"
               value={name}
               onChange={(e) => setName(e.target.value)}

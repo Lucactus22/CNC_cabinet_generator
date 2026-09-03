@@ -63,6 +63,7 @@ function Palette() {
         <input
           ref={input}
           value={query}
+          aria-label="What are you looking for?"
           placeholder="kickboard, rebate, knock-down, beadboard, sheet size…"
           onChange={(e) => {
             setQuery(e.target.value);

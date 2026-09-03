@@ -3,14 +3,20 @@
  * The keyboard pass R-23 walked by hand and deferred the automation of to
  * here.
  *
- * Six things that pass found, none of them visible from reading the code, and
- * every one of them a regression a screenshot would not catch. So each of the
- * six has an assertion below, plus the two the *automated* pass found on top
- * of them (see `Controls.tsx`'s `FieldLabel`).
+ * That pass found six things by walking, none of them visible from reading the
+ * code. Four of them are assertions here — Escape in the walkthrough, the cut
+ * list's keyboard route, where find-by-name lands, and the focus ring's rule —
+ * alongside the ones the *automated* pass found on top of them (see
+ * `Controls.tsx`'s `FieldLabel`). Two are not: the 3D view's arrow keys move a
+ * three.js camera and need a real GL context, so they are in
+ * `apps/web/e2e/keyboard.spec.ts`; and the printed pack's brightness was
+ * already pinned by `contrast.test.ts`, which reads both palettes out of the
+ * stylesheet.
  *
- * The one part of the pass that cannot live here is the 3D view: its arrow
- * keys move a three.js camera, which needs a real GL context. That is in the
- * Playwright suite, `apps/web/e2e/keyboard.spec.ts`.
+ * `useDialog`'s focus trap and `useDismissable`'s Escape are here too. They
+ * come from `overlays.ts`'s own list rather than that pass's, and they are the
+ * two that most easily become assertions that cannot fail — see the note on
+ * the trap below.
  */
 import { describe, expect, it } from 'vitest';
 import { fireEvent, screen, within } from '@testing-library/react';
@@ -84,16 +90,23 @@ describe('overlays answer the key that opened them', () => {
     // A query, so the dialog has results in it: an empty palette is one text
     // field, and a trap with one stop cannot show that it wraps.
     fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: 'kickboard' } });
-    const stops = within(dialog).getAllByRole('button');
+    const stops = [within(dialog).getByRole('textbox'), ...within(dialog).getAllByRole('button')];
     expect(stops.length).toBeGreaterThan(1);
+    const first = stops[0]!;
     const last = stops[stops.length - 1]!;
 
+    // Identity, not containment. The first version of this asserted that
+    // focus was still *inside* the dialog after Tab — which `last.focus()`
+    // has already made true, so the assertion held with the whole Tab branch
+    // of `useDialog` deleted. Review caught it by doing exactly that.
     last.focus();
     fireEvent.keyDown(document, { key: 'Tab' });
-    expect(dialog.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement, 'Tab off the last stop did not wrap to the first').toBe(first);
 
     fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
-    expect(dialog.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement, 'Shift+Tab off the first stop did not wrap to the last').toBe(
+      last,
+    );
 
     await change(() => useStore.getState().setPaletteOpen(false));
     expect(document.activeElement).toBe(opener);
@@ -196,8 +209,30 @@ describe('every route through the app has a keyboard', () => {
         explained += 1;
         expect(label.textContent!.length).toBeGreaterThan(name.length);
       }
+      // And the label is wired to the control, not merely sitting beside it.
+      // `aria-labelledby` alone would satisfy every assertion above while
+      // leaving a click on the caption doing nothing, which is half of what
+      // a label is for.
+      expect(label.getAttribute('for'), `"${name}" has a label pointing nowhere`).toBe(control.id);
     }
     expect(explained).toBeGreaterThan(0);
+  });
+
+  /**
+   * Clicking the caption reaches the control, which is the half of a label
+   * that `aria-labelledby` cannot supply — and the half nothing else here
+   * would notice going missing.
+   */
+  it('and clicking a field caption toggles its control', async () => {
+    renderPanel(<Inspector />);
+    await settle();
+
+    const field = document.querySelector<HTMLElement>('[data-param="opening.enabled"]')!;
+    const box = field.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+    expect(box.checked).toBe(false);
+
+    await change(() => fireEvent.click(field.querySelector('label span')!));
+    expect(useStore.getState().params.opening.enabled).toBe(true);
   });
 });
 
@@ -242,7 +277,10 @@ function accessibleName(control: HTMLElement): string {
   if (label) return label.trim();
   const id = control.id;
   if (id) {
-    const forLabel = document.querySelector(`label[for="${CSS.escape(id)}"]`);
+    // Matched by walking rather than by a selector: `useId` puts colons in an
+    // id, jsdom has no `CSS.escape` to quote them with, and the version of
+    // this that used one threw a TypeError instead of asserting anything.
+    const forLabel = [...document.querySelectorAll('label')].find((l) => l.htmlFor === id);
     if (forLabel) return forLabel.textContent?.trim() ?? '';
   }
   return control.closest('label')?.textContent?.trim() ?? '';

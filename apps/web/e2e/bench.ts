@@ -28,10 +28,11 @@ export class Bench {
    * A browser that has opened this before: no autosaved project, and the
    * starter gallery already spent.
    *
-   * That is the state every count in docs/UX.md is against — with the gallery
-   * up the shell renders 26 controls, with it gone 20, and 20 is the budget
-   * R-17 set. `openFirstVisit` is the other state, for the tests that are
-   * about the front door itself.
+   * That is the state every count in docs/UX.md is against. Measured: the
+   * shell renders **23** controls here, **26** once the quiet suggestion has
+   * appeared under the inspector, and **30** on a first visit with the starter
+   * gallery up — which is what `openFirstVisit` gives, for the two tests that
+   * are about the front door itself.
    */
   static async open(page: Page): Promise<Bench> {
     return Bench.load(page, () => {

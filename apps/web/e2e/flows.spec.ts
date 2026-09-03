@@ -18,12 +18,18 @@ test('a changed parameter reaches the model, the badge and the sheets', async ({
   const badge = page.locator('header.topbar > span.badge');
 
   await expect(badge).toContainText('900 × 2000 mm');
-  const before = await scene.screenshot();
 
   await bench.press(page.locator('button.carc-tab', { hasText: 'Base' }));
   const size = page
     .locator('.inspector details.group')
     .filter({ has: page.locator('summary:text-is("Size")') });
+
+  // The baseline is taken *after* the selection, not before it. Selecting a
+  // carcass highlights it in the model, so a picture taken before the click
+  // differs from the one after it whether or not the width ever lands —
+  // which is how the first version of this test would have passed with the
+  // model frozen. Review caught it by typing nothing and watching it pass.
+  const before = await scene.screenshot();
   await bench.fill(size.getByLabel('Width', { exact: true }), '1800');
 
   await expect(badge).toContainText('1800 ×');

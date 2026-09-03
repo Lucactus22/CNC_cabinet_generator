@@ -73,7 +73,11 @@ export async function settle(): Promise<void> {
   });
 }
 
-/** Render a panel with the store already reset, and clean up after the test. */
+/**
+ * Render a panel. The store was reset and will be unmounted by the hooks at
+ * the foot of this file; this exists so a test reads as `renderPanel(...)`
+ * rather than importing `render` and having to remember they are there.
+ */
 export function renderPanel(ui: ReactElement): RenderResult {
   return render(ui);
 }

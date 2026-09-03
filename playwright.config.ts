@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * The end-to-end half of R-24.
  *
- * Kept out of `npm test` on purpose. Vitest runs in six seconds and is what
+ * Kept out of `npm test` on purpose. Vitest runs in nine seconds and is what
  * anyone editing the geometry runs on every save; this builds the app, serves
  * it and drives a browser, and is what stops the *interface* numbers rotting.
  * `npm run test:e2e` runs it; CI runs both.
@@ -46,7 +46,14 @@ export default defineConfig({
     command:
       'npm run build -w @cabgen/web && npm run preview -w @cabgen/web -- --port 4173 --strictPort',
     url: 'http://localhost:4173',
-    reuseExistingServer: !process.env.CI,
+    // Never reused, not even locally. A `vite preview` left running from an
+    // earlier session serves the `dist` it was started with, so the suite
+    // would pass against bytes that are no longer in the tree — which is the
+    // silently-wrong-output failure this repo exists to avoid, in its own
+    // test harness. Found by mutating a component, watching the walk stay
+    // green, and discovering it had never seen the change. The rebuild costs
+    // about six seconds.
+    reuseExistingServer: false,
     timeout: 180_000,
   },
 });

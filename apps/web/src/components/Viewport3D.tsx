@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
@@ -120,6 +120,7 @@ export function Viewport3D({ hidden = false }: { hidden?: boolean }) {
   const section = useStore((s) => s.section);
   const resolvedTheme = useStore((s) => s.resolvedTheme);
 
+  const explodeId = useId();
   const mount = useRef<HTMLDivElement>(null);
   const engine = useRef<Engine | null>(null);
   const [hover, setHover] = useState<Pick | null>(null);
@@ -302,9 +303,14 @@ export function Viewport3D({ hidden = false }: { hidden?: boolean }) {
         }}
       />
       <div className="slider-row">
-        <span>Explode</span>
+        {/* The caption is a plain span next to the control rather than a
+            label around it, so the slider is named from it explicitly. Left
+            as it was, one of the controls on the resting bench had no
+            accessible name at all. */}
+        <span id={explodeId}>Explode</span>
         <input
           type="range"
+          aria-labelledby={explodeId}
           min={0}
           max={1}
           step={0.01}
@@ -399,6 +405,7 @@ function SectionControls({ project }: { project: ProjectResult }) {
       ))}
       <input
         type="range"
+        aria-label={`Where to cut, along ${section.axis.toUpperCase()}`}
         min={lo}
         max={hi}
         step={1}

@@ -16,6 +16,7 @@ import { describe, expect, it } from 'vitest';
 import { fireEvent, screen, within } from '@testing-library/react';
 import { defaultParams, type ProjectParams } from '@cabgen/core';
 import { Inspector } from '../src/components/Inspector';
+import { WorkshopDrawer } from '../src/components/WorkshopDrawer';
 import { useStore } from '../src/store';
 import { change, changedPaths, renderPanel, resetStore, settle } from './setup/app';
 
@@ -139,46 +140,99 @@ describe('a control writes the parameter it claims', () => {
    * grows the bay list — so the assertion is that the claimed path is among
    * what moved and that nothing outside its own object did.
    */
-  it('across every numeric field of every selection', async () => {
+  const sweep = async (): Promise<string[]> => {
+    const swept: string[] = [];
+    const fields = [...document.querySelectorAll<HTMLElement>('[data-param]')].flatMap((host) => {
+      const input = host.querySelector<HTMLInputElement>('input[type="number"]');
+      return input ? [{ param: host.dataset.param!, input }] : [];
+    });
+
+    for (const { param, input } of fields) {
+      const before = structuredClone(useStore.getState().params);
+      const next = Number(input.value) + 1;
+      await change(() => fireEvent.change(input, { target: { value: String(next) } }));
+      const moved = changedPaths(before, useStore.getState().params);
+
+      expect(moved, `${param} changed nothing`).not.toHaveLength(0);
+      // At, or under, the path it claims: a field for one drawer's height
+      // claims the list — `bays[].drawerFrontHeights` — and writes an element
+      // of it, which is the same control, not a different parameter.
+      const own = (path: string): boolean =>
+        path === param || path.startsWith(`${param}[`) || path.startsWith(`${param}.`);
+      expect(moved.some(own), `${param} wrote ${moved.join(', ')} rather than its own path`).toBe(
+        true,
+      );
+      // Nothing outside the object the claimed path sits in. A bay count
+      // adds bays; a width does not touch the hardware catalogue. A path
+      // with no dot in it owns only itself — taking the empty string as its
+      // scope would have made this check pass for anything.
+      const dot = param.lastIndexOf('.');
+      const scope = dot === -1 ? param : param.slice(0, dot + 1);
+      for (const path of moved) {
+        expect(path.startsWith(scope), `${param} also wrote ${path}`).toBe(true);
+      }
+      swept.push(param);
+    }
+    return swept;
+  };
+
+  it('across every numeric field the inspector renders', async () => {
+    // Branches on, because a field only renders when its own switch is:
+    // review pointed out that the first version of this swept 14 fields on
+    // the shipped default and reported it as "every numeric field", missing
+    // every drawer, face-frame, hanging-rail and opening number in the app.
     const params = defaultParams();
-    params.cabinets[0]!.carcasses[0]!.dividerCount = 1;
+    const carcass = params.cabinets[0]!.carcasses[0]!;
+    carcass.dividerCount = 1;
+    carcass.construction = 'face-frame';
+    carcass.hangingRail = { ...carcass.hangingRail, enabled: true };
+    carcass.bays[0]!.shelves = 'adjustable';
+    carcass.bays[1]!.drawerFrontHeights = [200, 200, 200];
+    params.opening.enabled = true;
     resetStore(params);
     renderPanel(<Inspector />);
     await settle();
 
     const { cabinetId, carcassId } = at();
-    let tested = 0;
+    const swept: string[] = [];
     for (const selection of [
       { kind: 'run' } as const,
       { kind: 'cabinet', cabinetId } as const,
       { kind: 'carcass', cabinetId, carcassId } as const,
       { kind: 'bay', cabinetId, carcassId, bay: 0 } as const,
+      { kind: 'bay', cabinetId, carcassId, bay: 1 } as const,
     ]) {
       await select(selection);
-      const fields = [...document.querySelectorAll<HTMLElement>('[data-param]')].flatMap((host) => {
-        const input = host.querySelector<HTMLInputElement>('input[type="number"]');
-        return input ? [{ param: host.dataset.param!, input }] : [];
-      });
-
-      for (const { param, input } of fields) {
-        tested += 1;
-        const before = structuredClone(useStore.getState().params);
-        const next = Number(input.value) + 1;
-        await change(() => fireEvent.change(input, { target: { value: String(next) } }));
-        const moved = changedPaths(before, useStore.getState().params);
-
-        expect(moved, `${param} changed nothing`).not.toHaveLength(0);
-        expect(moved, `${param} did not write its own path`).toContain(param);
-        // Nothing outside the object the claimed path sits in. A bay count
-        // adds bays; a width does not touch the hardware catalogue.
-        const scope = param.slice(0, param.lastIndexOf('.') + 1);
-        for (const path of moved) {
-          expect(path.startsWith(scope), `${param} also wrote ${path}`).toBe(true);
-        }
-      }
+      swept.push(...(await sweep()));
     }
-    // A floor, so the sweep cannot quietly pass by finding nothing to sweep.
-    expect(tested).toBeGreaterThanOrEqual(10);
+    // A floor, so the sweep cannot quietly pass by finding nothing to sweep,
+    // and distinct so a repeated field cannot make up the number.
+    // A floor, so the sweep cannot quietly pass by finding nothing to sweep,
+    // and distinct so a repeated field cannot make up the number. Thirty are
+    // swept today; the floor is under it so merging two fields is a refactor
+    // rather than a failure, and losing a whole section is a failure.
+    expect(new Set(swept).size, `swept: ${[...new Set(swept)].sort().join(', ')}`).toBeGreaterThan(
+      25,
+    );
+  });
+
+  /**
+   * The other panel R-24 was asked to test, and the one where a miswiring is
+   * hardest to notice: nothing in a workshop number changes the picture on
+   * screen, so a tool diameter written into the kerf would look exactly right
+   * until the sheet came off the machine.
+   */
+  it('and across the workshop drawer', async () => {
+    renderPanel(<WorkshopDrawer />);
+    await settle();
+    for (const details of document.querySelectorAll('details')) details.open = true;
+
+    // Nineteen today: the machine's travel and tiling, the tool, the sheet
+    // and board sizes, the tape and the nesting margins.
+    const swept = await sweep();
+    expect(new Set(swept).size, `swept: ${[...new Set(swept)].sort().join(', ')}`).toBeGreaterThan(
+      15,
+    );
   });
 
   /** Every change through the inspector is one undo step, as R-20 requires. */

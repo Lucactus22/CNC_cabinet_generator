@@ -1404,17 +1404,23 @@ item turns the walks into tests. Measured the same way as everything above —
 Playwright against `vite preview` on the production build, from a cleared
 `localStorage`, at 1440 × 900 — on **2026-09-03**.
 
-| | last recorded | R-24, asserted |
-|---|---|---|
-| J1 build the thing in my head | 8, no scrolling (R-17) | **8**, 0 px, and the cabinet checked against the target field by field |
-| J2 reach three capabilities, explained | 6 (R-17); 13 named before a click (R-19) | **2** through the project menu, each explained where it lands; **13** named on a fresh browser |
-| J3 fit a real room | no angle can be typed (R-17) | **no angle can be typed** — asserted as the absence of a control, plus the read-out and its provenance |
-| J4 drawers in that bay | 2 (R-17), 2 by pointing at the bay (R-20) | **2**, 0 px, and the model answers a click |
-| J5 change the joint | 3, cost stated on hover (R-18) | **3**, and the cost line is read off the hover before the click |
-| J6 first cuttable export | 2, offered, cost on the button (R-21) | **2**, cheapest-clear first, the trap still shown and honestly labelled |
-| J7 re-cut one part | 3 (R-22) | **3**, and the file that arrives is named for the part |
-| Controls the shell renders at rest | 26 (R-23) | **26**, with the top bar and the inspector broken out |
-| Cabinet's share of the window | 84.4% / 73.1% (R-23) | **84.4% gross, 73.1–75.7% net** — the range is the quiet suggestion, which costs the card 111 px |
+| | last recorded | R-24, measured | asserted as |
+|---|---|---|---|
+| J1 build the thing in my head | 8, no scrolling (R-17) | **8**, 0 px, cabinet checked field by field | ≤ 8, scroll = 0 |
+| J2 reach three capabilities, explained | 6 (R-17); 13 named before a click (R-19) | **2** through the project menu, each explained where it lands; **13** named on a fresh browser | ≤ 6; ≥ 10 named |
+| J3 fit a real room | no angle can be typed (R-17) | **no angle can be typed** | no control in the room is named "angle", and the read-out has no field |
+| J4 drawers in that bay | 2 (R-17), 2 by pointing at the bay (R-20) | **2**, 0 px, and the model answers a click | ≤ 2, scroll = 0 |
+| J5 change the joint | 3, cost stated on hover (R-18) | **3**, cost read off the hover before the click | ≤ 3 |
+| J6 first cuttable export | 2, offered, cost on the button (R-21) | **2**, cheapest-clear first, the trap still shown | ≤ 2 |
+| J7 re-cut one part | 3 (R-22) | **3**, the file named for the part | ≤ 3, filename exact |
+| Controls the shell renders at rest | 26 (R-23) | **23**, and **26** while a quiet suggestion is up | ≤ 23 / ≤ 26, with the top bar, inspector and run strip broken out |
+| Cabinet's share of the window | 84.4% / 73.1% (R-23) | **84.4% gross**, **75.7% net** at rest, **73.1%** with a suggestion up | ≥ 80 gross, ≥ 70 net |
+
+The fourth column is there because the third is not the promise. A count
+asserted as an equality fails when somebody makes a route *shorter*, which is
+not a regression — so the walks assert ceilings and floors and print the real
+figure in the failure message. Where the two columns differ, the third is what
+the app does today and the fourth is what it is held to.
 
 **Two suites, split by speed.** `npm test` is vitest under jsdom and runs in
 nine seconds; `npm run test:e2e` builds the app, serves it and drives Chromium,
@@ -1435,9 +1441,11 @@ parameter is *claimed* by a control; nothing until now proved a control
 claiming `carcasses[].width` writes the width rather than the depth. Miswiring
 one deliberately makes the sweep fail by name.
 
-**Two defects, found in the first five minutes of writing those tests.** Both
-in `Controls.tsx`, both invisible to every screenshot ever taken of this app,
-and both squarely in this document's territory:
+**Four defects, all in the accessible names of controls.** The first two were
+found in the first five minutes of writing these tests; the other two by review
+pointing out that the test was scoped to where the bug had first been noticed
+rather than to the app. All four are invisible to every screenshot ever taken
+of this interface, and all four are squarely in this document's territory:
 
 - **Every field in the app was anonymous.** All five field components rendered
   a `<label>` with no `for` that did not wrap its control — a styled caption,
@@ -1451,13 +1459,46 @@ and both squarely in this document's territory:
   "Fit to a measured opening i". The accessible name is pinned to the label's
   text alone now, and a test asserts the label is longer than the name wherever
   there is an info button.
+- **The same defect was still live on the export toolbar.** The "safe layer
+  names" checkbox is a hand-written label rather than one of the five field
+  components, and it announced itself as *"safe layer names What this does"* —
+  the identical bug, one component away, with the fix for it already in the
+  tree and a test written for it passing. A test scoped to where a bug was
+  first noticed catches that instance of it and nothing else.
+- **And two controls on the resting bench had no name at all.** The explode
+  slider and the section plane's position slider are captioned by a plain
+  `<span>` next to them rather than a label, so they were announced as
+  "slider". Both are named now, along with the three fields that had only a
+  `placeholder` — the weakest name a browser falls back to, and one that
+  disappears the moment anybody types.
 
-**One number here was two items stale, and the walk is what caught it.** The
-resting-control budget R-17 was set is ≤ 20; R-20 last recorded 21 against it;
-R-23's own row above already said 26. R-22 added the "At the machine" door and
-an info button beside every explained field and neither item re-stated the
-budget it had spent. The walk asserts 26 with the surfaces broken out, so the
-next one is caught at the commit rather than two items later.
+The answer to all four is one test that sweeps **whole surfaces** — the bench,
+the workshop, the output pack and the machine view — reading Chromium's own
+accessibility tree and failing on any control with no name, or with the info
+button's name swallowed into its own. Its first cut had the same disease it
+was written for: it took any quoted string on a line as the name, and on a
+slider that is the *value*, so an unnamed slider read as one called "0". Found
+by removing a fix and watching the test not care.
+
+**The resting count is 23, and R-23's 26 was one state of two.** The budget
+R-17 was set is ≤ 20; R-20 last recorded 21; R-23's row above says 26. Measured
+now: **23** at rest, and **26** once the quiet suggestion appears under the
+inspector — which is R-23's figure, taken with one showing. R-22 added the "At
+the machine" door and an info button beside every explained field and neither
+item re-stated the budget it had spent. Both states are asserted separately,
+because folding them into one ≤ 26 ceiling — which is what the first version of
+this suite did — leaves three controls of slack in the very budget the walk
+exists to hold. Whether to raise the budget to 23 or trim the shell back to 20
+is a design decision, not a test's, and is left to R-25's pass over the known
+gaps.
+
+**And one hazard in the harness itself.** Playwright's `webServer` reuses a
+server already listening on the port, which is the ordinary local convenience
+— and a `vite preview` left running from an earlier session serves the `dist`
+it was started with. A mutation to a component left the whole suite green
+because it had never seen the change. The suite now always builds and serves
+what is in the tree, which costs about six seconds a run and is the difference
+between a test and a reassuring noise.
 
 **What the walks deliberately do not assert.** Seconds. Every "floor" in this
 document is the script's own wall clock and is worth having as a note about the

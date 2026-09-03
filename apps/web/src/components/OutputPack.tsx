@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useStore } from '../store';
 import { SheetView } from './SheetView';
 import { PartView } from './PartView';
@@ -16,6 +17,7 @@ import { InfoTip } from './Controls';
  */
 export function OutputPack() {
   const project = useStore((s) => s.project);
+  const safeNamesId = useId();
   const building = useStore((s) => s.building);
   const safeNames = useStore((s) => s.safeNames);
   const setSafeNames = useStore((s) => s.setSafeNames);
@@ -50,16 +52,21 @@ export function OutputPack() {
         >
           Export DXF
         </button>
+        {/* The info button sits inside the label because the pill is one
+            control-shaped thing, so — exactly as `FieldLabel` does — the name
+            is pinned to the text alone. Left as it was, this checkbox was
+            announced as "safe layer names What this does". */}
         <label
           className="pill toggle"
           title="Writes POCKET_D6P35 instead of POCKET_D6.35, for importers that dislike dots."
         >
           <input
             type="checkbox"
+            aria-labelledby={safeNamesId}
             checked={safeNames}
             onChange={(e) => setSafeNames(e.target.checked)}
           />
-          safe layer names
+          <span id={safeNamesId}>safe layer names</span>
           <InfoTip text="Writes POCKET_D6P35 instead of POCKET_D6.35, for importers that dislike dots." />
         </label>
         <span className="hint" style={{ margin: 0 }}>

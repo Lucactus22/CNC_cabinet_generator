@@ -146,15 +146,32 @@ test.describe('J3 — fit it to a real room', () => {
     const room = group(page, 'The room');
     await bench.press(room.getByLabel('Fit to a measured opening'));
 
-    // Every reading the room asks for, and not one of them an angle.
+    // Every reading the room asks for, and not one of them an angle. Named
+    // every way this app names a control, not only the one it happens to use
+    // today: a field written the plain HTML way would otherwise report an
+    // empty name, which trivially does not contain "angle".
     const named = await room.locator('input, select').evaluateAll((els) =>
       els.map((el) => {
         const by = el.getAttribute('aria-labelledby');
-        return by ? (document.getElementById(by)?.textContent ?? '') : '';
+        const own = el.getAttribute('aria-label');
+        const forLabel = [...document.querySelectorAll('label')].find(
+          (l) => l.htmlFor !== '' && l.htmlFor === el.id,
+        );
+        return (
+          (by ? document.getElementById(by)?.textContent : null) ??
+          own ??
+          forLabel?.textContent ??
+          el.closest('label')?.textContent ??
+          (el as HTMLInputElement).placeholder ??
+          ''
+        );
       }),
     );
     expect(named.length).toBeGreaterThan(5);
-    for (const label of named) expect(label.toLowerCase()).not.toContain('angle');
+    for (const label of named) {
+      expect(label, 'a control in the room has no name to check').not.toBe('');
+      expect(label.toLowerCase()).not.toContain('angle');
+    }
 
     // Shown, with its provenance, rather than editable.
     const corner = room.locator('[data-param="opening.cornerAngleLeft"]');
