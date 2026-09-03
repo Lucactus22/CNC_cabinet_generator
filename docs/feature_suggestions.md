@@ -69,11 +69,6 @@ sheet?" currently has no way to be asked.
 `S` · Briefly highlight the parts a change affected. Changing one number can
 resize fifteen parts and add a sheet, and right now nothing says so.
 
-### Estimated build time
-`S` · Machine time from the cut length already computed, plus a rough assembly
-estimate from the joint count. Useful for deciding whether a design is worth it
-before committing a Saturday.
-
 ### Accept an info, and stop being told
 `S` · Seven of the fourteen diagnostics on a fresh project are `info`, and four
 of those are the same "spans more than one tile" note against a different part.
@@ -115,6 +110,11 @@ R-05's manual entry proves to be a real obstacle.
 `M` · A PDF tiled to A4 or A3 for hole patterns — hinge boring, shelf pins —
 so somebody without a CNC can still build the design by hand. Widens who the
 tool is for more than almost anything else here.
+
+### Select only one or a selection of parts to be cut
+`M` · instead of fitting all parts to the sheets select only a specific parts to be exported. This way if only one or a few parts needs to be recut it can be done easily.
+
+
 
 ---
 
