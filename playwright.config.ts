@@ -35,10 +35,21 @@ export default defineConfig({
     },
   ],
   webServer: {
+    // `--host 127.0.0.1` is not decoration. Vite's preview server defaults to
+    // `localhost`, and on a machine where that resolves to `::1` first — a
+    // GitHub runner does — it binds IPv6-only while Playwright polls
+    // `127.0.0.1`, and waits out the whole timeout against a server that is
+    // running perfectly well. Binding and polling the same literal address is
+    // the only way the two cannot disagree.
     command:
-      'npm run build -w @cabgen/web && npm run preview -w @cabgen/web -- --port 4173 --strictPort',
+      'npm run build -w @cabgen/web && npm run preview -w @cabgen/web -- --host 127.0.0.1 --port 4173 --strictPort',
     url: 'http://127.0.0.1:4173',
+    // A developer with a preview already up reuses it; CI always starts its
+    // own, so the walks are never run against a stale `dist` left behind. It
+    // also means this command only ever runs in CI unless somebody clears
+    // the port — which is how it shipped broken the first time.
     reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
+    // Generous, because this builds the app first.
+    timeout: 240_000,
   },
 });
