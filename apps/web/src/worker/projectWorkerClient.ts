@@ -22,8 +22,9 @@ export function createProjectWorkerClient() {
   let busy = false;
   let pending: BuildRequest | null = null;
   let onResult: ((project: ProjectResult, tag: string | null) => void) | null = null;
+  let onFailure: ((message: string, tag: string | null) => void) | null = null;
 
-  worker.onmessage = (event: MessageEvent<BuildReply>) => {
+  const settle = (event: MessageEvent<BuildReply>): void => {
     // Resend before notifying: a listener reading `isBusy()` from inside its
     // callback (the store does, for its `building` flag) must see that a
     // coalesced request is already running, not the instant of false between
@@ -35,7 +36,21 @@ export function createProjectWorkerClient() {
     } else {
       busy = false;
     }
-    onResult?.(event.data.project, event.data.tag);
+    if (event.data.error !== undefined) onFailure?.(event.data.error, event.data.tag);
+    else onResult?.(event.data.project, event.data.tag);
+  };
+
+  worker.onmessage = settle;
+
+  // A worker that dies — an uncaught throw outside the handler, an import
+  // that fails, the browser reclaiming it — posts nothing at all, so the
+  // handler above never runs and `busy` stays true for the rest of the
+  // session. Same failure, one level further out, and the same answer.
+  worker.onerror = (e: ErrorEvent) => {
+    e.preventDefault();
+    busy = false;
+    pending = null;
+    onFailure?.(e.message || 'the build stopped without saying why', null);
   };
 
   function send(request: BuildRequest) {
@@ -47,6 +62,10 @@ export function createProjectWorkerClient() {
     /** Called with the finished project after every build the worker completes. */
     subscribe(listener: (project: ProjectResult, tag: string | null) => void) {
       onResult = listener;
+    },
+    /** Called instead, with the reason, when a build could not be finished. */
+    onError(listener: (message: string, tag: string | null) => void) {
+      onFailure = listener;
     },
     /** Request a rebuild for these params, superseding any request not yet started. */
     request(params: ProjectParams, tag: string | null = null) {

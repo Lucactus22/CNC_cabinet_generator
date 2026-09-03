@@ -75,9 +75,27 @@ export default tseslint.config(
   },
 
   {
-    files: ['**/*.test.ts', '**/vite.config.ts'],
+    files: [
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/vite.config.ts',
+      'vitest.config.ts',
+      'vitest.workspace.ts',
+      'playwright.config.ts',
+      'apps/web/e2e/**/*.ts',
+    ],
     languageOptions: {
       globals: globals.node,
+    },
+  },
+
+  // Only the tests that actually have a DOM. Handing `document` and `window`
+  // to every core test would weaken the boundary the config above exists to
+  // hold: core has no UI, and a test that reached for one should not compile.
+  {
+    files: ['apps/web/test/**/*.test.tsx', 'apps/web/test/setup/**/*.ts', 'apps/web/e2e/**/*.ts'],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
     },
   },
 

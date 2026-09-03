@@ -302,8 +302,12 @@ export function Viewport3D({ hidden = false }: { hidden?: boolean }) {
         }}
       />
       <div className="slider-row">
-        <span>Explode</span>
+        {/* Named on the control rather than only beside it: a bare span is a
+            caption, and a screen reader reaching this slider would announce
+            "slider, 0" with nothing to say what it moves. */}
+        <span id="explode-label">Explode</span>
         <input
+          aria-labelledby="explode-label"
           type="range"
           min={0}
           max={1}
@@ -398,6 +402,7 @@ function SectionControls({ project }: { project: ProjectResult }) {
         </button>
       ))}
       <input
+        aria-label={`Where the section is cut, along ${AXIS_LABEL[section.axis]}`}
         type="range"
         min={lo}
         max={hi}

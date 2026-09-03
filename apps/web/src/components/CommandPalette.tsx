@@ -63,6 +63,9 @@ function Palette() {
         <input
           ref={input}
           value={query}
+          // A placeholder is not a name: it is gone the moment anything is
+          // typed, which is exactly when somebody asks what this field was.
+          aria-label="Search for a setting or a capability"
           placeholder="kickboard, rebate, knock-down, beadboard, sheet size…"
           onChange={(e) => {
             setQuery(e.target.value);

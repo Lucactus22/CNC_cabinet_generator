@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useStore } from '../store';
 
 /**
@@ -133,6 +141,47 @@ export function InfoTip({ text }: { text: string }) {
   );
 }
 
+/**
+ * A field's label, tied to its own control, with the explanation beside it.
+ *
+ * Two things R-24's harness found the moment the inspector was rendered in a
+ * test and asked for a control by its name. Neither is cosmetic.
+ *
+ * **The label was not attached to anything.** No `htmlFor`, no wrapping, so a
+ * screen reader announced "edit, 900" with no idea it was a width, and
+ * clicking the word did not put the caret in the field. R-23 claimed keyboard
+ * operability and had no way to assert it.
+ *
+ * **The info button was inside the label**, so it became part of the field's
+ * name: every explained field announced itself as "Bays, What this does".
+ * The button has to stay in the label visually and stay reachable by
+ * keyboard, so the name is taken from the words alone through
+ * `aria-labelledby` instead.
+ */
+function useField(): { id: string; labelledBy: string } {
+  const id = useId();
+  return { id, labelledBy: `${id}-label` };
+}
+
+function FieldLabel({
+  htmlFor,
+  id,
+  children,
+  title,
+}: {
+  htmlFor: string;
+  id: string;
+  children: ReactNode;
+  title?: string;
+}) {
+  return (
+    <label htmlFor={htmlFor}>
+      <span id={id}>{children}</span>
+      {title && <InfoTip text={title} />}
+    </label>
+  );
+}
+
 export function NumberField({
   label,
   value,
@@ -155,14 +204,16 @@ export function NumberField({
   param?: string;
 }) {
   const host = useReveal(param);
+  const { id, labelledBy } = useField();
   return (
     <div className="field" title={title} ref={host} data-param={param}>
-      <label>
+      <FieldLabel htmlFor={id} id={labelledBy} title={title}>
         {label}
-        {title && <InfoTip text={title} />}
-      </label>
+      </FieldLabel>
       <div className="unit">
         <input
+          id={id}
+          aria-labelledby={labelledBy}
           type="number"
           value={Number.isFinite(value) ? round(value) : ''}
           step={step}
@@ -198,13 +249,18 @@ export function SelectField<T extends string>({
   param?: string;
 }) {
   const host = useReveal(param);
+  const { id, labelledBy } = useField();
   return (
     <div className={wide ? 'field wide' : 'field'} title={title} ref={host} data-param={param}>
-      <label>
+      <FieldLabel htmlFor={id} id={labelledBy} title={title}>
         {label}
-        {title && <InfoTip text={title} />}
-      </label>
-      <select value={value} onChange={(e) => onChange(e.target.value as T)}>
+      </FieldLabel>
+      <select
+        id={id}
+        aria-labelledby={labelledBy}
+        value={value}
+        onChange={(e) => onChange(e.target.value as T)}
+      >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
@@ -237,9 +293,12 @@ export function ChoiceField<T extends string>({
   param?: string;
 }) {
   const host = useReveal(param);
+  const id = useId();
   return (
-    <div className="choice" ref={host} data-param={param}>
-      <label>{label}</label>
+    <div className="choice" role="group" aria-labelledby={id} ref={host} data-param={param}>
+      {/* A group rather than a field: the options are buttons, so there is no
+          one control for a label to point at. */}
+      <label id={id}>{label}</label>
       <div className="choice-options">
         {options.map((o) => (
           <button
@@ -272,13 +331,19 @@ export function CheckField({
   param?: string;
 }) {
   const host = useReveal(param);
+  const { id, labelledBy } = useField();
   return (
     <div className="field" title={title} ref={host} data-param={param}>
-      <label>
+      <FieldLabel htmlFor={id} id={labelledBy} title={title}>
         {label}
-        {title && <InfoTip text={title} />}
-      </label>
-      <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} />
+      </FieldLabel>
+      <input
+        id={id}
+        aria-labelledby={labelledBy}
+        type="checkbox"
+        checked={value}
+        onChange={(e) => onChange(e.target.checked)}
+      />
     </div>
   );
 }
@@ -295,10 +360,18 @@ export function TextField({
   param?: string;
 }) {
   const host = useReveal(param);
+  const { id, labelledBy } = useField();
   return (
     <div className="field wide" ref={host} data-param={param}>
-      <label>{label}</label>
-      <input value={value} onChange={(e) => onChange(e.target.value)} />
+      <FieldLabel htmlFor={id} id={labelledBy}>
+        {label}
+      </FieldLabel>
+      <input
+        id={id}
+        aria-labelledby={labelledBy}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
     </div>
   );
 }

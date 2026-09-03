@@ -6,10 +6,17 @@ export interface BuildRequest {
   tag: string | null;
 }
 
-export interface BuildReply {
-  project: ProjectResult;
-  tag: string | null;
-}
+/**
+ * A finished build, or the reason there is not one.
+ *
+ * Every request gets exactly one reply. A throw that posted nothing would
+ * leave the client believing a build was still running for the rest of the
+ * session: the top bar stuck on *updating…*, export refused, and no
+ * diagnostic anywhere — the app quietly claiming to be busy forever.
+ */
+export type BuildReply =
+  | { project: ProjectResult; error?: undefined; tag: string | null }
+  | { project?: undefined; error: string; tag: string | null };
 
 /**
  * `self` resolves to `Window` under the project's DOM lib config, whose
@@ -26,5 +33,10 @@ type BuildProjectWorkerScope = {
 const ctx = self as unknown as BuildProjectWorkerScope;
 
 ctx.onmessage = (event) => {
-  ctx.postMessage({ project: buildProject(event.data.params), tag: event.data.tag });
+  const { params, tag } = event.data;
+  try {
+    ctx.postMessage({ project: buildProject(params), tag });
+  } catch (e) {
+    ctx.postMessage({ error: e instanceof Error ? e.message : String(e), tag });
+  }
 };

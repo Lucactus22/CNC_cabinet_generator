@@ -13,9 +13,17 @@ npm run dev      # http://localhost:5173
 npm test
 ```
 
-**Version 0.1.** A run of cabinets, cutting real parts. See
-[docs/ROADMAP.md](docs/ROADMAP.md) for the path to 1.0, and
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it works inside.
+**New here?** [docs/GETTING-STARTED.md](docs/GETTING-STARTED.md) is the walk
+from an empty browser to parts off the machine: what to measure before you
+start, how to get a fresh project past the two errors it opens with, what is
+in the zip, and what to do at the machine with it.
+
+**Version 1.0.** A run of cabinets of different types, with doors, drawers and
+hardware you can buy, nested across the lot, checked against your own machine,
+and taken to the workshop as DXF, a cut list and assembly documentation. See
+[docs/ROADMAP.md](docs/ROADMAP.md) for what that means and what was
+deliberately left out, and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how
+it works inside.
 
 ## Using it
 
@@ -406,6 +414,7 @@ testable on its own and reusable from a CLI or a different front end.
 
 | | |
 |---|---|
+| [GETTING STARTED](docs/GETTING-STARTED.md) | From an empty browser to parts off the machine |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | How the pipeline fits together, the invariants, where to add things |
 | [ROADMAP](docs/ROADMAP.md) | What 1.0 means and the work orders to get there |
 | [UX](docs/UX.md) | Who this is for, the journeys measured, and the interface architecture chosen |
@@ -419,14 +428,28 @@ testable on its own and reusable from a CLI or a different front end.
 | [DXF](docs/DXF.md) | Output format, layer convention, tiling workflow |
 | [CLAUDE.md](CLAUDE.md) | Conventions and definition of done for contributors |
 
-## Known gaps
+## Known limits
 
-Honest list, all tracked in the roadmap: the web app's only tests are the ones
-that guard every parameter having a control; component and end-to-end coverage
-is still to come. A bay can be picked in the run strip, but not by clicking the
-cabinet itself.
+Honest list. None of these is a gap waiting to be filled — each is a decision,
+with the reason:
 
-Millimetres only, deliberately.
+- **Millimetres only.** Not a half-finished unit system: there is no unit
+  field to get wrong.
+- **DXF, not G-code.** CAM knows your machine, your tooling and your feeds;
+  this does not, and pretending otherwise would be worse than useless.
+- **Straight lines and rectangles.** Nothing with a radius in plan, and no
+  non-rectangular carcass — a crooked room is fitted by scribing a square box
+  to it, which is how a workshop does it and the only way doors and drawers go
+  on working.
+- **No dowels or Confirmats.** Both need boring into a panel's edge, which a
+  3-axis flat-bed router cannot do. See
+  [docs/JOINERY.md](docs/JOINERY.md).
+- **No backend.** It stays a static site that runs entirely in your browser,
+  which is also why a design saved to this browser is not a backup — use
+  *Save a file* for anything you would mind losing.
+- **The 3D scene itself is not under test.** Its picking and drag arithmetic
+  are, as the plain functions they were factored into; the WebGL canvas is
+  not, because neither jsdom nor a headless browser reads one back honestly.
 
 ## Licence
 

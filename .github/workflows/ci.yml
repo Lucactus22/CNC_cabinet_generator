@@ -27,7 +27,34 @@ jobs:
         run: npx tsc --noEmit -p packages/core/tsconfig.json
       - name: Typecheck web
         run: npx tsc --noEmit -p apps/web/tsconfig.json
+      - name: Typecheck the end-to-end walks
+        run: npx tsc --noEmit -p apps/web/e2e/tsconfig.json
       - name: Test
         run: npm test
       - name: Build
         run: npm run build -w @cabgen/web
+
+  # Separate from the job above because it needs a browser: installing one
+  # costs a minute a contributor should not pay to find out their lint is
+  # wrong. It builds the app itself — the walks assert docs/UX.md's counts
+  # against the production build, the same thing those numbers were measured
+  # on — so it does not depend on the job above having built anything.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Walk the journeys
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

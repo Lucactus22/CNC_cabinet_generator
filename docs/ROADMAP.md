@@ -1,6 +1,8 @@
 # Roadmap to 1.0
 
-**Current version: 0.1.** A run of cabinets, fully parametric, cutting real DXF.
+**Current version: 1.0.** Every item below is done. What the sentence under
+*What 1.0 means* promises, the tool does; what it deliberately does not do is
+listed under it, with the reason for each.
 
 Each item below is a **self-contained work order**. Pick the first one that is
 not done, read it, read [ARCHITECTURE.md](ARCHITECTURE.md), and work it to its
@@ -14,7 +16,11 @@ skip ahead without reading the *Depends on* line.
 > A woodworker can lay out a run of several cabinets of different types, with
 > doors and drawers, using hardware they can actually buy, nest it across all of
 > it, confirm it is machinable on their own machine, and take DXF, a cut list
-> and assembly documentation to the workshop — in millimetres or inches.
+> and assembly documentation to the workshop — in millimetres.
+
+The first draft of that sentence ended "in millimetres or inches". Imperial was
+dropped in the first revision below and the sentence was not corrected until
+R-25 read it back; it says millimetres now, which is what 1.0 actually does.
 
 0.1 does the last third of that sentence well. 1.0 is mostly about the first
 two thirds, plus the workshop paperwork that turns a pile of parts into a
@@ -34,6 +40,34 @@ Stating these so nobody builds them by accident:
 - **A backend.** It stays a static site that runs entirely in the browser.
 - **Imperial units.** Millimetres only. `CabinetParams.units` is a leftover and
   R-02 deletes it.
+
+Three more were added at 1.0, when R-25 walked the *Known gaps* list in
+[ARCHITECTURE.md](ARCHITECTURE.md) and found each was a decision nobody had
+written down as one:
+
+- **The 3D scene under test.** Its picking, its drag arithmetic and its
+  section plane are covered as the plain functions they were deliberately
+  factored into — which is why `drag.ts` is a module at all — but the three.js
+  canvas itself is not. Neither jsdom nor a headless browser reads WebGL back
+  honestly, so a test over it would assert that something was drawn without
+  being able to say what.
+- **Component tests for the output pack.** `OutputPack`, `BuildGuide`,
+  `PartView`, `SheetView`, `Showroom`, `HardwarePanel`, `MeasureWizard`,
+  `Explain` and `DiagnosticDiagram` are covered by tests of what they *draw* —
+  `sheetViews.ts`, `export/part.ts`, `explain/`, `gallery/render.ts` — and by
+  the end-to-end walks that open them. The drawing is the part that would be
+  expensive to get wrong in plywood, and it is the part that is pinned; a
+  component test asserting a heading is present buys less than it costs to
+  keep in step.
+- **A keyboard route to a part on the sheet preview.** A nested part is
+  pickable by clicking its rectangle and by no key. The cut list directly
+  under it reaches the same part and names it, so twenty-one extra tab stops
+  per sheet would be a worse route, not a second one.
+- **`joinery.reliefStyle` under stopped-dado joinery.** It has no effect
+  there, which is the default; relief applies to tab-and-slot slots and tab
+  roots and nothing else. The control stays because it decides everything the
+  moment the joint changes, and the joinery section says so in a line rather
+  than leaving it silent.
 
 ---
 
@@ -2317,6 +2351,45 @@ keyboard-navigation pass R-23 deferred to here, for the same reason.
 Landing them as Playwright tests that assert the counts is what stops R-17's
 numbers rotting the first time somebody adds a control back.
 
+**Acceptance**
+
+- [x] Component tests for the shell R-17 landed — the inspector, the
+      workshop-settings drawer, the top bar and its export gate, the
+      diagnostics list, find-by-name, the starter gallery, the run strip,
+      the workshop view and the error boundary
+- [x] Playwright walks over all seven journeys, asserting the interaction
+      counts recorded in [UX.md](UX.md)
+- [x] The automated keyboard-navigation pass R-23 deferred here
+- [x] Both wired into CI, and [UX.md](UX.md) re-measured against what the
+      walks actually found
+
+**What it found.** Four things, three of them defects that had survived every
+by-hand pass because none of them is visible to somebody using a mouse and
+looking at the screen.
+
+- **No field label was tied to its control.** No `htmlFor`, no wrapping, on
+  every field in the inspector and the workshop drawer: a screen reader
+  announced *edit, 900* with no idea it was a width, and clicking the word did
+  nothing. Fixed in `Controls.tsx`.
+- **The info button was inside the label**, so every explained field named
+  itself "Bays, What this does". Fixed in the same place, and in
+  `OutputPack.tsx`, which had its own copy.
+- **Four controls had no accessible name at all** — the explode slider, the
+  section slider, and the two "name this…" fields. Found by listing what the
+  at-rest count was counting instead of only counting it.
+- **A build that threw hung the app.** The worker posted nothing, so the
+  client believed a build was still running for the rest of the session:
+  *updating…* for ever, export refused, nothing said. The worker now replies
+  with the reason and export is refused on the older project still on screen —
+  which is the half that matters, because exporting it would write the
+  previous parameters' geometry with nothing to say so.
+
+The at-rest control count also needed splitting in two — 26 on a browser that
+has never held a project, 23 once R-19's once-only suggestion line is spent —
+and the walks were running at 1280 × 720 rather than the 1440 × 900 every
+figure in [UX.md](UX.md) was measured at, because Playwright's
+`devices['Desktop Chrome']` carries a viewport of its own.
+
 ---
 
 ## Milestone G — Release
@@ -2324,12 +2397,37 @@ numbers rotting the first time somebody adds a control back.
 ### R-25 — 1.0 release
 `Milestone G` · `Depends on: everything above` · `Size: S`
 
-- [ ] Sample projects that load from the UI
-- [ ] A getting-started guide from parameters to cut parts
-- [x] Keyboard accessibility and a React error boundary — delivered by R-23
-- [ ] Every known gap in [ARCHITECTURE.md](ARCHITECTURE.md) either closed or
-      listed as a deliberate non-goal
-- [ ] Version bumped, tagged, deployed
+- [x] Sample projects that load from the UI — delivered by R-18's starter
+      gallery: five designs, each shown as a render of the project it loads,
+      opened automatically on a browser that has never held one. Each keeps
+      this shop's workshop settings rather than the one it was written on,
+      which `overlays.test.tsx` pins by measuring a sheet differently and
+      checking the number survives loading a bookcase
+- [x] A getting-started guide from parameters to cut parts —
+      [GETTING-STARTED.md](GETTING-STARTED.md), with
+      `apps/web/test/getting-started.test.ts` holding it to every claim it
+      makes that the pipeline can answer: the two errors a fresh project opens
+      with, quoted rather than paraphrased; that the first offered fix clears
+      them; the three shapes of file in the zip; every layer it tells you to
+      set a toolpath for; and that only a divider with shelves on both sides
+      has to be turned over
+- [x] Keyboard accessibility and a React error boundary — delivered by R-23,
+      and asserted for the first time by R-24, which found two defects that
+      had survived the by-hand pass: no field label was tied to its control,
+      and the info button inside each label made every explained field
+      announce itself as "Bays, What this does"
+- [x] Every known gap in [ARCHITECTURE.md](ARCHITECTURE.md) either closed or
+      listed as a deliberate non-goal — the web app's missing tests are
+      closed by R-24; the other three are recorded above under *Deliberately
+      not in 1.0*, each with its reason. README's own list was stale in both
+      directions and is now *Known limits*
+- [x] Version bumped — 1.0.0 in all three `package.json` files and in the
+      lockfile, and the version line in [README](../README.md) and at the top
+      of this file
+- [ ] Tagged and deployed — both happen on `main`, not on the branch this was
+      worked on. `.github/workflows/pages.yml` deploys every push to `main`,
+      so merging releases it; the tag is `git tag -a v1.0.0` on the merge
+      commit
 
 ---
 

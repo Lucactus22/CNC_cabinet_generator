@@ -6,3 +6,5 @@ dist/
 coverage/
 scratch/
 *.tsbuildinfo
+test-results/
+playwright-report/

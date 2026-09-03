@@ -50,6 +50,10 @@ export function OutputPack() {
         >
           Export DXF
         </button>
+        {/* The info button is outside the label on purpose. Inside it, its own
+            name becomes part of the checkbox's: this announced itself as
+            "safe layer names, What this does". Same reasoning as `FieldLabel`
+            in Controls.tsx. */}
         <label
           className="pill toggle"
           title="Writes POCKET_D6P35 instead of POCKET_D6.35, for importers that dislike dots."
@@ -60,8 +64,8 @@ export function OutputPack() {
             onChange={(e) => setSafeNames(e.target.checked)}
           />
           safe layer names
-          <InfoTip text="Writes POCKET_D6P35 instead of POCKET_D6.35, for importers that dislike dots." />
         </label>
+        <InfoTip text="Writes POCKET_D6P35 instead of POCKET_D6.35, for importers that dislike dots." />
         <span className="hint" style={{ margin: 0 }}>
           {project.nest.sheets.length} sheets · {project.parts.length} parts ·{' '}
           {project.assembly.steps.length} steps

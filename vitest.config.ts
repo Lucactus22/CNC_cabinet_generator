@@ -1,10 +1,12 @@
 import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
+/**
+ * What both runs share. Which files run where, and in what environment, is in
+ * `vitest.workspace.ts` — the component tests need a DOM and these do not.
+ */
 export default defineConfig({
   test: {
-    include: ['packages/*/test/**/*.test.ts', 'apps/*/test/**/*.test.ts'],
-    environment: 'node',
     // Off by default, which replaces every CSS import with an empty string.
     // `apps/web/test/contrast.test.ts` checks both palettes by reading the
     // real stylesheet (`?raw`), and an empty string would pass every
