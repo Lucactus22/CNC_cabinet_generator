@@ -2424,12 +2424,24 @@ figure in [UX.md](UX.md) was measured at, because Playwright's
 - [x] Version bumped — 1.0.0 in all three `package.json` files and in the
       lockfile, and the version line in [README](../README.md) and at the top
       of this file
-- [x] Tagged and deployed — both on `main` rather than on the branch this was
-      worked on. Merging PR #27 ran `.github/workflows/pages.yml`, which is
-      what puts a build on the site, and `v1.0.0` is an annotated tag on that
-      merge commit. The tag deliberately points at the merge rather than at
-      this line being ticked: it marks the code that was released, and the
-      tick is bookkeeping written afterwards
+- [x] **Deployed.** Merging PR #27 ran `.github/workflows/pages.yml` on the
+      merge commit `9b20f15`, which is what puts a build on the site. That is
+      also the last commit CI ran green on — lint, three typechecks, 944
+      tests and the 17 end-to-end walks
+- [ ] **Tagged.** One command, and it needs a maintainer:
+
+      ```bash
+      git tag -a v1.0.0 9b20f15 -m "1.0"
+      git push origin v1.0.0
+      ```
+
+      The tag belongs on the merge commit rather than on any later commit,
+      because that is the code that was released; ticking these boxes is
+      bookkeeping written afterwards. Left undone here rather than quietly
+      skipped: pushing `refs/tags/*` is refused for the credential these
+      sessions run under — `HTTP 403`, while a branch push to the same remote
+      minutes earlier succeeded — so it is a permission, not a mistake to
+      retry
 
 ---
 
