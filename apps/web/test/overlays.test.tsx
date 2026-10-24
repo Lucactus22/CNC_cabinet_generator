@@ -8,6 +8,7 @@ import { StarterGallery } from '../src/gallery/StarterGallery';
 import { WorkshopDrawer } from '../src/components/WorkshopDrawer';
 import { defaultParams, type ProjectParams } from '@cabgen/core';
 import { useStore } from '../src/store';
+import { applyWorkshop, workshopOf } from '../src/workshop';
 import { resetStore, settled } from './setup/harness';
 
 /**
@@ -208,6 +209,47 @@ describe('the workshop drawer', () => {
     expect(screen.getByText('Machine')).toBeTruthy();
     // The carcass's own dimensions belong to the selection, not in here.
     expect(screen.queryByLabelText('Depth')).toBeNull();
+  });
+
+  it('lists the bits in the drawer, and takes the size of the one you pick', async () => {
+    // The cutter diameter is what every dogbone and notch is drawn for, so
+    // choosing a bit has to change it, not just highlight a row.
+    await resetStore();
+    act(() => {
+      useStore.setState({ workshopOpen: true });
+      useStore.getState().update((p) => {
+        p.tool.diameter = 8;
+        p.tool.fluteLength = 20;
+      });
+    });
+    await settled();
+    render(<WorkshopDrawer />);
+
+    expect(screen.getByText(/SpeTool 2-flute downcut spiral/)).toBeTruthy();
+    expect(screen.getByText(/WSOOX spoilboard surfacing bit/)).toBeTruthy();
+    // A surfacing bit is never offered for a part, and neither is a bit whose
+    // size nobody stated.
+    expect(screen.getAllByRole('button', { name: /Use this size/ })).toHaveLength(2);
+
+    await userEvent.click(screen.getAllByRole('button', { name: /Use this size/ })[0]!);
+    await settled();
+
+    const { tool } = useStore.getState().params;
+    expect([tool.diameter, tool.fluteLength]).toEqual([6, 24]);
+  });
+
+  it('keeps the flute length when an older saved shop does not have one', async () => {
+    await resetStore();
+    act(() => {
+      const old = structuredClone(useStore.getState().params) as ProjectParams;
+      delete (old.tool as Partial<typeof old.tool>).fluteLength;
+      delete (old.machine as Partial<typeof old.machine>).name;
+      useStore.getState().update((p) => void applyWorkshop(p, workshopOf(old)));
+    });
+    await settled();
+    const { tool, machine } = useStore.getState().params;
+    expect(tool.fluteLength).toBe(24);
+    expect(machine.name).toBe('Twotrees TTC-H40');
   });
 
   /**

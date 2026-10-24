@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ProjectParams } from '@cabgen/core';
+import type { ProjectParams, ToolBit } from '@cabgen/core';
 import { useStore } from '../store';
 import {
   ActionField,
@@ -157,6 +157,12 @@ function Machine() {
 
   return (
     <Group title="Machine" open>
+      <TextField
+        label="Machine name"
+        value={machine.name}
+        param="machine.name"
+        onChange={(v) => set((m) => void (m.name = v))}
+      />
       <NumberField
         label="X travel"
         value={machine.travelX}
@@ -230,6 +236,19 @@ function Tooling() {
         title="Sets relief sizes and the spacing between nested parts."
       />
       <NumberField
+        label="Flute length"
+        value={tool.fluteLength}
+        step={1}
+        min={1}
+        param="tool.fluteLength"
+        onChange={(v) =>
+          update((p) => {
+            p.tool.fluteLength = v;
+          })
+        }
+        title="How much of the cutter can cut. Stock thicker than this cannot be cut through."
+      />
+      <NumberField
         label="Drill diameter"
         value={tool.drillDiameter}
         step={0.5}
@@ -242,7 +261,64 @@ function Tooling() {
         }
         title="The separate bit for shelf-pin rows: 5 mm under the 32 mm system."
       />
+      <BitDrawer />
     </Group>
+  );
+}
+
+const KIND_NAME: Record<ToolBit['kind'], string> = {
+  upcut: 'Upcut spiral',
+  downcut: 'Downcut spiral',
+  'v-groove': 'V-groove',
+  'tapered-ball': 'Tapered ball nose',
+  surfacing: 'Surfacing',
+};
+
+/** A spiral with a stated diameter and flute length is one the pipeline can profile with. */
+const canProfile = (b: ToolBit): boolean =>
+  (b.kind === 'upcut' || b.kind === 'downcut') &&
+  b.diameter !== undefined &&
+  b.fluteLength !== undefined;
+
+/**
+ * What the shop owns.
+ *
+ * Choosing a spiral copies its size into the cutter fields above rather than
+ * pointing at it: the cutter diameter is a plain number the joinery reads, so
+ * measuring a bit with calipers and typing the real figure still works. Which
+ * way the flutes spiral is not recorded, because nothing here sees it — the
+ * DXF is the same for an upcut and a downcut, and the choice is made in CAM.
+ */
+function BitDrawer() {
+  const tool = useStore((s) => s.params.tool);
+  const update = useStore((s) => s.update);
+  return (
+    <ActionField param="tool.bits" className="bit-drawer">
+      <strong>Bits in the drawer</strong>
+      {tool.bits.map((b) => (
+        <div key={b.id} className="bit">
+          <b>{b.name}</b>
+          <span>
+            {KIND_NAME[b.kind]} ·{' '}
+            {b.diameter === undefined ? 'measure the cutter' : `${b.diameter} mm cutter`}
+            {b.fluteLength !== undefined && ` · ${b.fluteLength} mm flutes`} · {b.shank} mm shank
+          </span>
+          <p className="hint">{b.use}</p>
+          {canProfile(b) && (
+            <button
+              onClick={() =>
+                update((p) => {
+                  p.tool.diameter = b.diameter!;
+                  p.tool.fluteLength = b.fluteLength!;
+                })
+              }
+            >
+              Use this size
+            </button>
+          )}
+        </div>
+      ))}
+    </ActionField>
   );
 }
 

@@ -7,6 +7,7 @@ import type {
   ProjectParams,
   Material,
   StockMaterial,
+  ToolBit,
 } from './types.js';
 import { defaultOpening } from './opening.js';
 import { defaultHardware } from '../hardware/catalogue.js';
@@ -14,6 +15,70 @@ import { defaultHardware } from '../hardware/catalogue.js';
 export const MATERIAL_CARCASS = 'ply18';
 export const MATERIAL_BACK = 'ply12';
 export const MATERIAL_STOCK = 'stock19';
+
+export const BIT_UPCUT = 'bit-upcut-6x24';
+export const BIT_DOWNCUT = 'bit-downcut-6x24';
+
+/**
+ * The bits in the shop's drawer: two SpeTool 6 mm-shank spiral end mills, a
+ * SpeTool four-piece carving set, and a WSOOX spoilboard surfacing bit.
+ *
+ * Only what a listing states is entered. The 6 mm cutting diameter of the two
+ * spirals is the usual one for a 6 mm shank and 24 mm cut length, not a figure
+ * the listings print, so it is worth a pass with calipers. The set's bits give
+ * no diameter at all: they are carving tools, and nothing here cuts a V-carve.
+ */
+export function defaultToolBits(): ToolBit[] {
+  return [
+    {
+      id: BIT_UPCUT,
+      name: 'SpeTool 2-flute upcut spiral',
+      kind: 'upcut',
+      diameter: 6,
+      fluteLength: 24,
+      shank: 6,
+      use: 'Dados, pockets and profiles: lifts chips out of the cut, which keeps deep grooves clear. Can lift the top veneer of plywood.',
+    },
+    {
+      id: BIT_DOWNCUT,
+      name: 'SpeTool 2-flute downcut spiral',
+      kind: 'downcut',
+      diameter: 6,
+      fluteLength: 24,
+      shank: 6,
+      use: 'Clean top face on plywood: presses the veneer down. Packs chips into deep grooves, so take them in passes.',
+    },
+    {
+      id: 'bit-set-upcut',
+      name: 'SpeTool 4-piece set: 2-flute upcut spiral',
+      kind: 'upcut',
+      shank: 6,
+      use: 'Measure its cutting diameter and flutes before profiling with it.',
+    },
+    {
+      id: 'bit-set-vgroove',
+      name: 'SpeTool 4-piece set: V-groove bits',
+      kind: 'v-groove',
+      shank: 6,
+      use: 'Engraving and chamfers. This app cuts no V-carve.',
+    },
+    {
+      id: 'bit-set-taper',
+      name: 'SpeTool 4-piece set: tapered ball nose',
+      kind: 'tapered-ball',
+      shank: 6,
+      use: '3D carving. This app cuts none.',
+    },
+    {
+      id: 'bit-surfacing-25',
+      name: 'WSOOX spoilboard surfacing bit',
+      kind: 'surfacing',
+      diameter: 25.4,
+      shank: 6,
+      use: 'Flattening the spoilboard so every sheet lies at the same height. Never used on a part.',
+    },
+  ];
+}
 
 /** Off by default: only a wall cabinet has anything to hang from. */
 export function defaultHangingRail(): HangingRailSpec {
@@ -271,9 +336,16 @@ export function defaultParams(): ProjectParams {
     drawerBoxMaterialId: MATERIAL_BACK,
     tool: {
       diameter: 6,
+      fluteLength: 24,
       drillDiameter: 5,
+      bits: defaultToolBits(),
     },
     machine: {
+      // The Twotrees TTC-H40's work surface as 3djake.com lists it:
+      // 1000 x 1000 x 100 mm. The listing gives the surface and no axis
+      // travels, so the Z of 100 is a work height, not a measured stroke.
+      // Measure what the gantry reaches before trusting the last millimetre.
+      name: 'Twotrees TTC-H40',
       travelX: 1000,
       travelY: 1000,
       travelZ: 100,

@@ -277,9 +277,29 @@ what you have actually asked for:
 - Sheets longer than the machine are split into feed-through tiles, and you get
   **one DXF per tile** with coordinates zeroed to that tile's origin.
 
+The shop ships set up for a **Twotrees TTC-H40**: 1000 × 1000 × 100 mm, the work
+area retailers list. Its makers publish the bed rather than the axis travels, so
+measure what the gantry really reaches before trusting the last millimetre.
+
 There is a **Set sheets to machine size** button. On a small machine, nesting
 into blanks the size of your bed usually beats tiling: more sheets, but no
 registration, no seams, and no chance of drift.
+
+### Tooling
+
+The cutter diameter and **flute length** describe the bit that profiles your
+parts. The flute length is a limit, not a note: stock thicker than the flutes
+cannot be cut through, and the app says which material and which parts.
+
+The **bits in the drawer** list what the shop owns — two SpeTool 6 mm-shank
+spirals (upcut and downcut, 24 mm flutes), a SpeTool four-piece carving set, and
+a WSOOX 1 in spoilboard surfacing bit. **Use this size** on a spiral copies its
+diameter and flute length into the cutter. Upcut against downcut is not recorded:
+the DXF is identical either way, and which to run is a decision for your CAM. The carving bits and the
+surfacing bit are recorded but never used: this app cuts no V-carve, and the
+surfacing bit is for flattening the spoilboard, not for parts. The listings give
+shank and cut length but not a cutting diameter, so check the spirals' 6 mm with
+calipers.
 
 ### Sheet stock: sizes and remnants
 
