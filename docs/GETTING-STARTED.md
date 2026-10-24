@@ -55,14 +55,17 @@ all have to fit each other.
 
 Enter, in this order:
 
-1. **Machine** — travels in X and Y, and the feed-through axis.
+1. **Machine** — travels in X and Y, and the feed-through axis. It starts as a
+   Twotrees TTC-H40, 1000 × 1000 × 100 mm.
 2. **Sheets** — for each material, the real measured thickness from above, and
    the sheet sizes you can actually buy or already have. A *standard* size has
    no quantity: you can always order another. A *remnant* has a fixed count —
    however many are leaning against the wall — and gets spent first, smallest
    first, before a fresh sheet is opened.
-3. **Tooling** — cutter diameter, and the fit clearance your test joints came
-   out at.
+3. **Tooling** — cutter diameter, its flute length (stock thicker than that
+   cannot be cut through), and the fit clearance your test joints came out at.
+   The bits you own are listed under it; **Use this size** on a spiral copies
+   its size into the cutter.
 4. **Hardware** — which hinge, which drawer slide, which shelf pin. Every
    dimension of the boring comes from the catalogue entry, so this is the one
    place that decides where a 35 mm cup lands.

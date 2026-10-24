@@ -116,14 +116,47 @@ export interface BandedEdge {
   length: number;
 }
 
+export type BitKind = 'upcut' | 'downcut' | 'v-groove' | 'tapered-ball' | 'surfacing';
+
+/**
+ * One bit in the shop's drawer.
+ *
+ * `diameter` and `fluteLength` are optional because a listing does not always
+ * say: a V-groove bit has no single cutting diameter worth entering, and a
+ * mixed set's tapered bit is measured at the tip. An entry with no diameter is
+ * a bit the shop owns, not one the pipeline can profile with.
+ */
+export interface ToolBit {
+  id: string;
+  name: string;
+  kind: BitKind;
+  /** Cutting diameter, mm. */
+  diameter?: number;
+  /** How deep the flutes can cut before the shank rubs, mm. */
+  fluteLength?: number;
+  /** Shank diameter, mm: has to match the collet. */
+  shank: number;
+  /** What it is for in this shop, in a sentence. */
+  use: string;
+}
+
 export interface ToolSpec {
   /** Main profiling/pocketing cutter. */
   diameter: number;
+  /**
+   * How much of the main cutter can cut, mm. Stock thicker than this cannot be
+   * profiled through in one pass, however deep the Z axis reaches.
+   */
+  fluteLength: number;
   /** Separate bit for shelf pin rows, 5 mm under the 32 mm system. */
   drillDiameter: number;
+  /** Everything in the drawer. Only the main cutter above is machined with. */
+  bits: ToolBit[];
 }
 
 export interface MachineSpec {
+  /** What the machine is called, so a saved shop says whose bed these travels are. */
+  name: string;
   travelX: number;
   travelY: number;
   travelZ: number;

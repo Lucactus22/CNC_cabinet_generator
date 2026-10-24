@@ -73,8 +73,12 @@ export function applyWorkshop(params: ProjectParams, settings: WorkshopSettings)
   }
 
   const next = structuredClone(settings);
-  params.machine = next.machine;
-  params.tool = next.tool;
+  // Merged over what the project already has rather than assigned: a shop
+  // saved before the machine had a name, or the cutter a flute length, would
+  // otherwise leave those fields undefined and the flute check comparing
+  // against nothing.
+  params.machine = { ...params.machine, ...next.machine };
+  params.tool = { ...params.tool, ...next.tool };
   params.nesting = next.nesting;
   params.materials = next.materials;
   params.stockMaterials = next.stockMaterials;
