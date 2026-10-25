@@ -1,3 +1,5 @@
+import type { DoorFit } from '../model/types.js';
+
 /**
  * The hardware catalogue.
  *
@@ -78,6 +80,13 @@ export interface EntryBase {
 export interface HingeEntry extends EntryBase {
   kind: 'hinge';
   boring: HingeSpec;
+  /**
+   * The door fit the hinge arm is cranked for. The cup boring is the same
+   * either way, which is exactly why this has to be said: an overlay hinge
+   * on an inset door bores perfectly and then holds the door out proud of
+   * the opening it was meant to close into.
+   */
+  application: DoorFit;
   /**
    * The maker's published range for the door edge to the near edge of the cup.
    *
@@ -164,10 +173,21 @@ export interface SlideBoring {
   bottomRecess: number;
   /** Width of the notch cut into each rear corner of the box bottom, clearing the locking device. */
   bottomNotchWidth: number;
-  /** Mounting screw clearance diameter, box side and cabinet side alike. */
-  screwDiameter: number;
-  /** How far in from each end of the runner the mounting screws sit. */
-  mountInset: number;
+  /**
+   * The holes the runner's cabinet member is screwed into with system
+   * screws. Blind: an outer carcass side is a finished face, and a hole
+   * through it shows. Wood screws need no hole at all, so these are what the
+   * maker's own system screw is pushed into, not a clearance hole.
+   */
+  screwHoleDiameter: number;
+  screwHoleDepth: number;
+  /**
+   * Where the runner's screws go along the cabinet side, per running length,
+   * measured back from the front of the drawer box — which is the cabinet's
+   * front edge under overlay, the maker's own reference. A length with no
+   * row here is not bored, and the project says so.
+   */
+  screwPositions: Array<{ length: number; at: number[] }>;
 }
 
 export interface SlideEntry extends EntryBase {
@@ -216,6 +236,7 @@ export const HINGE_UTRUSTA: HingeEntry = {
     endOffset: 76.2,
     ...EURO_PLATE,
   },
+  application: 'overlay',
   boringDistanceRange: { min: 3, max: 6 },
   requires: [
     {
@@ -243,6 +264,7 @@ export const HINGE_BLUM_CLIP_TOP: HingeEntry = {
     endOffset: 76.2,
     ...EURO_PLATE,
   },
+  application: 'overlay',
   boringDistanceRange: { min: 3, max: 7 },
   requires: [
     {
@@ -252,6 +274,35 @@ export const HINGE_BLUM_CLIP_TOP: HingeEntry = {
       why: "Blum's minimum-reveal table stops at 26 mm, and past that they ask for a trial fit rather than publishing a number",
     },
   ],
+};
+
+/**
+ * The same CLIP top BLUMOTION 110° with its arm cranked for an inset door.
+ *
+ * Blum's 71B3750 datasheet: "Cranking: Inset application", 35 mm boss
+ * drilling 13 mm deep, fixing holes 45 mm apart and 9.5 mm eccentric to the
+ * cup, drilling distance 3-7 mm — the cup boring of the overlay hinge above,
+ * which is why the two are told apart by `application` and not by any hole.
+ * The sheet publishes no door-thickness range, so none is claimed here.
+ */
+export const HINGE_BLUM_CLIP_TOP_INSET: HingeEntry = {
+  kind: 'hinge',
+  id: 'blum-clip-top-blumotion-inset',
+  name: 'Blum CLIP top BLUMOTION 110° inset (71B37xx)',
+  source:
+    "Blum's 71B3750 datasheet: inset application, 35 mm boss drilling 13 mm deep, 45 mm between fixing holes, 9.5 mm eccentric, drilling distance 3-7 mm.",
+  boring: {
+    cupDiameter: 35,
+    cupDepth: 13,
+    boringDistance: 5,
+    ...EURO_DOWELS,
+    dowelDepth: 13,
+    endOffset: 76.2,
+    ...EURO_PLATE,
+  },
+  application: 'inset',
+  boringDistanceRange: { min: 3, max: 7 },
+  requires: [],
 };
 
 export const HINGE_HETTICH_SENSYS: HingeEntry = {
@@ -273,6 +324,7 @@ export const HINGE_HETTICH_SENSYS: HingeEntry = {
   // distance range on the product sheet, so this is the range the 110° overlay
   // family is commonly set out to. It only ever produces a warning, never a
   // hole, so a conservative assumption here cannot cut anything wrong.
+  application: 'overlay',
   boringDistanceRange: { min: 3, max: 6 },
   requires: [
     {
@@ -365,6 +417,32 @@ export const HANDLE_KNOB: HandleEntry = {
 };
 
 /**
+ * Blum's own runner screw positions for panel (frameless) cabinets, the same
+ * on the 563H sheet ("TANDEM plus BLUMOTION 563H", (c) 2013 Blum, Inc.) and
+ * the 563F one ((c) 2012): a front screw at the 37 mm mounting position, then
+ * two more for each runner length, every one on the 32 mm system line
+ * (37 + 32n). Measured from the cabinet face with the runner at its standard
+ * 3 mm setback. The 563H sheet gives them as spacings — 96/96, 128/96,
+ * 128/192, 224/192, 224/256 — which add up to these.
+ */
+const TANDEM_SCREW_POSITIONS = [
+  { length: 229, at: [37, 133, 229] },
+  { length: 305, at: [37, 165, 261] },
+  { length: 381, at: [37, 165, 357] },
+  { length: 457, at: [37, 261, 453] },
+  { length: 533, at: [37, 261, 517] },
+];
+
+/**
+ * Blum lists both a #6 wood screw (606N/606P), which needs no hole, and a
+ * system screw, 662.1150.HG, for mounting the runner to the cabinet side.
+ * The system screw is 11.5 mm long and made for pre-drilled 5 mm holes
+ * (Blum catalogue 2024/25, system screws), so the hole is the 32 mm system's
+ * own 5 mm one, 12 mm deep — the same as a hinge plate's — and never through.
+ */
+const TANDEM_SCREW_HOLES = { screwHoleDiameter: 5, screwHoleDepth: 12 } as const;
+
+/**
  * Blum TANDEM plus BLUMOTION 563H: undermount, full-extension, soft-close,
  * for 12-16 mm (15/32-5/8 in) drawer sides. IKEA MAXIMERA follows the same
  * 42 mm deduction.
@@ -396,11 +474,8 @@ export const SLIDE_BLUM_TANDEM_H: SlideEntry = {
     lengthClearance: 40,
     bottomRecess: 13,
     bottomNotchWidth: 35,
-    screwDiameter: 4.5,
-    // Blum's own screw-location table varies by runner length in a way that
-    // does not reduce to one offset; this is a generic, symmetric stand-in,
-    // not a transcription of that table. See docs/DRAWERS.md.
-    mountInset: 25,
+    ...TANDEM_SCREW_HOLES,
+    screwPositions: TANDEM_SCREW_POSITIONS,
   },
   requires: [
     {
@@ -438,8 +513,8 @@ export const SLIDE_BLUM_TANDEM_F: SlideEntry = {
     lengthClearance: 40,
     bottomRecess: 13,
     bottomNotchWidth: 35,
-    screwDiameter: 4.5,
-    mountInset: 25,
+    ...TANDEM_SCREW_HOLES,
+    screwPositions: TANDEM_SCREW_POSITIONS,
   },
   requires: [
     {
@@ -460,6 +535,7 @@ export const SLIDE_BLUM_TANDEM_F: SlideEntry = {
 export const CATALOGUE: HardwareEntry[] = [
   HINGE_UTRUSTA,
   HINGE_BLUM_CLIP_TOP,
+  HINGE_BLUM_CLIP_TOP_INSET,
   HINGE_HETTICH_SENSYS,
   PIN_5MM,
   PIN_QUARTER_INCH,
@@ -620,6 +696,7 @@ export function copyEntry(source: HardwareEntry, existing: HardwareEntry[]): Har
       ...head,
       kind: 'hinge',
       boring: { ...source.boring },
+      application: source.application,
       boringDistanceRange: { ...source.boringDistanceRange },
     };
   }
@@ -629,9 +706,16 @@ export function copyEntry(source: HardwareEntry, existing: HardwareEntry[]): Har
     return {
       ...head,
       kind: 'slide',
-      // The nested array needs its own copy too, or editing the copy's
+      // The nested arrays need their own copies too, or editing the copy's
       // lengths would edit the shipped entry's right along with it.
-      boring: { ...source.boring, nominalLengths: [...source.boring.nominalLengths] },
+      boring: {
+        ...source.boring,
+        nominalLengths: [...source.boring.nominalLengths],
+        screwPositions: source.boring.screwPositions.map((r) => ({
+          length: r.length,
+          at: [...r.at],
+        })),
+      },
     };
   }
   return { ...head, kind: 'handle', boring: { ...source.boring } };
@@ -721,8 +805,8 @@ const SLIDE_KEYS = [
   'lengthClearance',
   'bottomRecess',
   'bottomNotchWidth',
-  'screwDiameter',
-  'mountInset',
+  'screwHoleDiameter',
+  'screwHoleDepth',
 ] as const;
 
 const ALL_MEASURES: HardwareMeasure[] = [
@@ -767,6 +851,9 @@ export function readEntry(raw: unknown): HardwareEntry | null {
       ...head,
       kind: 'hinge',
       boring: boring as unknown as HingeSpec,
+      // Describes rather than cuts — the plates follow the door, not the
+      // hinge — and every hinge before entries carried it was an overlay one.
+      application: e.application === 'inset' ? 'inset' : 'overlay',
       // 3-8 mm is what this generator accepted before entries carried a range
       // of their own, so it is the safe thing to assume of one that does not.
       boringDistanceRange: {
@@ -792,7 +879,9 @@ export function readEntry(raw: unknown): HardwareEntry | null {
     hasNumbers(boring, SLIDE_KEYS) &&
     Array.isArray(boring.nominalLengths) &&
     boring.nominalLengths.length > 0 &&
-    boring.nominalLengths.every((n) => typeof n === 'number' && Number.isFinite(n))
+    boring.nominalLengths.every((n) => typeof n === 'number' && Number.isFinite(n)) &&
+    Array.isArray(boring.screwPositions) &&
+    boring.screwPositions.every(isScrewRow)
   ) {
     return {
       ...head,
@@ -800,10 +889,22 @@ export function readEntry(raw: unknown): HardwareEntry | null {
       boring: {
         ...(boring as unknown as SlideBoring),
         nominalLengths: (boring.nominalLengths as number[]).slice(),
+        screwPositions: (boring.screwPositions as SlideBoring['screwPositions']).map((r) => ({
+          length: r.length,
+          at: r.at.slice(),
+        })),
       },
     };
   }
   return null;
+}
+
+const finite = (n: unknown): boolean => typeof n === 'number' && Number.isFinite(n);
+
+function isScrewRow(raw: unknown): boolean {
+  if (!raw || typeof raw !== 'object') return false;
+  const r = raw as Record<string, unknown>;
+  return finite(r.length) && Array.isArray(r.at) && r.at.every(finite);
 }
 
 function hasNumbers(o: Record<string, unknown> | undefined, keys: readonly string[]): boolean {

@@ -84,7 +84,10 @@ export function DrawingSvg({
             x={t.x}
             y={t.y}
             fontSize={t.height * 1.6}
-            transform={`translate(0, ${2 * t.y}) scale(1, -1)`}
+            // Un-flip the glyphs against the drawing's Y-up frame first, then
+            // turn them with the part, about the same insertion point the DXF
+            // TEXT entity turns about.
+            transform={`rotate(${t.rotation ?? 0} ${t.x} ${t.y}) translate(0, ${2 * t.y}) scale(1, -1)`}
             style={{ fill: 'var(--layer-label)', fontFamily: 'ui-monospace, monospace' }}
           >
             {t.text}

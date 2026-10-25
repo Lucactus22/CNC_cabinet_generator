@@ -138,6 +138,8 @@ function readHardware(input: Record<string, unknown>, base: ProjectParams): Hard
         name: 'Hinge from this project',
         source: 'Carried over from a project saved before hardware was a catalogue.',
         boring,
+        // The only hinge this generator had then was an overlay one.
+        application: 'overlay',
         // The old code accepted 3-8 mm whatever the hinge was, so that is the
         // range this project was working to and the one it keeps.
         boringDistanceRange: { min: 3, max: 8 },

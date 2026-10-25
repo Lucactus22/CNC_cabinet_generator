@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import {
   composeSheet,
   defaultExportOptions,
+  machiningReach,
   planTiles,
   type DxfDrawing,
   type NestedSheet,
@@ -29,7 +30,12 @@ export function useSheetViews(project: ProjectResult): SheetViewItem[] {
   return useMemo(() => {
     const opts = defaultExportOptions();
     const tilesFor = (sheet: NestedSheet): TilePlan | null =>
-      planTiles(sheet.contentLength, sheet.width, params.machine, params.nesting.sheetMargin);
+      planTiles(
+        machiningReach(sheet, parts),
+        sheet.width,
+        params.machine,
+        params.nesting.sheetMargin,
+      );
     return [
       ...nest.sheets.map((sheet): SheetViewItem => ({
         sheet,

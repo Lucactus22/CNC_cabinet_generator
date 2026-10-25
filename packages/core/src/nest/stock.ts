@@ -64,7 +64,13 @@ export function nestStock(params: ProjectParams, parts: Part[]): NestResult {
         sheets.push(board);
       }
       const x = board.parts.length === 0 ? 0 : board.contentLength + gap;
-      board.parts.push({ partId: part.id, x, y: 0, rotated: false, w: len, h: width });
+      // A board is only ever cut to length, so a part lies with its length
+      // along it whichever way its own outline was drawn. A stile is drawn
+      // standing up — its length is its local height — and placed unturned it
+      // would stand 700-odd mm across a 140 mm board.
+      const bb = bboxOf(part.outline);
+      const rotated = bb.maxY - bb.minY > bb.maxX - bb.minX;
+      board.parts.push({ partId: part.id, x, y: 0, rotated, w: len, h: width });
       board.contentLength = x + len;
     }
   }

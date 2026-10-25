@@ -19,10 +19,10 @@ export interface PartLabel {
   length: number;
   width: number;
   /**
-   * Which face carries the machining that forces an orientation — the same
-   * face the engraved ID goes on, when labels are engraved (see
-   * `joinery/index.ts`'s `materialise`). 'either' when nothing on the part
-   * cares which way up it sits, e.g. a plain, unmachined blank.
+   * Which face carries the machining that forces an orientation. 'either'
+   * when nothing on the part cares which way up it sits, e.g. a plain,
+   * unmachined blank. Not where the engraved ID is: that is always face A
+   * (see `joinery/index.ts`'s `materialise`).
    */
   faceUp: FaceSide | 'either';
   /** True when the part is machined on both faces and has to be turned over mid-job. */

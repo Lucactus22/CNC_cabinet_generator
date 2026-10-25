@@ -204,7 +204,7 @@ describe('upper carcass with no bottom panel', () => {
   });
 
   it('says the base top now needs turning over', () => {
-    const flip = project.diagnostics.find((d) => d.message.includes('turned over'));
+    const flip = project.diagnostics.find((d) => d.message.includes('turned over on the bed'));
     expect(flip?.message).toContain('C1-B-TOP');
     expect(project.notes.some((n) => n.includes('no bottom panel'))).toBe(true);
   });

@@ -14,7 +14,8 @@ reads as one continuous front with an even reveal throughout. Vertically it
 stops under the top panel — on a capped carcass that is the visible ledge — and
 above the toe kick.
 
-**Inset** sits the door inside the opening with a clearance all round.
+**Inset** sits the door inside the opening with a clearance all round, its
+front flush with the carcass front, on a hinge made for inset doors.
 
 A pair splits its bay down the middle with a reveal between, hinged on the
 outside edges.
@@ -77,6 +78,18 @@ assumes. Assign a drill operation to it instead if you would rather bore it.
 The mounting plates get two Ø5 mm holes on the 32 mm system: 37 mm in from the
 front edge, 32 mm apart, centred on each hinge. They land on the panel's inner
 face, which is already the face being machined, so they cost no extra setup.
+
+The 37 mm is really measured from the **back of the door**, which under overlay
+is the carcass front. An inset door's back is its own thickness further in, so
+under inset the plate line moves back by the door's thickness — 54.8 mm with
+the default 17.8 mm door — and keeps the same relationship to the door the arm was
+designed around. That is this generator's own derivation, not a figure off a
+sheet; one plate table quoted by a stockist adds a further 1.5 mm of clearance.
+Hang one door before boring a run.
+
+Inset doors also need a hinge made for them — see [HARDWARE.md](HARDWARE.md),
+*Overlay or inset*. An overlay hinge on an inset door is an error, not a
+warning.
 
 ### In a face frame
 

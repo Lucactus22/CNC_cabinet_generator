@@ -1,4 +1,11 @@
-import { bboxOf, buildOutline, relieveCorners } from '../geom/index.js';
+import {
+  bboxOf,
+  buildOutline,
+  pointInPath,
+  relieveCorners,
+  tessellate,
+  type Path,
+} from '../geom/index.js';
 import type {
   Assembly,
   ProjectParams,
@@ -80,7 +87,7 @@ export interface JoineryResult extends Assembly {
  */
 export function generate(params: ProjectParams): JoineryResult {
   const built = buildParts(params);
-  const warnings = applyJoinery(params, built);
+  const warnings = [...built.warnings, ...applyJoinery(params, built)];
   // Effects run last: they need the finished blank and the region of it that
   // stays visible, and they only ever add features on top.
   warnings.push(...applyEffects(params, built.parts).warnings);
@@ -277,24 +284,81 @@ function materialise(
   draft.part.height = bb.maxY - bb.minY;
 
   if (params.labelParts) {
-    // Put the label on whichever face is already being worked, so it never
-    // becomes the reason a panel gets turned over.
-    const machined = draft.part.features.find(forcesFace);
     // A tapered blank has no material at the corner of its bounding box on the
     // sloping side, so the label is anchored to the rectangle that is inside
     // the part at every height. Engraved into thin air it would be cut across
     // the neighbouring part on the sheet.
-    const anchor = taper ? draft.exposed : { x: bb.minX, y: bb.minY };
-    const label: EngraveFeature = {
-      kind: 'engrave',
-      x: anchor.x + 12,
-      y: anchor.y + 12,
-      text: draft.part.id,
-      height: 8,
-      side: machined?.side ?? 'A',
-    };
-    draft.part.features.push(label);
+    const room = taper
+      ? draft.exposed
+      : { x: bb.minX, y: bb.minY, w: bb.maxX - bb.minX, h: bb.maxY - bb.minY };
+    draft.part.features.push(placeLabel(draft.part.id, room, outline));
   }
+}
+
+/**
+ * Where a part's id is engraved: along the blank's longer side, 12 mm in, at
+ * the first corner where the whole of it lands on the part.
+ *
+ * Along the longer side, or a stile 44 mm wide carries a 60 mm label straight
+ * off its edge. Corner by corner, because the obvious one is not always
+ * there: a side panel's front-bottom corner is the toe kick notch, and a
+ * label anchored there was engraved into the space where the notch was cut.
+ *
+ * Face A, always: it is cut in the first pass on every part, so the label is
+ * never the reason a panel is turned over. That is the inside of a carcass
+ * side and the back of a door, but not of every part — a shelf's face A is
+ * its top — and the layer is reference only unless someone chooses to
+ * engrave it.
+ */
+function placeLabel(
+  text: string,
+  room: { x: number; y: number; w: number; h: number },
+  outline: Path,
+): EngraveFeature {
+  const height = 8;
+  // Wider than any CAM font engraves, so a label that fits here fits there.
+  const length = text.length * height;
+  const runs = room.w >= room.h ? 'u' : 'v';
+  const [x0, y0, x1, y1] = [room.x, room.y, room.x + room.w, room.y + room.h];
+  // Run up the part, the letters stand towards its low-u edge, so the anchor
+  // sits one letter height further in to leave the same 12 mm.
+  const spots =
+    runs === 'u'
+      ? [
+          { x: x0 + 12, y: y0 + 12 },
+          { x: x0 + 12, y: y1 - 12 - height },
+          { x: x1 - 12 - length, y: y0 + 12 },
+          { x: x1 - 12 - length, y: y1 - 12 - height },
+        ]
+      : [
+          { x: x0 + 12 + height, y: y0 + 12 },
+          { x: x0 + 12 + height, y: y1 - 12 - length },
+          { x: x1 - 12, y: y0 + 12 },
+          { x: x1 - 12, y: y1 - 12 - length },
+        ];
+  const footprint = (a: { x: number; y: number }) =>
+    runs === 'u'
+      ? { x0: a.x, y0: a.y, x1: a.x + length, y1: a.y + height }
+      : { x0: a.x - height, y0: a.y, x1: a.x, y1: a.y + length };
+  const at = spots.find((a) => rectInside(outline, footprint(a))) ?? spots[0]!;
+  return { kind: 'engrave', x: at.x, y: at.y, text, height, side: 'A', runs };
+}
+
+/** Whether a rectangle lies wholly on the part: every corner in, and no corner of the part inside it. */
+export function rectInside(
+  outline: Path,
+  r: { x0: number; y0: number; x1: number; y1: number },
+): boolean {
+  const corners = [
+    { x: r.x0, y: r.y0 },
+    { x: r.x1, y: r.y0 },
+    { x: r.x0, y: r.y1 },
+    { x: r.x1, y: r.y1 },
+  ];
+  if (!corners.every((c) => pointInPath(outline, c))) return false;
+  return !tessellate(outline, 0.5).some(
+    (p) => p.x > r.x0 + 1e-6 && p.x < r.x1 - 1e-6 && p.y > r.y0 + 1e-6 && p.y < r.y1 - 1e-6,
+  );
 }
 
 /** Cut the toe kick out of a side panel's front bottom corner. */

@@ -1,0 +1,16 @@
+Tab and slot demo — before you cut
+==================================
+
+Read this before loading the first file. None of it is in the DXF files themselves.
+
+1. Sheet 1 is cut in 3 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.
+
+2. Sheet 1: C1-T-SIDE-L crosses a tile seam, so each tile carries only its own stretch of the profile, on OUTLINE_OPEN (THROUGH_OPEN for a cut-out). Cut an outline with the cutter on the right of the direction of travel and a cut-out with it on the left, and let each stop at the seam — closing it there would cut the part in two.
+
+3. Sheet 2 is cut in 3 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.
+
+4. Sheet 2: C1-T-SIDE-R, C1-T-DIV-1 cross a tile seam, so each tile carries only its own stretch of the profile, on OUTLINE_OPEN (THROUGH_OPEN for a cut-out). Cut an outline with the cutter on the right of the direction of travel and a cut-out with it on the left, and let each stop at the seam — closing it there would cut the part in two.
+
+5. Sheet 3 is cut in 3 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.
+
+6. Sheet 4 is cut in 2 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.

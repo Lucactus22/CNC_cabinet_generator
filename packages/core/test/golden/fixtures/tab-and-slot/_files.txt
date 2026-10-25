@@ -14,3 +14,4 @@ tab-and-slot-demo-sheet4.dxf
 tab-and-slot-demo-sheet4-tile1.dxf
 tab-and-slot-demo-sheet4-tile2.dxf
 tab-and-slot-demo-cutlist.csv
+tab-and-slot-demo-before-you-cut.txt

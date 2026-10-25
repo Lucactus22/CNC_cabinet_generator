@@ -6,7 +6,7 @@ import { checkHardware } from '../hardware/fit.js';
 import type { ProjectParams, Part, PocketFeature } from '../model/types.js';
 import type { NestResult } from '../nest/index.js';
 import { blankSize } from '../nest/index.js';
-import { tileCountFor } from './tiling.js';
+import { cutAfterTurning, machiningReach, tileCountFor } from './tiling.js';
 
 export type Severity = 'error' | 'warning' | 'info';
 
@@ -35,7 +35,7 @@ export type DiagnosticSpatial =
     }
   | {
       kind: 'sheet-tiles';
-      /** How far the parts on this sheet actually reach, along the feed axis. */
+      /** How far the machining on this sheet reaches along the feed axis, on either face. */
       length: number;
       width: number;
       /** How far the stock advances between setups. */
@@ -204,20 +204,35 @@ export function checkManufacturability(
     });
   }
   if (sheetGoesToTheRouter) {
+    const partById = new Map(parts.map((p) => [p.id, p]));
     for (const sheet of nest.sheets) {
-      const tiles = tileCountFor(params, sheet.contentLength);
+      // The same reach the export tiles to, so the count said here is the
+      // count of tile files that arrive.
+      const reach = machiningReach(sheet, parts);
+      const tiles = tileCountFor(params, reach);
       if (tiles > 1) {
+        const further =
+          reach > sheet.contentLength + 0.5
+            ? `, and ${reach.toFixed(0)} mm once it is turned over for the work on their second face`
+            : '';
+        // A sheet turned over partway goes through its tiles once a face.
+        const turned = sheet.parts.some((pl) =>
+          partById.get(pl.partId)?.features.some(cutAfterTurning),
+        );
+        const setups = turned
+          ? `${tiles} setups on each face, ${tiles * 2} in all`
+          : `${tiles} setups`;
         out.push({
           severity: 'warning',
           topic: 'machine',
-          message: `Sheet ${sheet.index + 1} has parts reaching ${sheet.contentLength.toFixed(0)} mm along its length, so it needs ${tiles} setups, feeding the stock through in the ${m.tilingAxis.toUpperCase()} direction.`,
+          message: `Sheet ${sheet.index + 1} has parts reaching ${sheet.contentLength.toFixed(0)} mm along its length${further}, so it needs ${setups}, feeding the stock through in the ${m.tilingAxis.toUpperCase()} direction.`,
           hint:
             params.nesting.strategy === 'material'
               ? 'Switch nesting to fewest setups, or set the sheet size to match your machine.'
               : 'Set the sheet size to match your machine to avoid tiling entirely.',
           spatial: {
             kind: 'sheet-tiles',
-            length: sheet.contentLength,
+            length: reach,
             width: sheet.width,
             step,
             tiles,

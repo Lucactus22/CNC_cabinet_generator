@@ -1,0 +1,22 @@
+Crooked room, rabbet back — before you cut
+==========================================
+
+Read this before loading the first file. None of it is in the DXF files themselves.
+
+1. Sheet 1 is cut in 3 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.
+
+2. Sheet 1: C1-B-SIDE-L, C1-B-SIDE-R cross a tile seam, so each tile carries only its own stretch of the profile, on OUTLINE_OPEN (THROUGH_OPEN for a cut-out). Cut an outline with the cutter on the right of the direction of travel and a cut-out with it on the left, and let each stop at the seam — closing it there would cut the part in two.
+
+3. Sheet 2 is cut in 3 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.
+
+4. Sheet 2: C1-B-DOOR-1L, C1-B-DOOR-1R cross a tile seam, so each tile carries only its own stretch of the profile, on OUTLINE_OPEN (THROUGH_OPEN for a cut-out). Cut an outline with the cutter on the right of the direction of travel and a cut-out with it on the left, and let each stop at the seam — closing it there would cut the part in two.
+
+5. Sheet 3 is cut in 2 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.
+
+6. Sheet 4 is cut in 3 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.
+
+7. Sheet 4: C1-B-SCRIBE-R, C1-B-SCRIBE-L cross a tile seam, so each tile carries only its own stretch of the profile, on OUTLINE_OPEN (THROUGH_OPEN for a cut-out). Cut an outline with the cutter on the right of the direction of travel and a cut-out with it on the left, and let each stop at the seam — closing it there would cut the part in two.
+
+8. Sheet 5 is cut in 3 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.
+
+9. Sheet 5: C1-B-BACK crosses a tile seam, so each tile carries only its own stretch of the profile, on OUTLINE_OPEN (THROUGH_OPEN for a cut-out). Cut an outline with the cutter on the right of the direction of travel and a cut-out with it on the left, and let each stop at the seam — closing it there would cut the part in two.

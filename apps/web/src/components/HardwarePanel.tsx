@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useStore } from '../store';
 import {
   copyEntry,
@@ -111,6 +112,21 @@ export function HardwarePanel() {
           <Named
             entry={hinge}
             onName={(v) => edit<HingeEntry>(hinge.id, (e) => void (e.name = v))}
+          />
+          <SelectField
+            label="Made for"
+            value={hinge.application}
+            options={[
+              { value: 'overlay', label: 'Overlay doors' },
+              { value: 'inset', label: 'Inset doors' },
+            ]}
+            onChange={(v) =>
+              edit<HingeEntry>(
+                hinge.id,
+                (e) => void (e.application = v === 'inset' ? 'inset' : 'overlay'),
+              )
+            }
+            title="How the hinge arm is cranked. The cup boring is the same either way; a hinge made for the other fit bores fine and then will not close the door in its opening."
           />
           <NumberField
             label="Cup diameter"
@@ -334,18 +350,33 @@ export function HardwarePanel() {
             title="Cut into each rear corner of the box bottom, clearing the locking device."
           />
           <NumberField
-            label="Mounting screw clearance"
-            value={slide.boring.screwDiameter}
+            label="Screw hole diameter"
+            value={slide.boring.screwHoleDiameter}
             step={0.5}
             min={1}
-            onChange={(v) => edit<SlideEntry>(slide.id, (e) => void (e.boring.screwDiameter = v))}
+            onChange={(v) =>
+              edit<SlideEntry>(slide.id, (e) => void (e.boring.screwHoleDiameter = v))
+            }
+            title="The hole a system screw is pushed into. Wood screws need none."
           />
           <NumberField
-            label="Mounting hole inset"
-            value={slide.boring.mountInset}
-            min={0}
-            onChange={(v) => edit<SlideEntry>(slide.id, (e) => void (e.boring.mountInset = v))}
-            title="How far in from each end of the runner the mounting holes sit, on the box side and the cabinet side alike."
+            label="Screw hole depth"
+            value={slide.boring.screwHoleDepth}
+            step={0.5}
+            min={1}
+            onChange={(v) => edit<SlideEntry>(slide.id, (e) => void (e.boring.screwHoleDepth = v))}
+            title="Blind, so it never shows on the outside of an end panel. Held under the panel's own thickness."
+          />
+          <Hint>
+            Screw positions per running length, measured back from the front of the drawer box: the
+            length, a colon, then each position, lengths separated by semicolons.
+          </Hint>
+          <ScrewPositionsField
+            key={slide.id}
+            rows={slide.boring.screwPositions}
+            onRows={(rows) =>
+              edit<SlideEntry>(slide.id, (e) => void (e.boring.screwPositions = rows))
+            }
           />
           <Rules entry={slide} onEdit={(fn) => edit<SlideEntry>(slide.id, fn)} />
         </Group>
@@ -591,4 +622,60 @@ function Rules<E extends HardwareEntry>({
       </div>
     </>
   );
+}
+
+/**
+ * The table is typed a row at a time, and half a row is not a table: the
+ * text is held here as typed, and only a whole one reaches the entry.
+ */
+function ScrewPositionsField({
+  rows,
+  onRows,
+}: {
+  rows: SlideEntry['boring']['screwPositions'];
+  onRows: (rows: SlideEntry['boring']['screwPositions']) => void;
+}) {
+  const [draft, setDraft] = useState(() => formatScrewPositions(rows));
+  const whole = parseScrewPositions(draft) !== null;
+  return (
+    <>
+      <TextField
+        label="Screw positions"
+        value={draft}
+        onChange={(v) => {
+          setDraft(v);
+          const next = parseScrewPositions(v);
+          if (next) onRows(next);
+        }}
+      />
+      {!whole && <Hint>Not a whole table yet, so the entry still has its last one.</Hint>}
+    </>
+  );
+}
+
+/** `229: 37 133 229; 305: 37 165 261` — the maker's table, as it is read off the sheet. */
+export const formatScrewPositions = (rows: SlideEntry['boring']['screwPositions']): string =>
+  rows.map((r) => `${r.length}: ${r.at.join(' ')}`).join('; ');
+
+/**
+ * The same, read back. Null — and the entry left as it was — for anything
+ * that is not a whole table, rather than half of one: a runner length that
+ * silently lost its row would go unbored without the user having asked.
+ */
+export function parseScrewPositions(text: string): SlideEntry['boring']['screwPositions'] | null {
+  const rows: SlideEntry['boring']['screwPositions'] = [];
+  for (const chunk of text.split(/[;\n]/)) {
+    if (chunk.trim() === '') continue;
+    const [head, rest] = chunk.split(':');
+    const length = Number(head?.trim());
+    const at = (rest ?? '')
+      .trim()
+      .split(/[\s,]+/)
+      .filter((t) => t !== '')
+      .map(Number);
+    if (!Number.isFinite(length) || length <= 0 || at.length === 0) return null;
+    if (at.some((n) => !Number.isFinite(n) || n <= 0)) return null;
+    rows.push({ length, at: at.sort((a, b) => a - b) });
+  }
+  return rows.length > 0 ? rows.sort((a, b) => a.length - b.length) : null;
 }

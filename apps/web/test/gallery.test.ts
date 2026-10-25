@@ -73,16 +73,19 @@ describe('every option in every gallery', () => {
   it.each(cases.filter((c) => c.option.apply).map((c) => [c.gallery.id, c.option.value, c]))(
     '%s / %s builds a sample with no errors',
     (_id, _value, c) => {
-      const entry = c as { gallery: Gallery<string>; option: { apply?: (p: ProjectParams) => void } };
+      const entry = c as {
+        gallery: Gallery<string>;
+        option: { apply?: (p: ProjectParams) => void };
+      };
       const params = sampleParams(roomy(), (p) => {
         entry.gallery.seed?.(p);
         entry.option.apply?.(p);
       });
       const project = buildProject(params);
       expect(project.parts.length).toBeGreaterThan(0);
-      expect(project.diagnostics.filter((d) => d.severity === 'error').map((d) => d.message)).toEqual(
-        [],
-      );
+      expect(
+        project.diagnostics.filter((d) => d.severity === 'error').map((d) => d.message),
+      ).toEqual([]);
     },
   );
 
@@ -97,7 +100,9 @@ describe('every option in every gallery', () => {
         }),
         gallery.view,
       );
-      expect(drawing.shapes.length, `${gallery.id}/${option.value} drew nothing`).toBeGreaterThan(0);
+      expect(drawing.shapes.length, `${gallery.id}/${option.value} drew nothing`).toBeGreaterThan(
+        0,
+      );
     }
   });
 
@@ -152,7 +157,11 @@ describe('the cutaway really cuts', () => {
 
     // A plane across the width, at the middle of the groove's own run.
     const f = frameOf(side);
-    const quads = sectionQuads(side, 'y', (groove.kind === 'pocket' ? midOfPocketY(side, groove) : 0));
+    const quads = sectionQuads(
+      side,
+      'y',
+      groove.kind === 'pocket' ? midOfPocketY(side, groove) : 0,
+    );
     expect(quads.length).toBeGreaterThan(1);
 
     const thicknesses = quads.map((q) => spanAlong(q, f.n)).sort((a, b) => a - b);
@@ -199,8 +208,14 @@ describe('the sample cache', () => {
     deeper.joinery.dadoDepth = live.joinery.dadoDepth + 2;
     const after = sampleProject(deeper, shape);
     expect(after).not.toBe(before);
-    expect(draw(after, CARCASS_JOINT.view).shapes.map((s) => s.d).join('|')).not.toEqual(
-      draw(before, CARCASS_JOINT.view).shapes.map((s) => s.d).join('|'),
+    expect(
+      draw(after, CARCASS_JOINT.view)
+        .shapes.map((s) => s.d)
+        .join('|'),
+    ).not.toEqual(
+      draw(before, CARCASS_JOINT.view)
+        .shapes.map((s) => s.d)
+        .join('|'),
     );
   });
 });
@@ -212,10 +227,26 @@ describe('the starter designs', () => {
     applyWorkshop(design, workshopOf(roomy()));
     const project = buildProject(design);
     expect(project.parts.length).toBeGreaterThan(4);
-    expect(
-      project.diagnostics.filter((d) => d.severity === 'error').map((d) => d.message),
-    ).toEqual([]);
+    expect(project.diagnostics.filter((d) => d.severity === 'error').map((d) => d.message)).toEqual(
+      [],
+    );
   });
+
+  it.each(STARTERS.map((s) => [s.id, s]))(
+    '%s is cut to its own numbers, not an even split of them',
+    (_id, entry) => {
+      // The drawer bank shipped in 1.0 with fronts that came to 680 mm of a
+      // 773 mm stack, so every load split it evenly and said so in a note
+      // nobody asked for: a starter has to be the example of numbers that work.
+      const starter = entry as (typeof STARTERS)[number];
+      const design = starter.build();
+      applyWorkshop(design, workshopOf(roomy()));
+      const said = buildProject(design)
+        .diagnostics.map((d) => d.message)
+        .filter((m) => m.includes('did not add up') || m.includes('the way 1.0 added them'));
+      expect(said).toEqual([]);
+    },
+  );
 
   it('gives every cabinet in every starter an id nothing else claims', () => {
     for (const starter of STARTERS) {
@@ -260,7 +291,10 @@ function midOfPocketY(
 }
 
 /** How far a quad reaches along a direction — the material left in the plane. */
-function spanAlong(quad: Array<{ x: number; y: number; z: number }>, n: { x: number; y: number; z: number }): number {
+function spanAlong(
+  quad: Array<{ x: number; y: number; z: number }>,
+  n: { x: number; y: number; z: number },
+): number {
   const ds = quad.map((p) => p.x * n.x + p.y * n.y + p.z * n.z);
   return Math.max(...ds) - Math.min(...ds);
 }

@@ -26,6 +26,7 @@ export async function resetStore(params: ProjectParams = defaultParams()): Promi
     params,
     project: buildProject(params),
     building: false,
+    buildError: null,
     surface: 'bench',
     workshopOpen: false,
     paletteOpen: false,

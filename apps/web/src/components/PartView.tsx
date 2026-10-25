@@ -100,6 +100,12 @@ function bandLine(
 function PartDrawing({ part }: { part: Part }) {
   const params = useStore((s) => s.params);
   const safeNames = useStore((s) => s.safeNames);
+  const building = useStore((s) => s.building);
+  const buildError = useStore((s) => s.buildError);
+  const diagnostics = useStore((s) => s.project.diagnostics);
+  const partErrors = diagnostics.filter(
+    (d) => d.severity === 'error' && d.partIds?.includes(part.id),
+  );
   // Never the engraved id: the heading right below already names the part,
   // and drawing it twice would be clutter rather than information.
   const drawing = useMemo(() => partDrawing(part, { safeNames: false }, false), [part]);
@@ -111,7 +117,21 @@ function PartDrawing({ part }: { part: Part }) {
   const bandingName = (id: string): string =>
     params.bandingMaterials.find((m) => m.id === id)?.name ?? id;
 
+  // The whole-project export's own gate, narrowed to this one part: a
+  // drawing older than the design is never written out, and nor is a part
+  // that cannot be cut — but an error elsewhere in the run does not stop the
+  // one blank someone has to re-cut today.
+  const notNow =
+    buildError !== null
+      ? `${buildError} This drawing is older than the design, so it cannot be downloaded.`
+      : building
+        ? 'Still catching up to your last change — wait a moment.'
+        : partErrors.length > 0
+          ? `${partErrors[0]!.message} So this part cannot be downloaded.`
+          : null;
+
   const download = (): void => {
+    if (notNow !== null) return;
     // Same safe-names setting the full-project export uses — a part
     // re-downloaded here after ruining the first one has to import into the
     // same CAM setup the rest of the job already did.
@@ -133,11 +153,20 @@ function PartDrawing({ part }: { part: Part }) {
         <button
           className="link"
           onClick={download}
-          title="This one blank's DXF on its own — the answer to a ruined panel, without opening the whole sheet zip."
+          aria-describedby={notNow !== null ? 'part-download-not-now' : undefined}
+          title={
+            notNow ??
+            "This one blank's DXF on its own — the answer to a ruined panel, without opening the whole sheet zip."
+          }
         >
           Download this part's DXF
         </button>
       </div>
+      {notNow !== null && (
+        <p id="part-download-not-now" className="export-not-now" role="status">
+          {notNow}
+        </p>
+      )}
       <svg
         className="sheet-svg"
         style={{ maxHeight: '38vh' }}

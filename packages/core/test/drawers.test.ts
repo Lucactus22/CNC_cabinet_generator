@@ -2,13 +2,21 @@ import { describe, expect, it } from 'vitest';
 import { base } from './carcasses.js';
 import {
   bboxOf,
+  boxesOverlap,
   buildProject,
+  copyEntry,
   defaultParams,
+  buildParts,
+  frameOf,
   SLIDE_BLUM_TANDEM_F,
+  pointInPath,
   SLIDE_BLUM_TANDEM_H,
+  toAssembly,
   type DrillFeature,
   type Part,
+  type PocketFeature,
   type ProjectParams,
+  type SlideEntry,
 } from '../src/index.js';
 
 const MATERIAL_STOCK14 = 'ply14-drawer';
@@ -47,7 +55,7 @@ const drills = (p: Part, purpose: string): DrillFeature[] =>
 
 describe('a bay turned into a stack of drawers', () => {
   it('builds a box and a face per drawer, and no door for that bay', () => {
-    const params = withDrawers([782.2]);
+    const params = withDrawers([779.2]);
     const project = buildProject(params);
     // Bay 2 is untouched and keeps its own default door.
     expect(project.parts.some((p) => p.id === 'C1-B-DOOR-1')).toBe(false);
@@ -68,7 +76,7 @@ describe('a bay turned into a stack of drawers', () => {
 
   it('does not build a door even when the bay also names one', () => {
     // A bay is one or the other; drawers win. See BaySpec.drawerFrontHeights.
-    const params = withDrawers([782.2], (p) => {
+    const params = withDrawers([779.2], (p) => {
       base(p).bays[0]!.doors = 'left';
     });
     const project = buildProject(params);
@@ -80,7 +88,7 @@ describe('a bay turned into a stack of drawers', () => {
     // Bay 1's own clear width, read directly off the two panels bounding it
     // — the left side and the divider — rather than recomputed by hand,
     // since layoutBays' own split is not this test's concern.
-    const thin = buildProject(withDrawers([782.2]));
+    const thin = buildProject(withDrawers([779.2]));
     const clearWidth =
       find(thin.parts, 'C1-B-DIV-1').box.min.x - find(thin.parts, 'C1-B-SIDE-L').box.max.x;
     // The sub-front's own width is stable through the pipeline (see
@@ -94,7 +102,7 @@ describe('a bay turned into a stack of drawers', () => {
     );
 
     const thick = buildProject(
-      withDrawers([782.2], (p) => {
+      withDrawers([779.2], (p) => {
         p.materials.find((m) => m.id === MATERIAL_STOCK14)!.actualThickness = 18;
         p.hardware.slideId = SLIDE_BLUM_TANDEM_F.id;
       }),
@@ -107,14 +115,14 @@ describe('a bay turned into a stack of drawers', () => {
   });
 
   it('picks the box side thickness from the drawer box material, not the carcass material', () => {
-    const project = buildProject(withDrawers([782.2]));
+    const project = buildProject(withDrawers([779.2]));
     for (const id of ['C1-B-DRAWER-1-1-SIDE-L', 'C1-B-DRAWER-1-1-SIDE-R']) {
       expect(find(project.parts, id).thickness).toBe(14);
     }
   });
 
   it('picks the largest nominal runner length that fits the carcass depth', () => {
-    const project = buildProject(withDrawers([782.2]));
+    const project = buildProject(withDrawers([779.2]));
     // The sub-front and the back are both female for the sides — nothing
     // grows them — so the gap between their own inner faces is exactly the
     // runner length the builder picked, unlike the sides themselves, which
@@ -132,7 +140,7 @@ describe('a bay turned into a stack of drawers', () => {
     // The bottom is cut from the same 14 mm stock as the sides here, which is
     // thicker than the slide's own 13 mm recess figure, so the back has to
     // clear whichever of the two is larger or it would overlap the bottom.
-    const project = buildProject(withDrawers([782.2]));
+    const project = buildProject(withDrawers([779.2]));
     const side = find(project.parts, 'C1-B-DRAWER-1-1-SIDE-L');
     const back = find(project.parts, 'C1-B-DRAWER-1-1-BACK');
     const bottom = find(project.parts, 'C1-B-DRAWER-1-1-BOTTOM');
@@ -148,7 +156,7 @@ describe('a bay turned into a stack of drawers', () => {
     // widen its own clearance past that figure, not cut the back into the
     // bottom panel.
     const project = buildProject(
-      withDrawers([782.2], (p) => {
+      withDrawers([779.2], (p) => {
         p.materials.find((m) => m.id === MATERIAL_STOCK14)!.actualThickness = 18;
         p.hardware.slideId = SLIDE_BLUM_TANDEM_F.id;
       }),
@@ -159,7 +167,7 @@ describe('a bay turned into a stack of drawers', () => {
   });
 
   it("notches both rear corners of the bottom for the slide's locking device", () => {
-    const project = buildProject(withDrawers([782.2]));
+    const project = buildProject(withDrawers([779.2]));
     const bottom = find(project.parts, 'C1-B-DRAWER-1-1-BOTTOM');
     const bb = bboxOf(bottom.outline);
     const w = SLIDE_BLUM_TANDEM_H.boring.bottomNotchWidth;
@@ -179,29 +187,149 @@ describe('a bay turned into a stack of drawers', () => {
     expect(has(bb.maxX, bb.maxY)).toBe(false);
   });
 
-  it('bores slide mounting holes on both box sides and both bay-bounding cabinet panels', () => {
-    const project = buildProject(withDrawers([782.2]));
-    for (const id of ['C1-B-DRAWER-1-1-SIDE-L', 'C1-B-DRAWER-1-1-SIDE-R']) {
-      expect(drills(find(project.parts, id), 'slide-side')).toHaveLength(2);
-    }
+  it("bores the runner's screw holes where Blum's table puts them, in both bay-bounding panels", () => {
+    // Blum 563H/563F, panel application: 37 mm, then two more per runner
+    // length on the 32 mm line, measured from the cabinet face.
+    const project = buildProject(withDrawers([779.2]));
+    const req = buildParts(withDrawers([779.2])).slides[0]!;
+    const expected: Record<number, number[]> = {
+      229: [37, 133, 229],
+      305: [37, 165, 261],
+      381: [37, 165, 357],
+      457: [37, 261, 453],
+      533: [37, 261, 517],
+    };
     // Bay 1 is bounded by the left side and the divider.
-    expect(drills(find(project.parts, 'C1-B-SIDE-L'), 'slide-panel')).toHaveLength(2);
-    expect(drills(find(project.parts, 'C1-B-DIV-1'), 'slide-panel')).toHaveLength(2);
+    for (const id of ['C1-B-SIDE-L', 'C1-B-DIV-1']) {
+      const panel = find(project.parts, id);
+      const holes = drills(panel, 'slide-panel');
+      expect(holes).toHaveLength(3);
+      const back = holes
+        // Back along the carcass's depth from the box front, whichever local
+        // axis carries it on this panel.
+        .map((h) => Math.round(toAssembly(frameOf(panel), h.x, h.y).y - req.boxFrontY))
+        .sort((a, b) => a - b);
+      expect(back).toEqual(expected[req.length]);
+    }
+  });
+
+  it('bores them blind, never through the finished outside of an end panel', () => {
+    const project = buildProject(withDrawers([779.2]));
+    const side = find(project.parts, 'C1-B-SIDE-L');
+    const holes = drills(side, 'slide-panel');
+    expect(holes.length).toBeGreaterThan(0);
+    for (const h of holes) {
+      expect(h.depth).toBe(12);
+      expect(h.diameter).toBe(5);
+      expect(h.depth).toBeLessThan(side.thickness);
+    }
+  });
+
+  it('bores nothing in the drawer box: the runner does not screw to its sides', () => {
+    const project = buildProject(withDrawers([779.2]));
+    // The box's own joinery screws are still there; nothing for the runner is.
+    for (const p of project.parts.filter((q) => q.id.startsWith('C1-B-DRAWER-'))) {
+      expect(p.features.some((f) => f.kind === 'drill' && f.purpose.startsWith('slide'))).toBe(
+        false,
+      );
+    }
+  });
+
+  it('says so, and bores nothing, for a runner length the entry has no screw table for', () => {
+    const length = buildParts(withDrawers([779.2])).slides[0]!.length;
+    const project = buildProject(
+      withDrawers([779.2], (p) => {
+        const mine = copyEntry(SLIDE_BLUM_TANDEM_H, []) as SlideEntry;
+        mine.boring.screwPositions = mine.boring.screwPositions.filter((r) => r.length !== length);
+        p.hardware.custom.push(mine);
+        p.hardware.slideId = mine.id;
+      }),
+    );
+    expect(drills(find(project.parts, 'C1-B-SIDE-L'), 'slide-panel')).toHaveLength(0);
+    const said = project.diagnostics.find((d) => d.message.includes('gives no screw positions'));
+    expect(said?.message).toContain(`${length} mm runner`);
+    expect(said?.message).toContain('wood screws');
+  });
+
+  it('says so, and bores nothing, when the hole is as deep as the panel is thick', () => {
+    const project = buildProject(
+      withDrawers([779.2], (p) => {
+        const mine = copyEntry(SLIDE_BLUM_TANDEM_H, []) as SlideEntry;
+        mine.boring.screwHoleDepth = 40;
+        p.hardware.custom.push(mine);
+        p.hardware.slideId = mine.id;
+      }),
+    );
+    expect(drills(find(project.parts, 'C1-B-SIDE-L'), 'slide-panel')).toHaveLength(0);
+    const said = project.diagnostics.find((d) => d.message.includes('screw holes are 40 mm deep'));
+    expect(said?.message).toContain(find(project.parts, 'C1-B-SIDE-L').label);
   });
 
   it('lines up drawer faces with a reveal, the same as neighbouring doors', () => {
-    const project = buildProject(
-      withDrawers([400, 379.2]), // sums with one reveal to the 782.2 mm opening
-    );
-    expect(project.notes.join(' ')).not.toContain('did not add up');
+    // 400 + 376.2, a 3 mm reveal between and half a reveal at each end: the
+    // 779.2 mm a door in this bay would be.
+    const project = buildProject(withDrawers([400, 376.2]));
+    expect(project.diagnostics.map((d) => d.message).join(' ')).not.toContain('did not add up');
     const top = find(project.parts, 'C1-B-DRAWER-1-1-FACE');
     const bottom = find(project.parts, 'C1-B-DRAWER-1-2-FACE');
     expect(top.box.min.z - bottom.box.max.z).toBeCloseTo(project.params.doors.reveal, 6);
   });
 
-  it('falls back to an even split when the front heights do not add up to the opening', () => {
+  for (const fit of ['overlay', 'inset'] as const) {
+    for (const n of [1, 2, 3]) {
+      it(`cuts ${n} ${fit} front${n === 1 ? '' : 's'} to the heights given, level with the door beside ${n === 1 ? 'it' : 'them'}`, () => {
+        // Each front used to come out a reveal short of the height typed, and
+        // the stack stopped (n-1) reveals above the door in the next bay — a
+        // visible step along the bottom of the run, growing with every drawer.
+        const door = buildProject(withDrawers([], (p) => void (p.doors.fit = fit)));
+        const doorBox = find(door.parts, 'C1-B-DOOR-2').box;
+        const d = door.params.doors;
+        const end = fit === 'overlay' ? d.reveal / 2 : d.insetGap;
+        // The opening the door was cut from, in the span this fit reads.
+        const span = doorBox.max.z - doorBox.min.z + 2 * end;
+        const fronts = span - (n - 1) * d.reveal - 2 * end;
+        const heights = Array.from({ length: n }, (_, k) =>
+          k < n - 1 ? Math.round(fronts / n) : fronts - Math.round(fronts / n) * (n - 1),
+        );
+
+        const project = buildProject(withDrawers(heights, (p) => void (p.doors.fit = fit)));
+        expect(project.diagnostics.map((d) => d.message).join(' ')).not.toContain('did not add up');
+        const faces = heights.map((_, k) => find(project.parts, `C1-B-DRAWER-1-${k + 1}-FACE`).box);
+        faces.forEach((f, k) => expect(f.max.z - f.min.z).toBeCloseTo(heights[k]!, 6));
+        const beside = find(project.parts, 'C1-B-DOOR-2').box;
+        expect(faces[0]!.max.z).toBeCloseTo(beside.max.z, 6);
+        expect(faces[n - 1]!.min.z).toBeCloseTo(beside.min.z, 6);
+        for (let k = 0; k + 1 < n; k++) {
+          expect(faces[k]!.min.z - faces[k + 1]!.max.z).toBeCloseTo(d.reveal, 6);
+        }
+      });
+    }
+  }
+
+  it('keeps a stack saved under 1.0, a reveal shorter at the bottom, and warns', () => {
+    // [400, 379.2] added up under 1.0's rule, which left the gap at the top
+    // and bottom out. Splitting it evenly would cut a different chest of
+    // drawers from a project nobody changed; the design is kept, the bottom
+    // front gives up the difference, and a warning — not a note — says so
+    // with the numbers to type.
+    const project = buildProject(withDrawers([400, 379.2]));
+    const faces = [1, 2].map((n) => find(project.parts, `C1-B-DRAWER-1-${n}-FACE`).box);
+    expect(faces[0]!.max.z - faces[0]!.min.z).toBeCloseTo(400, 6);
+    expect(faces[1]!.max.z - faces[1]!.min.z).toBeCloseTo(376.2, 6);
+    const said = project.diagnostics.find((d) => d.message.includes('the way 1.0 added them'));
+    expect(said?.severity).toBe('warning');
+    expect(said?.message).toContain('3.0 mm shorter');
+    expect(said?.message).toContain('Type 400.0, 376.2');
+  });
+
+  it('falls back to an even split when the fronts do not add up, and warns with the total', () => {
     const project = buildProject(withDrawers([200, 200, 300]));
-    expect(project.notes.join(' ')).toContain('did not add up');
+    const said = project.diagnostics.find((d) =>
+      d.message.includes('drawer front heights did not add up'),
+    );
+    expect(said?.severity).toBe('warning');
+    // 782.2 mm of opening, less two reveals and two half reveals.
+    expect(said?.message).toContain('773.2 mm');
     const faces = ['1', '2', '3'].map((n) => find(project.parts, `C1-B-DRAWER-1-${n}-FACE`));
     const h = faces.map((f) => f.box.max.z - f.box.min.z);
     expect(h[0]).toBeCloseTo(h[1]!, 6);
@@ -209,7 +337,7 @@ describe('a bay turned into a stack of drawers', () => {
   });
 
   it('takes surface effects exactly as a door does, on the drawer-face role', () => {
-    const params = withDrawers([782.2], (p) => {
+    const params = withDrawers([779.2], (p) => {
       p.surfaceEffects.push({
         id: 'fx1',
         enabled: true,
@@ -231,7 +359,7 @@ describe('a bay turned into a stack of drawers', () => {
     // the default slide's own 12 mm minimum — a real, measured-thickness
     // gap, not a rounding artefact. See docs/DRAWERS.md.
     const project = buildProject(
-      withDrawers([782.2], (p) => {
+      withDrawers([779.2], (p) => {
         p.drawerBoxMaterialId = 'ply12'; // MATERIAL_BACK: 11.9 mm actual
       }),
     );
@@ -244,7 +372,7 @@ describe('a bay turned into a stack of drawers', () => {
 
   it('warns when the bay is too narrow for the slide entry the project is cut to', () => {
     const project = buildProject(
-      withDrawers([782.2], (p) => {
+      withDrawers([779.2], (p) => {
         base(p).width = 190; // interior well under the 170 mm minimum once the deduction is taken
         base(p).dividerCount = 0;
       }),
@@ -260,7 +388,7 @@ describe('a bay turned into a stack of drawers', () => {
     // pocket/through-cut purpose, and tab-and-slot cuts a through feature
     // rather than a pocket — the discovery must survive that switch too.
     const project = buildProject(
-      withDrawers([782.2], (p) => {
+      withDrawers([779.2], (p) => {
         base(p).width = 190;
         base(p).dividerCount = 0;
         p.joinery.carcassJoint = 'tabslot';
@@ -273,24 +401,18 @@ describe('a bay turned into a stack of drawers', () => {
   });
 
   it('measures the slide mounting holes from the box front, not the carcass front, under inset fit', () => {
-    // Under inset fit the box starts a door-thickness behind the carcass
-    // front; a hole measured from the carcass front instead would land
-    // outside the box side's own machined outline.
-    const project = buildProject(
-      withDrawers([782.2], (p) => {
-        p.doors.fit = 'inset';
-      }),
-    );
-    const side = find(project.parts, 'C1-B-DRAWER-1-1-SIDE-L');
-    const bb = bboxOf(side.outline);
-    const holes = drills(side, 'slide-side');
-    expect(holes.length).toBeGreaterThan(0);
-    for (const hole of holes) {
-      expect(hole.x).toBeGreaterThanOrEqual(bb.minX - 1e-6);
-      expect(hole.x).toBeLessThanOrEqual(bb.maxX + 1e-6);
-      expect(hole.y).toBeGreaterThanOrEqual(bb.minY - 1e-6);
-      expect(hole.y).toBeLessThanOrEqual(bb.maxY + 1e-6);
-    }
+    // Under inset fit the box, and the runner with it, starts a front's
+    // thickness behind the carcass front: measured from the carcass front,
+    // every hole would miss the runner's own screw holes by that much.
+    const params = withDrawers([779.2], (p) => {
+      p.doors.fit = 'inset';
+    });
+    const project = buildProject(params);
+    const req = buildParts(params).slides[0]!;
+    const side = find(project.parts, 'C1-B-SIDE-L');
+    const ys = drills(side, 'slide-panel').map((h) => toAssembly(frameOf(side), h.x, h.y).y);
+    expect(Math.min(...ys)).toBeCloseTo(req.boxFrontY + 37, 6);
+    expect(req.boxFrontY).toBeGreaterThan(side.box.min.y + 1);
   });
 });
 
@@ -311,5 +433,125 @@ describe('a face-frame carcass with a drawer bay', () => {
     // edge sits inside the stile, never out at the carcass side behind it.
     expect(face.box.min.x).toBeGreaterThan(stileL.box.min.x);
     expect(face.box.min.x).toBeLessThan(stileL.box.max.x);
+  });
+});
+
+describe('a divider with drawers on both sides', () => {
+  it('says when the screw holes from the two faces meet inside it', () => {
+    // Matching drawers either side put Blum's table on both faces at the
+    // same heights: two 12 mm holes into an 18 mm divider are one hole, and
+    // two 11.5 mm system screws driven into it from either side collide.
+    const params = withDrawers([779.2], (p) => {
+      base(p).bays[1] = {
+        shelves: 'none',
+        shelfCount: 0,
+        doors: 'none',
+        drawerFrontHeights: [779.2],
+      };
+    });
+    const project = buildProject(params);
+    const divider = find(project.parts, 'C1-B-DIV-1');
+    const holes = drills(divider, 'slide-panel');
+    expect(new Set(holes.map((h) => h.side))).toEqual(new Set(['A', 'B']));
+    const said = project.diagnostics.find((d) =>
+      d.message.includes('carries runners on both faces'),
+    );
+    expect(said?.message).toContain(divider.label);
+    expect(said?.message).toContain('wood screws');
+  });
+
+  it('stays quiet about a carcass side, which only ever has runners on one face', () => {
+    const project = buildProject(withDrawers([779.2]));
+    expect(
+      project.diagnostics.some((d) => d.message.includes('carries runners on both faces')),
+    ).toBe(false);
+  });
+});
+
+describe('a drawer box inside its carcass', () => {
+  const STRUCTURE = new Set([
+    'side',
+    'divider',
+    'top',
+    'bottom',
+    'toe-rail',
+    'back',
+    'stile',
+    'rail',
+  ]);
+  const variants: Array<[string, ProjectParams]> = [];
+  for (const fit of ['overlay', 'inset'] as const) {
+    for (const construction of ['frameless', 'face-frame'] as const) {
+      for (const heights of [[779.2], [400, 376.2], [250, 250, 273.2]]) {
+        variants.push([
+          `${fit}, ${construction}, ${heights.length} drawer${heights.length === 1 ? '' : 's'}`,
+          withDrawers(heights, (p) => {
+            p.doors.fit = fit;
+            base(p).construction = construction;
+          }),
+        ]);
+      }
+    }
+  }
+
+  it.each(variants)('never runs into a carcass panel or frame member: %s', (_name, params) => {
+    // An overlay face reaches over the bottom and top panels, and a face
+    // frame's over its rails. Sized to its face alone, the bottom box sat in
+    // the bottom panel's own housing and the top one ran into the top rail.
+    const project = buildProject(params);
+    const boxes = project.parts.filter(
+      (p) => p.role.startsWith('drawer-') && p.role !== 'drawer-face',
+    );
+    expect(boxes.length).toBeGreaterThan(0);
+    const structure = project.parts.filter((p) => STRUCTURE.has(p.role));
+    for (const b of boxes) {
+      for (const s of structure) {
+        expect(boxesOverlap(b.box, s.box, 0.01), `${b.id} runs into ${s.id}`).toBe(false);
+      }
+    }
+  });
+
+  it.each(variants)(
+    'bores every runner hole on its panel and clear of the housings on that face: %s',
+    (_name, params) => {
+      // A hole outside the outline is drilled into thin air; one inside a
+      // groove on the same face is a screw into the shelf or bottom it houses.
+      const project = buildProject(params);
+      for (const panel of project.parts) {
+        for (const h of drills(panel, 'slide-panel')) {
+          expect(pointInPath(panel.outline, h), `${panel.id} (${h.x}, ${h.y})`).toBe(true);
+          const housing = panel.features.find(
+            (f): f is PocketFeature =>
+              f.kind === 'pocket' && f.side === h.side && pointInPath(f.path, h),
+          );
+          expect(housing?.purpose, `${panel.id} (${h.x}, ${h.y})`).toBeUndefined();
+        }
+      }
+    },
+  );
+
+  it('says so, and builds no box, when the front is too short to hold one', () => {
+    // A 30 mm top front: once 6 mm above is kept clear for the runner, 24 mm
+    // is left, less than a 13 mm recess and a 14 mm bottom.
+    const project = buildProject(withDrawers([30, 746.2]));
+    expect(project.parts.some((p) => p.id === 'C1-B-DRAWER-1-1-FACE')).toBe(true);
+    expect(project.parts.some((p) => p.id === 'C1-B-DRAWER-1-1-SIDE-L')).toBe(false);
+    expect(project.notes.join(' ')).toContain('no box was built for this drawer');
+  });
+});
+
+describe('runners behind a face frame', () => {
+  it("bores nothing from Blum's frameless table, and says how a face-frame runner is fixed", () => {
+    // Measured from the frame's front, the frameless table would put the
+    // front screw 18-odd mm behind the carcass edge, nowhere the runner is.
+    const project = buildProject(
+      withDrawers([779.2], (p) => (base(p).construction = 'face-frame')),
+    );
+    for (const part of project.parts) expect(drills(part, 'slide-panel')).toHaveLength(0);
+    const said = project.diagnostics.filter((d) =>
+      d.message.includes('screw table is for frameless'),
+    );
+    expect(said).toHaveLength(1);
+    expect(said[0]!.message).toContain('face-frame brackets');
   });
 });

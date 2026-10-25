@@ -205,7 +205,11 @@ function drawerBank(id: string): Cabinet {
       shelfCount: 0,
       shelfGaps: [],
       doors: 'none',
-      drawerFrontHeights: [180, 250, 250],
+      // A shallow top drawer over two deep ones, adding up — with a reveal
+      // between each and half a reveal at the top and bottom — to the 782 mm
+      // opening a door beside them would hang in. The 1.0 figures came to
+      // 680 mm and were quietly split evenly on load.
+      drawerFrontHeights: [173.2, 300, 300],
     },
   ];
   return cabinet;

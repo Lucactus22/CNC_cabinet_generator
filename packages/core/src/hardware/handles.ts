@@ -33,7 +33,7 @@ export function applyHandles(
   const byId = new Map(parts.map((p) => [p.id, p]));
 
   for (const req of requests) {
-    const door = byId.get(req.doorId);
+    const door = byId.get(req.frontId);
     if (!door) continue;
 
     const frame = frameOf(door);
@@ -44,21 +44,63 @@ export function applyHandles(
       continue;
     }
 
-    for (const screw of screwPositions(door, req.hingeSide, entry, placement)) {
-      const pt = axisPoint(zMap, localOf(frame, screw.x, 'x'), localOf(frame, screw.z, 'z'));
-      door.features.push({
-        kind: 'drill',
-        x: pt.x,
-        y: pt.y,
-        diameter: entry.boring.screwDiameter,
-        depth: 'thru',
-        side: 'A',
-        purpose: 'handle',
-      });
+    const screws =
+      req.front === 'door'
+        ? screwPositions(door, req.hingeSide, entry, placement)
+        : drawerScrewPositions(door, entry);
+    boreThrough(door, screws, entry.boring.screwDiameter, 'handle');
+
+    // A drawer pull is bolted from inside the box, through the sub-front and
+    // the face together, so the sub-front needs the same holes where they
+    // meet it. A box too narrow or too short to build has no sub-front.
+    if (req.front === 'drawer') {
+      const sub = byId.get(req.subFrontId);
+      if (!sub) continue;
+      const misses = screws.some(
+        (s) =>
+          s.x < sub.box.min.x + 1e-6 ||
+          s.x > sub.box.max.x - 1e-6 ||
+          s.z < sub.box.min.z + 1e-6 ||
+          s.z > sub.box.max.z - 1e-6,
+      );
+      if (misses) {
+        warnings.push(
+          `${door.label}: the pull's bolts land outside the sub-front behind the face, so they were not bored through it. Fix the pull to the face with its own screws before the face is screwed on.`,
+        );
+        continue;
+      }
+      // Its own purpose, so the checks that judge a pull by the front it is
+      // fitted to — a door's thickness against the screws, a hole off the
+      // edge — read the face and not the box behind it.
+      boreThrough(sub, screws, entry.boring.screwDiameter, 'handle-sub-front');
     }
   }
 
   return { warnings };
+}
+
+/** Clearance holes through a front-facing panel at assembly-space (x, z) positions. */
+function boreThrough(
+  panel: Part,
+  at: Array<{ x: number; z: number }>,
+  diameter: number,
+  purpose: string,
+): void {
+  const frame = frameOf(panel);
+  const zMap = mapAxis(frame, 'z');
+  if (!zMap) return;
+  for (const screw of at) {
+    const pt = axisPoint(zMap, localOf(frame, screw.x, 'x'), localOf(frame, screw.z, 'z'));
+    panel.features.push({
+      kind: 'drill',
+      x: pt.x,
+      y: pt.y,
+      diameter,
+      depth: 'thru',
+      side: 'A',
+      purpose,
+    });
+  }
 }
 
 /**
@@ -120,5 +162,30 @@ export function screwPositions(
     : [
         { x, z: near },
         { x, z: far },
+      ];
+}
+
+/**
+ * Where a drawer pull's fixing screws land: across the face, centred both
+ * ways.
+ *
+ * The door placement settings are measured from a door's opening edge, which
+ * a drawer face does not have, and a pull run up a drawer front or pushed to
+ * one end of it is not how one is hung. Centred across is the convention, so
+ * it is not a setting.
+ */
+export function drawerScrewPositions(
+  face: Part,
+  entry: HandleEntry,
+): Array<{ x: number; z: number }> {
+  const { centres, style } = entry.boring;
+  const pair = style === 'bar' ? centres : 0;
+  const midX = (face.box.min.x + face.box.max.x) / 2;
+  const midZ = (face.box.min.z + face.box.max.z) / 2;
+  return pair === 0
+    ? [{ x: midX, z: midZ }]
+    : [
+        { x: midX - pair / 2, z: midZ },
+        { x: midX + pair / 2, z: midZ },
       ];
 }

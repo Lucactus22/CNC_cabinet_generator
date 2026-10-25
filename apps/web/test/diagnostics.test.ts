@@ -29,12 +29,17 @@ describe('grouping diagnostics', () => {
     const labelOf = (id: string): string | undefined => byId.get(id);
     const groups = groupDiagnostics(project.diagnostics, project.notes, labelOf);
     // Four "needs N setups" warnings and four "spans more than one tile"
-    // notes each collapse to one group — the eight entries F-8 named.
-    const tilingGroup = groups.find((g) => g.entries[0]!.message.includes('needs'));
+    // notes — the eight entries F-8 named. The sheet with the divider on it
+    // is turned over partway and needs its setups twice, which is a different
+    // sentence and rightly stands apart; the other three collapse.
+    const tilingGroups = groups.filter((g) => g.entries[0]!.message.includes('needs'));
     const spanGroup = groups.find((g) =>
       g.entries[0]!.message.includes('spans more than one tile'),
     );
-    expect(tilingGroup?.entries.length).toBe(4);
+    expect(tilingGroups.reduce((a, g) => a + g.entries.length, 0)).toBe(4);
+    const turned = tilingGroups.filter((g) => g.entries[0]!.message.includes('on each face'));
+    expect(turned.map((g) => g.entries.length)).toEqual([1]);
+    expect(tilingGroups.find((g) => !turned.includes(g))?.entries.length).toBe(3);
     expect(spanGroup?.entries.length).toBe(4);
   });
 
@@ -148,5 +153,26 @@ describe('the default project reaches an exportable state in two interactions', 
       expect(afterErrors).toBeLessThan(fix.errorsBefore);
       expect(afterErrors).toBe(fix.errorsAfter);
     }
+  });
+});
+
+describe('inset doors on an overlay hinge', () => {
+  it('offers the inset hinge as the way out, and it clears the error', () => {
+    // Sheets already the size of the machine, so the hinge is the only thing
+    // blocking export and the fix can be seen to clear it on its own.
+    const params = defaultParams();
+    for (const m of params.materials) m.sheets = [{ length: 1000, width: 1000 }];
+    params.doors.fit = 'inset';
+    const project = buildProject(params);
+    expect(project.diagnostics.some((d) => d.message.includes('is made for overlay doors'))).toBe(
+      true,
+    );
+    const fix = offeredFixes(params, project).find((f) => f.id === 'hinge-for-fit');
+    expect(fix?.label).toContain('made for inset doors');
+    const next = structuredClone(params);
+    fix!.apply(next);
+    expect(buildProject(next).diagnostics.some((d) => d.message.includes('is made for'))).toBe(
+      false,
+    );
   });
 });

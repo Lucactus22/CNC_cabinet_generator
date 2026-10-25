@@ -7,9 +7,11 @@ import {
   CABINET_TYPES,
   defaultBaseCarcass,
   defaultParams,
+  frameOf,
   HANDLE_BAR_128,
   PIN_5MM,
   SLIDE_BLUM_TANDEM_H,
+  toAssembly,
   type AssemblyStep,
   type ProjectParams,
 } from '../src/index.js';
@@ -233,18 +235,28 @@ describe('assembly plan: drawers', () => {
     )!;
     expect(step).toBeDefined();
 
-    // Cross-checked against the holes hardware/slides.ts actually bored on
-    // one box side, not a second copy of its placement formula: if that
-    // formula ever changes (a third anchor point, say) without this file
-    // following, the mismatch fails here rather than shipping a guide that
-    // states the wrong count.
-    const boxLeft = project.parts.find((p) => p.id === req.boxLeftId)!;
-    const actualHoles = boxLeft.features.filter(
-      (f) => f.kind === 'drill' && f.purpose === 'slide-side',
-    ).length;
-    expect(actualHoles).toBeGreaterThan(0);
+    // Cross-checked against the holes hardware/slides.ts actually bored in
+    // the two cabinet panels, not a second copy of Blum's table: if the
+    // table ever changes without this file following, the mismatch fails
+    // here rather than shipping a guide that states the wrong count. The box
+    // itself takes no screws — it clips onto the runners.
+    const bored = [req.panelLeftId, req.panelRightId]
+      .map((id) => project.parts.find((p) => p.id === id)!)
+      .reduce(
+        (a, p) =>
+          a +
+          p.features.filter(
+            (f) =>
+              f.kind === 'drill' &&
+              f.purpose === 'slide-panel' &&
+              // This drawer's own runner, not the one above or below it.
+              Math.abs(toAssembly(frameOf(p), f.x, f.y).z - req.z) < 1e-6,
+          ).length,
+        0,
+      );
+    expect(bored).toBeGreaterThan(0);
     expect(step.fixings).toEqual([
-      `${actualHoles * 4} × Ø${req.screwDiameter} mm mounting screws (runner to box and carcass).`,
+      `${bored} × screws, runner to carcass: system screws into the Ø${SLIDE_BLUM_TANDEM_H.boring.screwHoleDiameter} mm holes, or wood screws through the runner's own holes.`,
     ]);
     expect(step.partIds).toEqual(expect.arrayContaining([req.boxLeftId, req.boxRightId]));
   });

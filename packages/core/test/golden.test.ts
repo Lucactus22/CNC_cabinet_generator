@@ -71,9 +71,12 @@ describe('the 0.1 default project', () => {
     const params = defaultParams();
     params.labelParts = false;
     const names = exportProject(buildProject(params)).files.map((f) => f.name);
-    // Tiles come from clipping the very drawing compared above, so the sheets
-    // matching means the tiles do too. What this pins is that the same sheets,
-    // and the same number of setups, still come out.
+    // What this pins is that the same sheets, and the same number of setups,
+    // still come out. The tiles' own bytes moved on purpose after 1.0 — a
+    // profile crossing a seam is left open there instead of closed across
+    // the part — and are pinned by golden-fixtures.test.ts and tiling.test.ts.
+    // The instructions file is new since 0.1: the tiling steps it carries
+    // were computed then too, and thrown away.
     expect(names).toEqual([
       'stacked-built-in-sheet1.dxf',
       'stacked-built-in-sheet1-tile1.dxf',
@@ -91,6 +94,7 @@ describe('the 0.1 default project', () => {
       'stacked-built-in-sheet4-tile1.dxf',
       'stacked-built-in-sheet4-tile2.dxf',
       'stacked-built-in-cutlist.csv',
+      'stacked-built-in-before-you-cut.txt',
     ]);
   });
 

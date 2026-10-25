@@ -14,10 +14,10 @@ way the file and the hardware agree.
 
 | Kind | Entries | What it bores |
 |---|---|---|
-| Hinge | IKEA UTRUSTA 110°, Blum CLIP top BLUMOTION 110°, Hettich Sensys 8645i | Cup, dowels, mounting plate holes |
+| Hinge | IKEA UTRUSTA 110°, Blum CLIP top BLUMOTION 110° (overlay and inset), Hettich Sensys 8645i | Cup, dowels, mounting plate holes |
 | Shelf pin | 5 mm, 1/4 in | The 32 mm ladder in each bay side |
 | Handle | 96 / 128 / 160 / 320 mm bar, knob | Clearance holes through the door |
-| Drawer slide | Blum TANDEM plus BLUMOTION 563H, 563F | Sizes the drawer box; mounting holes on the box sides and the cabinet sides |
+| Drawer slide | Blum TANDEM plus BLUMOTION 563H, 563F | Sizes the drawer box; blind system-screw holes in the cabinet sides, at Blum's own positions |
 
 `hardware/catalogue.ts` holds all of it. Add a make by writing an entry and
 listing it in `CATALOGUE` — nothing else changes.
@@ -50,6 +50,22 @@ TS 48 × 6 and TH 52 × 5.5 — which is exactly why the pattern is data on an e
 rather than a constant in the boring code. Only the 45 × 9.5 one is shipped,
 because that is the one the other two entries share.
 
+### Overlay or inset
+
+A hinge arm is cranked for one way of hanging a door, and every entry says which
+(`application`). The cup boring does not change with it — Blum's 71B3750
+datasheet gives its inset CLIP top the same 35 mm boss 13 mm deep, the same
+45 × 9.5 pattern and the same 3–7 mm drilling distance as the overlay one — so
+no hole would ever tell the two apart. An overlay hinge on an inset door bores
+perfectly and then holds the door proud of its opening.
+
+So the doors' fit is checked against the hinge's, and a mismatch is an
+**error** naming a hinge that fits: the doors cannot be hung on what would be
+ordered. The shipped inset entry is *Blum CLIP top BLUMOTION 110° inset
+(71B37xx)*. Its sheet publishes no door-thickness range, so the entry claims
+none. Choosing inset in the door gallery changes the hinge with it, and the
+diagnostics list offers the change as a fix when the fit was set some other way.
+
 ### The shelf pins
 
 Only the three numbers the *pin* decides live on the entry: diameter, hole
@@ -63,8 +79,9 @@ the same thing, so an imperial pin does not mean a different ladder.
 
 ### The handles
 
-Off by default. A handle bores holes right through the front of a finished door,
-and that is not something to produce because a checkbox happened to be ticked.
+Off by default. A handle bores holes right through the front of a finished door
+or drawer, and that is not something to produce because a checkbox happened to
+be ticked.
 
 Fixing centres are multiples of the 32 mm system — 96 is three pitches, 128
 four, 160 five, 320 ten — which is why those are the sizes every maker stocks.
@@ -100,6 +117,28 @@ sentence:
 
 > 2 doors are drilled for a 128 mm bar handle, vertical, 50 mm from the top of
 > the door, 35 mm in from the opening edge.
+
+### On a drawer front
+
+A chosen handle goes on every front, drawer fronts as well as doors, and it is
+counted on the order list for each. A drawer front has no opening edge for the
+settings above to measure from, and a pull run up a drawer or pushed to one end
+of it is not how one is hung, so on a drawer it is **across the front and
+centred both ways**. That is the convention, not a setting. The diagnostics
+say it separately, so nobody expects the door settings to move it:
+
+> 3 drawer fronts are drilled for a 128 mm bar handle, across the front and
+> centred on it — the door placement settings do not apply to a drawer.
+
+A pull on a drawer is bolted from inside the box, through the sub-front and the
+face together, so the sub-front is bored to match, and the assembly step says
+the bolts have to be long enough for both — longer than the ones a handle comes
+with for a door. If the box behind a face could not be built, or the bolts
+would miss its sub-front, the face alone is bored and the project says to fix
+the pull to the face before the face goes on.
+
+1.0 bored only the doors: drawer fronts came off the machine blank, and the
+order list was a handle short for every drawer.
 
 ## Two kinds of check, and why the severities differ
 

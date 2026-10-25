@@ -1,4 +1,11 @@
-import { buildProject, type ProjectParams, type ProjectResult } from '@cabgen/core';
+import {
+  buildProject,
+  entriesFor,
+  resolveHardware,
+  type HingeEntry,
+  type ProjectParams,
+  type ProjectResult,
+} from '@cabgen/core';
 
 /**
  * A way out of a blocking diagnostic, checked before it is offered.
@@ -86,6 +93,30 @@ function candidates(params: ProjectParams): Candidate[] {
       label: 'Feed the stock through the other way',
       apply: (p) => {
         p.machine.tilingAxis = p.machine.tilingAxis === 'y' ? 'x' : 'y';
+      },
+    },
+    ...hingeForTheDoors(params),
+  ];
+}
+
+/**
+ * A hinge made for the way the doors are hung, when the one chosen is not.
+ * Offered as the maker's own entry rather than by flipping the fit: the fit
+ * is a design decision, the hinge is what gets ordered to suit it.
+ */
+function hingeForTheDoors(params: ProjectParams): Candidate[] {
+  const chosen = resolveHardware(params.hardware).hinge;
+  if (chosen.application === params.doors.fit) return [];
+  const match = entriesFor(params.hardware, 'hinge').find(
+    (e): e is HingeEntry => e.kind === 'hinge' && e.application === params.doors.fit,
+  );
+  if (!match) return [];
+  return [
+    {
+      id: 'hinge-for-fit',
+      label: `Use ${match.name}, made for ${params.doors.fit} doors`,
+      apply: (p) => {
+        p.hardware.hingeId = match.id;
       },
     },
   ];

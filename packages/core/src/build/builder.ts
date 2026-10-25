@@ -114,9 +114,14 @@ export interface BuildResult {
   wallMounts: WallMountRequest[];
   /** Drawer box bottoms needing a rear-corner notch for the slide's locking device. */
   drawerNotches: DrawerBottomNotchRequest[];
-  /** Drawer boxes needing slide boring, box side and cabinet side alike. */
+  /** Drawer boxes needing slide boring, in the cabinet panels the runners screw to. */
   slides: SlideRequest[];
   notes: string[];
+  /**
+   * Things the builder changed from what was typed, which the user has to
+   * read before cutting — reported as warnings, not as notes.
+   */
+  warnings: string[];
 }
 
 /**
@@ -160,15 +165,17 @@ export interface ToeNotchRequest {
 }
 
 /**
- * A door leaf that needs handle boring.
+ * A front that needs handle boring: a door leaf or a drawer face.
  *
- * Only the hinge side is carried: the handle goes on the opposite edge, and
- * exactly where along it is a placement setting shared by the whole project.
+ * A door carries only its hinge side: the handle goes on the opposite edge,
+ * and exactly where along it is a placement setting shared by the whole
+ * project. A drawer face has no hinge side for that setting to be measured
+ * from — its pull is centred on it, which is how drawer pulls are hung.
  */
-export interface HandleRequest {
-  doorId: string;
-  hingeSide: 'low' | 'high';
-}
+export type HandleRequest =
+  | { frontId: string; front: 'door'; hingeSide: 'low' | 'high' }
+  /** A pull's bolts pass through the box's sub-front behind the face as well. */
+  | { frontId: string; front: 'drawer'; subFrontId: string };
 
 /** A door leaf that needs hinge boring, plus the panel its plates screw to. */
 export interface HingeRequest {
@@ -179,7 +186,11 @@ export interface HingeRequest {
   heights: number[];
   /** Which side of the door the hinges are on, in assembly X. */
   side: 'low' | 'high';
-  /** Front face of the carcass, which the plate holes are measured from. Unused when mount is 'frame'. */
+  /**
+   * Where the back of the door sits, which the plate holes are measured
+   * from: the carcass front under overlay, a door's thickness behind it
+   * under inset. Unused when mount is 'frame'.
+   */
   yFront: number;
   /**
    * Whether the plates land on the carcass panel behind the opening, or on a
@@ -226,17 +237,20 @@ export interface SlideRequest {
   panelRightId: string;
   /**
    * The drawer box's own front face — not the carcass's, which can sit a
-   * door-thickness further forward under inset fit — since the runner's
-   * mounting holes are measured back from where the box itself starts.
+   * door-thickness further back under inset fit — since the runner sits back
+   * with the box and its mounting holes are measured from where the box
+   * itself starts.
    */
   boxFrontY: number;
   /** The nominal running length actually selected for this drawer. */
   length: number;
-  /** How far in from each end of the runner the mounting holes sit. */
-  mountInset: number;
-  screwDiameter: number;
   /** Assembly-space height the mounting holes are bored at. */
   z: number;
+  /**
+   * Behind a face frame. The maker's screw table is for frameless cabinets;
+   * a face-frame runner mounts at the frame and on a rear bracket instead.
+   */
+  faceFrame: boolean;
 }
 
 interface CarcassContext {
@@ -294,6 +308,7 @@ export function buildParts(params: ProjectParams): BuildResult {
   const slides: SlideRequest[] = [];
   const tapers: TaperRequest[] = [];
   const notes: string[] = [];
+  const warnings: string[] = [];
   const ends: Partial<Record<'left' | 'right', RunEnd>> = {};
   const sink: BuildSink = {
     parts,
@@ -307,6 +322,7 @@ export function buildParts(params: ProjectParams): BuildResult {
     drawerNotches,
     slides,
     notes,
+    warnings,
   };
 
   // Cabinets stand side by side along the wall, each starting where the one
@@ -425,6 +441,7 @@ export function buildParts(params: ProjectParams): BuildResult {
     slides,
     tapers,
     notes,
+    warnings,
   };
 }
 
@@ -685,6 +702,7 @@ export interface BuildSink {
   drawerNotches: DrawerBottomNotchRequest[];
   slides: SlideRequest[];
   notes: string[];
+  warnings: string[];
 }
 
 function buildCarcass(
@@ -695,7 +713,7 @@ function buildCarcass(
   t: number,
   sink: BuildSink,
 ): void {
-  const { parts, joints, pinRows, toeNotches, hinges, handles, wallMounts, notes } = sink;
+  const { parts, joints, pinRows, toeNotches, hinges, handles, wallMounts, notes, warnings } = sink;
   // Which hardware this project is cut to. Resolving it here rather than
   // reading numbers off the project is the whole point of the catalogue: a
   // different make of hinge is a different entry, not a different code path.
@@ -1272,13 +1290,18 @@ function buildCarcass(
           carcassPanelId,
           heights,
           side: leaf.hingeSide,
-          yFront,
+          // The plate line is set out from the back of the door. Under overlay
+          // that is the carcass front; an inset door's back is its own
+          // thickness further in, and a plate bored 37 mm from the carcass
+          // front would sit a door's thickness forward of where the arm
+          // reaches.
+          yFront: d.fit === 'inset' ? yFront + td : yFront,
           mount: faceFrame ? 'frame' : 'carcass',
         });
         // The handle goes on the edge away from the hinges, so the request
         // carries the hinge side rather than a position: where on that edge it
         // lands is a placement setting, not something the carcass decides.
-        if (hw.handle) handles.push({ doorId: id, hingeSide: leaf.hingeSide });
+        if (hw.handle) handles.push({ frontId: id, front: 'door', hingeSide: leaf.hingeSide });
         fills(i, id);
       });
     });
@@ -1303,10 +1326,27 @@ function buildCarcass(
         d.fit === 'overlay'
           ? opening.overlayZ1 - opening.overlayZ0
           : opening.clearZ1 - opening.clearZ0;
-      const { heights, fellBackToEven } = drawerHeights(available, explicit, d.reveal);
-      if (fellBackToEven) {
-        notes.push(
-          `${human} carcass, bay ${i + 1}: the drawer front heights did not add up to the opening, so the stack was split evenly instead.`,
+      const end = d.fit === 'overlay' ? d.reveal / 2 : d.insetGap;
+      const { heights, fellBackToEven, bottomTrimmed } = drawerHeights(
+        available,
+        explicit,
+        d.reveal,
+        end,
+      );
+      // Warnings, not notes: either way the fronts cut are not the fronts
+      // typed, and someone reopening a design saved under 1.0 has to see it
+      // before the sheets go to the machine.
+      if (bottomTrimmed > 0) {
+        warnings.push(
+          `${human} carcass, bay ${i + 1}: these drawer fronts add up the way 1.0 added them, without the gap at the top and bottom of the stack, so the bottom front was cut ${bottomTrimmed.toFixed(1)} mm shorter — ${heights[heights.length - 1]!.toFixed(1)} mm — to line up with the door beside it. Type ${heights.map((h) => h.toFixed(1)).join(', ')} to make it the design.`,
+        );
+      } else if (fellBackToEven) {
+        // The number that would have worked, not just that it did not: the
+        // fronts have to come to the opening less every gap around them.
+        const fronts = available - (explicit.length - 1) * d.reveal - 2 * end;
+        const typed = explicit.reduce((a, b) => a + b, 0);
+        warnings.push(
+          `${human} carcass, bay ${i + 1}: the drawer front heights did not add up to the opening — they come to ${typed.toFixed(1)} mm, and with a reveal between each and the gap at the top and bottom the fronts have to come to ${fronts.toFixed(1)} mm — so the stack was split evenly instead, at ${heights[0]!.toFixed(1)} mm each.`,
         );
       }
       const { leftPanel, rightPanel } = bayBoundingPanels(
@@ -1332,6 +1372,11 @@ function buildCarcass(
           innerBackY,
           panelLeftId: leftPanel,
           panelRightId: rightPanel,
+          // Every front gets the handle, drawers as well as doors: a run
+          // whose drawers came off the machine blank would be short of the
+          // holes and, on the order list, of the handles.
+          withHandles: hw.handle !== null,
+          faceFrame: faceFrame !== null,
         },
         opening,
         heights,

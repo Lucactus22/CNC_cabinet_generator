@@ -18,3 +18,4 @@ crooked-room-rabbet-back-sheet5-tile1.dxf
 crooked-room-rabbet-back-sheet5-tile2.dxf
 crooked-room-rabbet-back-sheet5-tile3.dxf
 crooked-room-rabbet-back-cutlist.csv
+crooked-room-rabbet-back-before-you-cut.txt

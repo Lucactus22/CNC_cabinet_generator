@@ -68,39 +68,49 @@ export function doorLeafRect(
  * otherwise fill whole, each slice then run through `doorLeafRect` exactly
  * as a door's own opening would be.
  *
- * Only the Z-span `fit` actually reads is sliced by the given heights; the
- * other one is split evenly between the same slices. `doorLeafRect` never
- * reads it for that fit, and there is no fixed offset between a frameless
- * opening's clear and overlay spans to derive one span's slices from the
- * other's — overlay runs the full height between the toe kick and the
- * underside of the top, clear only the bay's own interior.
+ * `heights` are the fronts themselves, already resolved by `drawerHeights`
+ * to add up. Each slice is its front plus the gap `doorLeafRect` takes back
+ * off it — half a reveal each side under overlay, the inset gap under inset —
+ * and the fronts are a reveal apart, the same as the two leaves of a pair of
+ * doors. So the top front starts where a door's top edge would, and the
+ * bottom one ends where a door's bottom edge would.
+ *
+ * Only the Z-span `fit` actually reads is sliced; the other one is split
+ * evenly between the same slices. `doorLeafRect` never reads it for that fit,
+ * and there is no fixed offset between a frameless opening's clear and
+ * overlay spans to derive one span's slices from the other's — overlay runs
+ * the full height between the toe kick and the underside of the top, clear
+ * only the bay's own interior.
  */
 export function splitOpeningVertically(
   o: FrontOpening,
   heights: number[],
   fit: DoorFit,
+  reveal: number,
+  insetGap: number,
 ): FrontOpening[] {
   const n = heights.length;
+  const end = fit === 'overlay' ? reveal / 2 : insetGap;
   const evenClear = (o.clearZ1 - o.clearZ0) / n;
   const evenOverlay = (o.overlayZ1 - o.overlayZ0) / n;
   const out: FrontOpening[] = [];
-  let clearTop = o.clearZ1;
-  let overlayTop = o.overlayZ1;
-  for (const h of heights) {
-    const clearBottom = fit === 'inset' ? clearTop - h : clearTop - evenClear;
-    const overlayBottom = fit === 'overlay' ? overlayTop - h : overlayTop - evenOverlay;
+  // The top edge of the next front, in the span this fit reads.
+  let frontTop = (fit === 'overlay' ? o.overlayZ1 : o.clearZ1) - end;
+  heights.forEach((h, k) => {
+    const sliceTop = frontTop + end;
+    const sliceBottom = frontTop - h - end;
+    const evenTop = (span1: number, each: number): number => span1 - k * each;
     out.push({
       clearX0: o.clearX0,
       clearX1: o.clearX1,
-      clearZ0: clearBottom,
-      clearZ1: clearTop,
+      clearZ0: fit === 'inset' ? sliceBottom : evenTop(o.clearZ1, evenClear) - evenClear,
+      clearZ1: fit === 'inset' ? sliceTop : evenTop(o.clearZ1, evenClear),
       overlayX0: o.overlayX0,
       overlayX1: o.overlayX1,
-      overlayZ0: overlayBottom,
-      overlayZ1: overlayTop,
+      overlayZ0: fit === 'overlay' ? sliceBottom : evenTop(o.overlayZ1, evenOverlay) - evenOverlay,
+      overlayZ1: fit === 'overlay' ? sliceTop : evenTop(o.overlayZ1, evenOverlay),
     });
-    clearTop = clearBottom;
-    overlayTop = overlayBottom;
-  }
+    frontTop -= h + reveal;
+  });
   return out;
 }

@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { base } from './carcasses.js';
 import {
+  applyToPath,
+  bboxOf,
   buildProject,
   defaultParams,
+  partTransform,
   doorLeafRect,
   type DrillFeature,
   type FrontOpening,
@@ -271,12 +274,53 @@ describe('solid stock is kept apart from sheet goods', () => {
     expect(project.stockNest.unplaced).toEqual([]);
     expect(project.stockNest.sheets.length).toBeGreaterThan(0);
     // A board is the stock's own fixed width, not a sheet the part was
-    // rotated onto to save yield — there is nothing to rotate a length of
-    // board into.
+    // rotated onto to save yield.
     for (const board of project.stockNest.sheets) {
       expect(board.length).toBe(stock.boardLength);
       expect(board.width).toBe(stock.boardWidth);
-      for (const p of board.parts) expect(p.rotated).toBe(false);
+    }
+  });
+
+  it('draws every stile and rail lying along its board, inside it', () => {
+    // The nest record alone said 782 x 44 for each stile while the drawing
+    // stood it 782 mm tall across a 140 mm board: the record is not the
+    // thing that gets cut, the drawn outline is. A stile is drawn standing up
+    // in its own frame and a rail lying down, so this is the one test that
+    // sees both orientations land the same way.
+    for (const board of project.stockNest.sheets) {
+      for (const placed of board.parts) {
+        const part = find(project.parts, placed.partId);
+        const bb = bboxOf(applyToPath(part.outline, partTransform(part, placed)));
+        expect(bb.minX).toBeCloseTo(placed.x, 6);
+        expect(bb.maxX).toBeCloseTo(placed.x + placed.w, 6);
+        expect(bb.minY).toBeCloseTo(placed.y, 6);
+        expect(bb.maxY).toBeCloseTo(placed.y + placed.h, 6);
+        expect(bb.maxY).toBeLessThanOrEqual(board.width + 1e-6);
+        expect(bb.maxX).toBeLessThanOrEqual(board.length + 1e-6);
+      }
+    }
+    const roles = new Set(
+      project.stockNest.sheets.flatMap((b) =>
+        b.parts.map((p) => find(project.parts, p.partId).role),
+      ),
+    );
+    expect(roles).toEqual(new Set(['stile', 'rail']));
+  });
+
+  it('keeps the half-lap pockets on the stile they were cut for', () => {
+    // Turning a stile to lie along the board must carry its joinery with it.
+    for (const board of project.stockNest.sheets) {
+      for (const placed of board.parts) {
+        const part = find(project.parts, placed.partId);
+        const t = partTransform(part, placed);
+        for (const f of lapPockets(part)) {
+          const bb = bboxOf(applyToPath(f.path, t));
+          expect(bb.minX).toBeGreaterThanOrEqual(placed.x - 1e-6);
+          expect(bb.maxX).toBeLessThanOrEqual(placed.x + placed.w + 1e-6);
+          expect(bb.minY).toBeGreaterThanOrEqual(placed.y - 1e-6);
+          expect(bb.maxY).toBeLessThanOrEqual(placed.y + placed.h + 1e-6);
+        }
+      }
     }
   });
 

@@ -153,7 +153,12 @@ so a panel is only scheduled once everything it houses into is already there.
 
 Then press **Export DXF**. It shows you what is about to be produced — every
 sheet, the parts, the steps, and any warnings left — a beat before real
-material is committed. Back out or download the zip.
+material is committed, and under **Before you cut** the instructions the files
+themselves cannot carry: how to work the tiles, when a sheet is turned over,
+which part crosses a seam, and any hole that sits on a seam and was left out
+for you to drill by hand. Back out or download the zip. If the design changes
+underneath the preview — an undo while it is open — and stops being cuttable,
+the button says so instead of downloading.
 
 ---
 
@@ -164,6 +169,7 @@ material is committed. Back out or download the zip.
 | `<name>-sheet<N>.dxf` | One nested sheet, whole |
 | `<name>-sheet<N>-tile<M>.dxf` | One tile, zeroed to its own origin |
 | `<name>-cutlist.csv` | Every part with sizes, sheet and hole counts |
+| `<name>-before-you-cut.txt` | The instructions shown under **Before you cut**, to read at the machine |
 
 DXF is R12, the most widely readable flavour, with arcs carried on polyline
 bulges. **The cut depth is in the layer name**, so your CAM can assign both
@@ -171,6 +177,11 @@ the strategy and the depth on import: `OUTLINE`, `THROUGH`, `POCKET_D6`,
 `DRILL_5_D12`, `DRILL_4.5_THRU`. `LABEL` and `SHEET` are reference only — do
 not machine them. If your importer dislikes decimal points, tick **safe layer
 names** and `POCKET_D6.35` becomes `POCKET_D6P35`.
+
+A part longer than one tile arrives in each tile as an **open** profile on
+`OUTLINE_OPEN` — the stretch of its outline inside that tile, stopping at the
+seam. Cut it with the cutter on the right of the direction of travel. It is
+open on purpose: closed along the seam, it would cut the part in two.
 
 Full specification: [DXF.md](DXF.md).
 
@@ -203,6 +214,11 @@ wide, where step = travel − overlap:
 3. Pull the pins, slide the stock forward by one step, re-pin. The holes you
    just drilled land on the same pins.
 4. Load the next tile and cut. Repeat.
+
+A tiled sheet that is also turned over goes through its tiles twice: every
+layer without `_FLIP` on each tile in turn, then turn the sheet over left to
+right — its far end comes to the origin — and go through the tiles again from
+tile 1 for the `_FLIP` layers, pinning on `TILE_REG_FLIP`.
 
 The engraved id on each panel — `C1-B-SIDE-L` is the left side of the base
 carcass of the first cabinet — means the pile off the machine sorts itself

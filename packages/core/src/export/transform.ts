@@ -50,3 +50,18 @@ export const mirrorPoint = (p: Vec2, sheetLength: number): Vec2 => ({
   x: sheetLength - p.x,
   y: p.y,
 });
+
+/**
+ * Which way a part's label reads once the part is placed: the direction its
+ * local `runs` axis ends up pointing, in degrees counter-clockwise from +X.
+ *
+ * The nester turns parts a quarter turn at a time, so this is always a whole
+ * multiple of 90. A label left reading along the sheet on a turned part runs
+ * off the part's edge and across whatever is nested beside it.
+ */
+export function textRotation(t: Transform, at: Vec2, runs: 'u' | 'v' = 'u'): number {
+  const a = t(at);
+  const b = t(runs === 'v' ? { x: at.x, y: at.y + 1 } : { x: at.x + 1, y: at.y });
+  const deg = Math.round((Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI);
+  return ((deg % 360) + 360) % 360;
+}
