@@ -1,0 +1,28 @@
+Face frame with drawers — before you cut
+========================================
+
+Read this before loading the first file. None of it is in the DXF files themselves.
+
+1. Sheet 1 is cut in 3 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.
+
+2. Sheet 2 is cut in 3 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.
+
+3. Sheet 3 is cut in 2 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.
+
+4. Sheet 3 has features on both faces, so its tiles are worked twice: cut every tile's layers without _FLIP, turn the sheet over left to right so its far end comes to the origin, then go through the tiles again from tile 1 for the _FLIP layers, pinning on TILE_REG_FLIP — the first pass's holes are no longer where the pins are.
+
+5. Sheet 3, tile 2: 2 holes of 5.0 mm in C2-B-DIV-1 on DRILL_5_D12_FLIP sit on a tile seam and were left out of the tile files, at (982, 47), (982, 274) in the full sheet's file, measured on the turned-over face its _FLIP layers are drawn on. Drill them by hand, or nudge the nesting or the tile overlap until they move off the seam.
+
+6. Sheet 4 is cut in 3 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.
+
+7. Sheet 5 is cut in 2 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.
+
+8. Board 1 is cut in 3 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.
+
+9. Board 1 has features on both faces, so its tiles are worked twice: cut every tile's layers without _FLIP, turn the board over left to right so its far end comes to the origin, then go through the tiles again from tile 1 for the _FLIP layers, pinning on TILE_REG_FLIP — the first pass's holes are no longer where the pins are.
+
+10. Board 1: C1-B-RAIL-TOP crosses a tile seam, so each tile carries only its own stretch of the profile, on OUTLINE_OPEN (THROUGH_OPEN for a cut-out). Cut an outline with the cutter on the right of the direction of travel and a cut-out with it on the left, and let each stop at the seam — closing it there would cut the part in two.
+
+11. Board 2 is cut in 3 tiles. Drill the TILE_REG holes through into the spoilboard, pin them, cut the tile, then slide the stock 980 mm along X against the fence and re-pin.
+
+12. Board 2: C1-B-STILE-M1, C1-B-STILE-R cross a tile seam, so each tile carries only its own stretch of the profile, on OUTLINE_OPEN (THROUGH_OPEN for a cut-out). Cut an outline with the cutter on the right of the direction of travel and a cut-out with it on the left, and let each stop at the seam — closing it there would cut the part in two.

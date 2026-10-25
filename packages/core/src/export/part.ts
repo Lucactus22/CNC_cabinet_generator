@@ -2,6 +2,7 @@ import { bboxOf, type Path } from '../geom/index.js';
 import type { Part } from '../model/types.js';
 import { drillLayer, FLIP_SUFFIX, LAYER, pocketLayer, type LayerOptions } from './layers.js';
 import { emptyDrawing, writeDxf, type DxfDrawing } from './dxf.js';
+import { cutAfterTurning } from '../machine/tiling.js';
 import { mirrorAcrossSheet, mirrorPoint } from './transform.js';
 import { defaultExportOptions, type SheetExportOptions, type SheetFile } from './sheet.js';
 
@@ -38,7 +39,7 @@ export function partDrawing(
   drawing.paths.push({ layer: LAYER.outline, path: part.outline });
 
   for (const f of part.features) {
-    const flip = f.kind !== 'through' && f.side === 'B';
+    const flip = cutAfterTurning(f);
     const suffix = flip ? FLIP_SUFFIX : '';
     const place = (path: Path): Path => (flip ? mirrorAcrossSheet(path, turnAxis) : path);
 
@@ -47,18 +48,25 @@ export function partDrawing(
     } else if (f.kind === 'through') {
       drawing.paths.push({ layer: LAYER.through, path: f.path });
     } else if (f.kind === 'drill') {
-      const thru = f.depth === 'thru';
-      const p = thru || !flip ? { x: f.x, y: f.y } : mirrorPoint({ x: f.x, y: f.y }, turnAxis);
+      const p = flip ? mirrorPoint({ x: f.x, y: f.y }, turnAxis) : { x: f.x, y: f.y };
       drawing.circles.push({
-        layer: drillLayer(f.diameter, f.depth, opts) + (thru ? '' : suffix),
+        layer: drillLayer(f.diameter, f.depth, opts) + suffix,
         x: p.x,
         y: p.y,
         radius: f.diameter / 2,
+        partId: part.id,
       });
     } else if (f.kind === 'engrave' && includeLabels) {
-      // Never mirrored, same as a sheet export: a label is read where it is
-      // cut, not where the geometry it is next to ends up after a flip.
-      drawing.texts.push({ layer: LAYER.label, x: f.x, y: f.y, height: f.height, text: f.text });
+      // On face A and never mirrored, same as a sheet export — see where the
+      // label is made, in `joinery/index.ts`.
+      drawing.texts.push({
+        layer: LAYER.label,
+        x: f.x,
+        y: f.y,
+        height: f.height,
+        text: f.text,
+        ...(f.runs === 'v' ? { rotation: 90 } : {}),
+      });
     }
   }
 
@@ -82,6 +90,6 @@ export function exportPart(
   opts: SheetExportOptions = defaultExportOptions(),
 ): PartExport {
   const drawing = partDrawing(part, opts, opts.includeLabels);
-  const flipped = part.features.some((f) => f.kind !== 'through' && f.side === 'B');
+  const flipped = part.features.some(cutAfterTurning);
   return { file: { name: `${part.id}.dxf`, dxf: writeDxf(drawing) }, flipped };
 }

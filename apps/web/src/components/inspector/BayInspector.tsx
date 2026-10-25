@@ -1,7 +1,7 @@
 import { useStore } from '../../store';
 import { Group, Hint, NumberField, SelectField } from '../Controls';
 import { ChoiceGallery } from '../../gallery/Gallery';
-import { DOOR_FIT } from '../../gallery/choices';
+import { DOOR_FIT, hangDoors } from '../../gallery/choices';
 import {
   BayFront,
   BayInside,
@@ -65,9 +65,9 @@ export function BayInspector({
             gallery={DOOR_FIT}
             value={params.doors.fit}
             param="doors.fit"
-            set={(p, v) => {
-              p.doors.fit = v;
-            }}
+            // The hinge goes with the fit: the option's own words say so, and
+            // the hardware panel shows the hinge it changed to.
+            set={hangDoors}
           />
           <NumberField
             label={params.doors.fit === 'overlay' ? 'Reveal' : 'Clearance'}
@@ -83,6 +83,24 @@ export function BayInspector({
             }
             title="Gap between neighbouring doors, and around the outside of the run."
           />
+          {params.doors.fit === 'inset' && (drawers || spec.doors === 'double') && (
+            // Under inset the clearance is round each front's own edge, but two
+            // fronts meeting inside one opening are still a reveal apart — a
+            // number that used to be set here and nowhere to be seen.
+            <NumberField
+              label="Gap between fronts"
+              value={params.doors.reveal}
+              step={0.5}
+              min={0}
+              param="doors.reveal"
+              onChange={(v) =>
+                update((p) => {
+                  p.doors.reveal = v;
+                })
+              }
+              title="Between the drawers of a stack, or the two leaves of a pair, inside the one opening."
+            />
+          )}
           <SelectField
             label="Cut from"
             value={params.doors.materialId}

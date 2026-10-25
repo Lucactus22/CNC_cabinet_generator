@@ -19,10 +19,20 @@ export interface DrawerStackContext {
   /** Panels bounding this bay, that the runner's cabinet-side member screws to. */
   panelLeftId: string;
   panelRightId: string;
+  /** A handle is selected, so each face is bored for one the way a door is. */
+  withHandles: boolean;
+  /** The carcass has a face frame in front of it. */
+  faceFrame: boolean;
 }
 
 /** Blum 563H/563F: "minimum top clearance 6 (1/4")" between the box and the top of the opening. */
 const TOP_CLEARANCE = 6;
+/**
+ * Blum 563F: "14 (9/16") bottom clearance" under the box, for the runner
+ * beneath it — with the top clearance, the sheet's "maximum drawer height =
+ * opening minus 20".
+ */
+const BOTTOM_CLEARANCE = 14;
 
 const box = (x0: number, x1: number, y0: number, y1: number, z0: number, z1: number): AABB => ({
   min: { x: x0, y: y0, z: z0 },
@@ -75,7 +85,7 @@ export function buildDrawerStack(
   sink: BuildSink,
 ): void {
   const { parts, joints, notes } = sink;
-  const faceOpenings = splitOpeningVertically(opening, explicitHeights, fit);
+  const faceOpenings = splitOpeningVertically(opening, explicitHeights, fit, reveal, insetGap);
   const td = faceMaterial.actualThickness;
   const bt = boxThickness;
   const clearOpeningWidth = opening.clearX1 - opening.clearX0;
@@ -140,6 +150,9 @@ export function buildDrawerStack(
       '+',
       'v',
     );
+    if (ctx.withHandles) {
+      sink.handles.push({ frontId: faceId, front: 'drawer', subFrontId: partId('-FRONT') });
+    }
 
     // --- Box ----------------------------------------------------------------
     const outsideWidth = clearOpeningWidth - slide.boring.widthDeduction + 2 * bt;
@@ -161,14 +174,24 @@ export function buildDrawerStack(
       );
     }
     const boxY1 = boxY0 + length;
-    const boxZ0 = faceRect.z0;
-    const boxHeight = Math.max(20, faceHeight - TOP_CLEARANCE);
-    const boxZ1 = boxZ0 + boxHeight;
     // The bottom is cut from the same material as the sides, so it is not
     // always thinner than the slide's own published recess: a 563F box in
     // 18 mm sides needs more clearance than Blum's 13 mm figure alone would
     // give it, or the back would overlap the bottom instead of clearing it.
     const recess = Math.max(slide.boring.bottomRecess, bt);
+    // Hung off its face, but held inside the opening the face fronts. An
+    // overlay face reaches over the carcass bottom and top, and a face-frame
+    // one over the rails: a box sized to the face alone sat in the bottom
+    // panel's own housing, its runner screwed into it, or ran into a rail.
+    const boxZ0 = Math.max(faceRect.z0, opening.clearZ0 + BOTTOM_CLEARANCE);
+    const boxZ1 = Math.min(faceRect.z1, opening.clearZ1) - TOP_CLEARANCE;
+    const boxHeight = boxZ1 - boxZ0;
+    if (boxHeight <= recess + bt) {
+      notes.push(
+        `${label('')}: once the runner's ${BOTTOM_CLEARANCE} mm below and ${TOP_CLEARANCE} mm above are allowed for, this front leaves ${Math.max(0, boxHeight).toFixed(0)} mm for a box that needs more than ${(recess + bt).toFixed(0)} — no box was built for this drawer. Make the front taller.`,
+      );
+      return;
+    }
 
     const leftId = partId('-SIDE-L');
     const rightId = partId('-SIDE-R');
@@ -277,14 +300,14 @@ export function buildDrawerStack(
       boxRightId: rightId,
       panelLeftId: ctx.panelLeftId,
       panelRightId: ctx.panelRightId,
-      // The box's own front, not the carcass's: these differ by the door
-      // material's thickness under inset fit, and a mounting hole measured
-      // from the wrong one lands off the edge of the side panel.
+      // The box's own front, not the carcass's: under inset fit the box,
+      // and the runner with it, sits a front's thickness further back, and
+      // a hole measured from the carcass front would miss the runner's own
+      // screw holes by that much.
       boxFrontY: boxY0,
       length,
-      mountInset: slide.boring.mountInset,
-      screwDiameter: slide.boring.screwDiameter,
       z: boxZ0 + recess / 2,
+      faceFrame: ctx.faceFrame,
     };
     sink.slides.push(slideReq);
   });

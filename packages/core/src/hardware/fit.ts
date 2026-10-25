@@ -140,6 +140,7 @@ export function checkHardware(params: ProjectParams, parts: Part[]): HardwarePro
   requirements(hw.slide, parts, out);
 
   hingeChecks(hw.hinge, parts, out);
+  hingeApplication(hw.hinge, params, parts, out);
   shelfPinChecks(hw.shelfPin, parts, out);
   if (hw.handle) handleChecks(hw.handle, params, parts, out);
 
@@ -267,6 +268,39 @@ function shelfPinChecks(entry: ShelfPinEntry, parts: Part[], out: HardwareProble
 }
 
 /**
+ * Whether the hinge is made for the way the doors are hung.
+ *
+ * The cup boring is identical either way, so nothing else would notice: an
+ * overlay hinge on an inset door bores perfectly, and then holds the door
+ * proud of the opening it was meant to close into; an inset hinge on an
+ * overlay door pulls it back into the carcass edge. An error, because the
+ * doors that come off the machine cannot be hung on what was ordered.
+ */
+function hingeApplication(
+  entry: HingeEntry,
+  params: ProjectParams,
+  parts: Part[],
+  out: HardwareProblem[],
+): void {
+  const fit = params.doors.fit;
+  if (entry.application === fit) return;
+  const doors = carriers(entry, parts, 'door');
+  if (doors.length === 0) return;
+  const other = CATALOGUE.filter(
+    (e): e is HingeEntry => e.kind === 'hinge' && e.application === fit,
+  ).map((e) => e.name);
+  out.push({
+    severity: 'error',
+    message: `The doors are ${fit}, but ${entry.name} is made for ${entry.application} doors: the cup boring is the same, so the doors would be bored to it and then not close in the opening.`,
+    partIds: doors.map((d) => d.id),
+    hint:
+      other.length > 0
+        ? `Choose a hinge made for ${fit} doors — ${other.join(', ')} — or set the doors to ${entry.application}.`
+        : `Set the doors to ${entry.application}, or describe a hinge made for ${fit} doors.`,
+  });
+}
+
+/**
  * Whether the handle lands on the door, and where.
  *
  * Worked from the holes that were actually emitted, in the blank's own
@@ -294,12 +328,15 @@ function handleChecks(
     });
   }
 
+  let drawers = 0;
   for (const door of parts) {
     const screws = door.features.filter(
       (f): f is DrillFeature => f.kind === 'drill' && f.purpose === 'handle',
     );
     if (screws.length === 0) continue;
-    bored++;
+    const drawer = door.role === 'drawer-face';
+    if (drawer) drawers++;
+    else bored++;
 
     const off = screws.some(
       (s) =>
@@ -313,7 +350,10 @@ function handleChecks(
         severity: 'error',
         message: `${door.label}: a ${entry.name} placed this way puts a fixing hole off the edge of the blank.`,
         partIds: [door.id],
-        hint: 'Reduce the handle offsets, or fit a smaller handle.',
+        // A drawer pull is centred and has no offsets to reduce.
+        hint: drawer
+          ? 'Fit a shorter handle, or make the bay wider.'
+          : 'Reduce the handle offsets, or fit a smaller handle.',
       });
       continue;
     }
@@ -322,9 +362,11 @@ function handleChecks(
     if (overhang > TOL) {
       out.push({
         severity: 'warning',
-        message: `${door.label}: the ends of a ${entry.name} stand ${overhang.toFixed(1)} mm past the edge of the door. The holes are right, the handle is not.`,
+        message: `${door.label}: the ends of a ${entry.name} stand ${overhang.toFixed(1)} mm past the edge of the ${drawer ? 'drawer front' : 'door'}. The holes are right, the handle is not.`,
         partIds: [door.id],
-        hint: 'Move the handle further from the door end, or fit a shorter handle.',
+        hint: drawer
+          ? 'Fit a shorter handle, or make the bay wider.'
+          : 'Move the handle further from the door end, or fit a shorter handle.',
       });
     }
   }
@@ -340,6 +382,14 @@ function handleChecks(
       // These are holes through the front of a finished door, so the numbers
       // are worth reading back before the file goes to the machine.
       message: `${bored} ${bored === 1 ? 'door is' : 'doors are'} drilled for a ${entry.name}, ${p.orientation}, ${where}${p.orientation === 'vertical' ? `, ${p.edgeOffset} mm in from the opening edge` : ''}.`,
+    });
+  }
+  if (drawers > 0) {
+    out.push({
+      severity: 'info',
+      // Said separately: the door placement settings do not move these, and
+      // someone who set them would otherwise expect them to.
+      message: `${drawers} drawer ${drawers === 1 ? 'front is' : 'fronts are'} drilled for a ${entry.name}, across the front and centred on it — the door placement settings do not apply to a drawer.`,
     });
   }
 }

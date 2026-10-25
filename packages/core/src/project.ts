@@ -149,6 +149,30 @@ export function exportProject(
       dxf: cutListCsv(project.stockCutList, 'Board'),
     });
   }
+  // How to set up the tiles, when to turn a sheet over, which hole was left
+  // off a seam: none of it can be said inside a DXF, and a zip that arrives
+  // at the machine without it arrives without the one thing that says a
+  // hinge hole has to be drilled by hand.
+  if (warnings.length > 0) {
+    files.push({
+      name: `${slug(project.params.name)}-before-you-cut.txt`,
+      dxf: beforeYouCut(project.params.name, warnings),
+    });
+  }
 
   return { files, warnings };
+}
+
+/** The export's own instructions, as a plain text file to print or read at the machine. */
+export function beforeYouCut(name: string, warnings: string[]): string {
+  const title = `${name} — before you cut`;
+  const lines = [
+    title,
+    '='.repeat(title.length),
+    '',
+    'Read this before loading the first file. None of it is in the DXF files themselves.',
+    '',
+    ...warnings.flatMap((w, i) => [`${i + 1}. ${w}`, '']),
+  ];
+  return lines.join('\r\n');
 }

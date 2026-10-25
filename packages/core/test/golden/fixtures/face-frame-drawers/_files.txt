@@ -19,9 +19,11 @@ face-frame-with-drawers-sheet5-tile2.dxf
 face-frame-with-drawers-board1.dxf
 face-frame-with-drawers-board1-tile1.dxf
 face-frame-with-drawers-board1-tile2.dxf
+face-frame-with-drawers-board1-tile3.dxf
 face-frame-with-drawers-board2.dxf
 face-frame-with-drawers-board2-tile1.dxf
 face-frame-with-drawers-board2-tile2.dxf
 face-frame-with-drawers-board2-tile3.dxf
 face-frame-with-drawers-cutlist.csv
 face-frame-with-drawers-stock-cutlist.csv
+face-frame-with-drawers-before-you-cut.txt

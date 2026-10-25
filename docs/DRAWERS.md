@@ -100,25 +100,57 @@ just at the bottom's two rear corners instead of a side panel's two
 front-bottom ones.
 
 **Not modelled: the hook bore.** Blum's drawing also shows a Ø6 × 10 mm bore
-for the locking device's own hook, positioned within that notch. It is a
-real hole, but it is not named in the roadmap item's own design notes, and
-adding it costs a feature for a mechanism this generator otherwise treats
-generically — see the next section. Left out rather than guessed at.
+for the runner's rear hook, positioned within that notch. It is a real hole,
+but where it lands depends on how the box's back meets its sides, and that is
+a different joint here from the one Blum draw. Left out rather than guessed
+at, and drilled with Blum's own template — see the next section.
 
 ## Slide mounting holes
 
-Blum's real undermount hardware is a proprietary clip-on running system: the
-runner attaches to the cabinet side and to the underside of the drawer box
-through a captured profile, not a simple user-drilled screw pattern, and the
-exact screw positions Blum publish (`A` and `B` in their own runner-mounting
-table) are a different pair of offsets for every one of the five runner
-lengths. Rather than transcribe that table, this generator bores a **generic,
-symmetric pair of mounting holes**, held in `mountInset` (25 mm) from each
-end of the runner — on the box's own two sides, and on the two cabinet
-panels the bay is bounded by. It is the same kind of simplification the
-0.1 default's hinge-plate holes are not: those genuinely are the maker's own
-32 mm system; this is a stand-in for hardware this project cannot fully
-model without a lookup table nobody would want to maintain by hand.
+These follow the maker's own screw table. Blum's 563H sheet (© 2013 Blum, Inc.)
+and 563F sheet (© 2012) give the same positions for panel cabinets: a front
+screw at the 37 mm mounting position, then two more for each runner length,
+all on the 32 mm system line, measured from the cabinet face with the runner
+at its standard 3 mm setback:
+
+| Runner | Screws at |
+|---|---|
+| 229 | 37, 133, 229 |
+| 305 | 37, 165, 261 |
+| 381 | 37, 165, 357 |
+| 457 | 37, 261, 453 |
+| 533 | 37, 261, 517 |
+
+The 563H sheet writes them as spacings (96/96, 128/96, 128/192, 224/192,
+224/256); the 563F sheet as an A/B table. Both add up to the rows above, held on
+the entry as `screwPositions` and measured back from the front of the drawer
+box. That is the cabinet face under overlay. Under inset the box sits a front's
+thickness further back, and the runner sits back with it.
+
+Blum lists two ways to fix the runner: a #6 wood screw (606N/606P), which needs
+no hole, or a system screw (662.1150.HG), 11.5 mm long and made for a
+pre-drilled 5 mm hole. The holes bored here are for the system screw: Ø5 mm and
+12 mm deep, the same 32 mm system hole a hinge plate takes, and **never
+through**. An outer carcass side is a finished face. A runner length with no
+row in the table, or a panel thinner than the hole is deep, is not bored, and
+the project says which and why.
+
+**Nothing is bored in the drawer box.** The runner does not screw to the box's
+sides. The box drops onto the runners and is held by the locking devices
+screwed under its bottom and by the rear hooks in the bore described above,
+both set out with Blum's own drilling template. Earlier versions bored a
+generic pair of through holes in each box side that no part of the runner
+used.
+
+The table is Blum's **panel** (frameless) application. Behind a face frame the
+runner is fixed at the frame and on a rear bracket instead, so a face-frame
+carcass gets no runner holes at all, and the project says so rather than
+boring the frameless pattern 18-odd mm behind where the runner is.
+
+How high on the panel the holes sit is this generator's own figure, not one
+from the sheet: halfway up the zone under the box bottom, where the runner's
+cabinet member runs. Check it against the runner in your hand before boring a
+run of cabinets, or use wood screws, which need no hole.
 
 ## What is checked
 
@@ -152,8 +184,35 @@ to a slice of the bay's own `FrontOpening`, respecting the project's overlay
 or inset setting and its reveal, and it carries the `drawer-face` `PartRole`
 so surface effects target it exactly the way they target a door — the
 Surface Effects panel offers "Drawer fronts" alongside "Doors" for exactly
-this reason. A stack of *n* explicit front heights is sliced from the
-opening top to bottom; if they do not add up (with a reveal between each) to
-the opening's own height, the stack is split evenly instead and a note says
-so, the same fallback `layoutBays` already uses for bay widths that do not
-add up.
+this reason.
+
+A stack of *n* explicit front heights is the fronts themselves, top to bottom,
+and they are cut to exactly those heights. They add up the way a door in the
+same opening does: the fronts, a reveal between each, and the door's own gap
+at the top and the bottom — half a reveal each under overlay, the inset gap
+under inset. So the top front starts level with the top of the door beside it
+and the bottom one ends level with its bottom. In the default base bay a door
+is 779.2 mm, so two fronts with a 3 mm reveal come to 776.2 mm between them,
+`[400, 376.2]`.
+
+1.0 left the top and bottom gap out of the sum and then took it off each front
+anyway, so every front came out a reveal short and the stack stopped a reveal
+higher than the door beside it for every drawer below the first. A stack saved
+to that rule is recognised and kept: the bottom front gives up the difference —
+a reveal under overlay, twice the inset gap under inset — and a **warning** says
+so, with the heights to type to make it the design.
+
+If they add up to neither, the stack is split evenly instead, the same fallback
+`layoutBays` uses for bay widths that do not, and a warning says what the fronts
+would have had to come to. Either way the fronts cut are not the fronts typed,
+so neither is left as a quiet note.
+
+### The box in its opening
+
+Each box hangs off its face but is held inside the opening the face fronts:
+Blum's 563 sheets ask for **14 mm under the box** and **6 mm above it** (*"maximum
+drawer height = opening minus 20"*). An overlay face reaches over the carcass
+bottom and top, and a face-frame one over the rails, so a box sized to its face
+alone sat in the bottom panel's own housing — its runner screwed into it — or
+ran into a rail. A front too short to leave room for a box with its recessed
+bottom gets no box, and the project says so.

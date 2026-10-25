@@ -1,8 +1,9 @@
 # Roadmap to 1.0
 
-**Current version: 1.0.** Every item below is done. What the sentence under
-*What 1.0 means* promises, the tool does; what it deliberately does not do is
-listed under it, with the reason for each.
+**Current version: 1.0.** Every item below is done, including R-26, the fixes
+from the review of 1.0 itself. What the sentence under *What 1.0 means*
+promises, the tool does; what it deliberately does not do is listed under it,
+with the reason for each.
 
 Each item below is a **self-contained work order**. Pick the first one that is
 not done, read it, read [ARCHITECTURE.md](ARCHITECTURE.md), and work it to its
@@ -2442,6 +2443,99 @@ figure in [UX.md](UX.md) was measured at, because Playwright's
       sessions run under — `HTTP 403`, while a branch push to the same remote
       minutes earlier succeeded — so it is a permission, not a mistake to
       retry
+
+---
+
+## Milestone H — After 1.0
+
+### R-26 — What the 1.0 code review found
+`Milestone H` · `Depends on: R-25` · `Size: M`
+
+A full review of the 1.0 codebase, each finding run against the real pipeline
+before it was believed. All 944 tests passed throughout; every one of these got
+past them, mostly because a test pinned the record of a thing rather than the
+thing that is cut. Four of them would have ruined material:
+
+- **A part longer than one tile was cut in two.** Clipping a profile to a tile
+  closed it along the seam, so each tile's `OUTLINE` gained a full-depth cut
+  across the part. The default project's 1100 mm `C1-T-SIDE-L` came off a 1 m
+  machine as two pieces. A tiling test asserted the extra piece as correct.
+- **Face-frame stiles stood across their board.** Placed unturned, a stile —
+  drawn standing up in its own frame — was 782 mm tall on a 140 mm board. The
+  nest record said otherwise, and the test read the record.
+- **Second-face work fell out of the tile files.** Mirrored about the blank's
+  length but tiled only as far as the first face reached, a half-filled
+  sheet's `_FLIP` geometry was in no tile at all.
+- **The export's own warnings were thrown away.** A hole left off a seam, the
+  turn-over and the tiling steps existed only in a return value nothing read.
+
+And five that would have built a cabinet that is wrong in use: slide screw
+holes bored through the finished outside of an end panel, at generic positions
+no runner uses; drawer fronts cut a reveal short, the stack stepping up from the
+door beside it; drawer fronts never bored for the chosen handle, and the order
+list short by one a drawer; inset doors bored for an overlay hinge without a
+word; and every turned part's engraved id running onto its neighbour. Two
+smaller ones: the export preview did not re-check the design before writing
+the zip, and the turn-over instruction ignored drilled holes.
+
+- [x] A profile crossing a seam is left open at it, on `OUTLINE_OPEN` /
+      `THROUGH_OPEN`, with the part always on the left of travel —
+      `tiling.test.ts` pins that the tiles cut exactly the profile length the
+      sheet does, which the old clipping missed by 800 mm on sheet 1; an edge
+      lying on a seam goes to the tile the part is in, so a part starting
+      exactly on one loses no edge
+- [x] A groove crossing a seam is carried a cutter's width into the next
+      tile, so no rib is left across it; an overlap too narrow for that is
+      said
+- [x] Stiles lie along their board; every drawn part, on sheets and boards,
+      lands exactly where the nester put it (`pipeline.test.ts`,
+      `faceframe.test.ts`)
+- [x] Tiles reach as far as the second face does; the setups diagnostic counts
+      the same tiles the export writes; a turned-over tiled sheet gets its own
+      registration holes and its own instruction
+- [x] Export instructions shown under *Before you cut* and written into the
+      zip; a hole left off a seam names its sheet, tile, part, layer and
+      position; download and the per-part download re-check the design
+- [x] Slide holes are Blum's own table (563H © 2013, 563F © 2012), Ø5 × 12
+      blind for the 662.1150.HG system screw, in the cabinet only; a runner
+      length with no table row, a panel thinner than the hole, and runners on
+      both faces of a divider meeting inside it are each said
+- [x] Drawer fronts are cut to the heights typed and add up like a door,
+      top and bottom level with the door beside them, under overlay and inset;
+      a stack saved to 1.0's rule is kept with the bottom front trimmed, and
+      that and the even-split fallback are warnings, not notes; the drawer
+      starter's fronts now add up
+- [x] Every drawer box stays inside its opening — 14 mm under, 6 mm over,
+      Blum's figures — so none sits in the carcass bottom's housing or runs
+      into a face-frame rail; every runner hole lands on its panel and clear
+      of the housings on its face (`drawers.test.ts`, across overlay and
+      inset, frameless and face frame, one to three drawers)
+- [x] A chosen handle goes on drawer fronts too, centred across, through the
+      sub-front as well, counted on the order list and in the assembly step,
+      with hints that fit a drawer
+- [x] No frameless screw table bored behind a face frame; said instead
+- [x] Every hinge says whether it is made for overlay or inset doors; Blum's
+      inset CLIP top (71B3750 datasheet) is catalogued; a mismatch is an error
+      with the matching hinge offered as a fix; inset plates sit back by the
+      door's thickness
+- [x] Labels on face A, turned with their part, at the first corner wholly on
+      it — checked against the outline, not the bounding box, for every part
+      in the default and face-framed projects
+- [x] Golden fixtures regenerated, every moved byte accounted for in the
+      commit; the 0.1 sheets still byte-identical
+- [x] DXF.md, DRAWERS.md, DOORS.md, HARDWARE.md, GETTING-STARTED.md and
+      ARCHITECTURE.md true again
+
+A second review of the change itself, before it was committed, found the
+drawer box in the bottom panel, the 1.0 stacks being re-split, the seam-edge
+case, the label in the toe kick, the sub-front, the face-frame runners and the
+pocket rib; all are fixed above.
+
+Left as honest limits rather than guessed at: the runner's rear hook bore and
+locking-device holes in the drawer box, which Blum set out with their own
+template; the height of the slide holes on the panel, which is this
+generator's own figure; and the inset plate position, derived from the door's
+back face rather than read off a sheet.
 
 ---
 

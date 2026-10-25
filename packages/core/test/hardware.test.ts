@@ -8,9 +8,11 @@ import {
   measuresFor,
   defaultParams,
   exportProject,
+  frameOf,
   HANDLE_BAR_128,
   HANDLE_KNOB,
   HINGE_BLUM_CLIP_TOP,
+  HINGE_BLUM_CLIP_TOP_INSET,
   HINGE_HETTICH_SENSYS,
   HINGE_UTRUSTA,
   normaliseParams,
@@ -20,6 +22,7 @@ import {
   resolveHardware,
   SLIDE_BLUM_TANDEM_F,
   SLIDE_BLUM_TANDEM_H,
+  toAssembly,
   type Diagnostic,
   type HingeEntry,
   type ShelfPinEntry,
@@ -389,6 +392,37 @@ describe('a project file with something wrong in it', () => {
     expect(resolveHardware(back.hardware).shelfPin.requires).toEqual([]);
   });
 
+  it('reads a custom slide back with its screw table intact', () => {
+    const raw = JSON.parse(JSON.stringify(defaultParams()));
+    raw.hardware.custom = [{ ...JSON.parse(JSON.stringify(SLIDE_BLUM_TANDEM_H)), id: 'mine' }];
+    raw.hardware.slideId = 'mine';
+    const slide = resolveHardware(normaliseParams(raw).hardware).slide;
+    expect(slide.id).toBe('mine');
+    expect(slide.boring.screwPositions).toEqual(SLIDE_BLUM_TANDEM_H.boring.screwPositions);
+  });
+
+  it('drops a slide from before the screw table, and says so, rather than guess where its screws go', () => {
+    // A 1.0 file's custom slide carried a generic inset and a through-hole
+    // diameter. Neither says where Blum's screws actually go or how deep is
+    // blind, so there is nothing honest to convert it to.
+    const raw = JSON.parse(JSON.stringify(defaultParams()));
+    const old: Record<string, unknown> = { ...SLIDE_BLUM_TANDEM_H.boring };
+    delete old.screwHoleDiameter;
+    delete old.screwHoleDepth;
+    delete old.screwPositions;
+    raw.hardware.custom = [
+      {
+        ...JSON.parse(JSON.stringify(SLIDE_BLUM_TANDEM_H)),
+        id: 'from-1-0',
+        boring: { ...old, screwDiameter: 4.5, mountInset: 25 },
+      },
+    ];
+    raw.hardware.slideId = 'from-1-0';
+    const back = normaliseParams(raw);
+    expect(resolveHardware(back.hardware).slide.id).toBe(SLIDE_BLUM_TANDEM_H.id);
+    expect(said(buildProject(back).diagnostics, '"from-1-0"')?.severity).toBe('warning');
+  });
+
   it('bores no handle at all when the handle id names nothing', () => {
     // The one place falling back to a default is wrong: it would put holes
     // through the front of a finished door for hardware nobody chose.
@@ -703,5 +737,176 @@ describe('handles', () => {
     expect(info?.severity).toBe('info');
     expect(info?.message).toContain('35 mm in from the opening edge');
     expect(info?.message).toContain('50 mm from the top');
+  });
+});
+
+describe('handles on drawer fronts', () => {
+  // Base bay 1 as a stack of three drawers, the rest of the run as it is.
+  const withDrawerPulls = (handleId: string) =>
+    project((p) => {
+      p.hardware.handleId = handleId;
+      const carcass = p.cabinets[0]!.carcasses.find((c) => c.id === 'B')!;
+      carcass.bays[0] = {
+        ...carcass.bays[0]!,
+        doors: 'none',
+        drawerFrontHeights: [250, 250, 273.2],
+      };
+    });
+  const faces = (p: ReturnType<typeof project>): Part[] =>
+    p.parts.filter((q) => q.role === 'drawer-face');
+
+  it('bores every drawer front when a handle is chosen, not only the doors', () => {
+    // Drawer fronts used to come off the machine blank with a handle
+    // selected: no holes, nothing said, and the order list short by a pull
+    // for every drawer.
+    const p = withDrawerPulls(HANDLE_BAR_128.id);
+    expect(faces(p)).toHaveLength(3);
+    for (const face of faces(p)) expect(drills(face, 'handle')).toHaveLength(2);
+  });
+
+  it('centres the pull across the front, both ways', () => {
+    const p = withDrawerPulls(HANDLE_BAR_128.id);
+    for (const face of faces(p)) {
+      const [a, b] = drills(face, 'handle');
+      // Across the front: the two holes share a height and sit 128 apart,
+      // either side of the middle of the blank.
+      expect(a!.y).toBeCloseTo(face.height / 2, 6);
+      expect(b!.y).toBeCloseTo(face.height / 2, 6);
+      expect(Math.abs(a!.x - b!.x)).toBeCloseTo(128, 6);
+      expect((a!.x + b!.x) / 2).toBeCloseTo(face.width / 2, 6);
+    }
+  });
+
+  it('puts a knob in the middle of the front', () => {
+    const p = withDrawerPulls(HANDLE_KNOB.id);
+    for (const face of faces(p)) {
+      const [k] = drills(face, 'handle');
+      expect(k!.x).toBeCloseTo(face.width / 2, 6);
+      expect(k!.y).toBeCloseTo(face.height / 2, 6);
+    }
+  });
+
+  it('orders a handle for every front, doors and drawers together', () => {
+    const p = withDrawerPulls(HANDLE_BAR_128.id);
+    const doors = p.parts.filter((q) => q.role === 'door').length;
+    const row = p.hardware.find((h) => h.kind === 'handle');
+    expect(row?.quantity).toBe(doors + 3);
+  });
+
+  it('says where the drawer pulls went, apart from the door placement', () => {
+    const p = withDrawerPulls(HANDLE_BAR_128.id);
+    const said3 = said(p.diagnostics, 'drawer fronts are drilled');
+    expect(said3?.message).toContain('3 drawer fronts');
+    expect(said3?.message).toContain('door placement settings do not apply');
+  });
+
+  it('bores the sub-front behind each face to match, for bolts that go through both', () => {
+    // A pull is bolted from inside the box, through the sub-front and the
+    // face together: holes in the face alone leave the bolt nowhere to go.
+    const p = withDrawerPulls(HANDLE_BAR_128.id);
+    for (const face of faces(p)) {
+      const sub = find(p.parts, face.id.replace(/-FACE$/, '-FRONT'));
+      const onFace = drills(face, 'handle').map((h) => toAssembly(frameOf(face), h.x, h.y));
+      const onSub = drills(sub, 'handle-sub-front').map((h) => toAssembly(frameOf(sub), h.x, h.y));
+      expect(onSub).toHaveLength(onFace.length);
+      onFace.forEach((f, i) => {
+        expect(onSub[i]!.x).toBeCloseTo(f.x, 6);
+        expect(onSub[i]!.z).toBeCloseTo(f.z, 6);
+      });
+    }
+    // And the sub-front is not judged as though it were a door.
+    expect(said(p.diagnostics, 'FRONT')).toBeUndefined();
+  });
+
+  it('hints at a shorter handle or a wider bay, not offsets a drawer pull does not have', () => {
+    const p = project((x) => {
+      x.hardware.custom = [
+        {
+          ...HANDLE_BAR_128,
+          id: 'very-long',
+          name: 'A 600 mm bar',
+          custom: true,
+          boring: { ...HANDLE_BAR_128.boring, centres: 600, length: 650 },
+        },
+      ];
+      x.hardware.handleId = 'very-long';
+      const carcass = x.cabinets[0]!.carcasses.find((c) => c.id === 'B')!;
+      carcass.bays[0] = { ...carcass.bays[0]!, doors: 'none', drawerFrontHeights: [773.2] };
+    });
+    const off = p.diagnostics.find(
+      (d) => d.message.includes('drawer 1, bay 1') && d.message.includes('off the edge'),
+    );
+    expect(off?.severity).toBe('error');
+    expect(off?.hint).toBe('Fit a shorter handle, or make the bay wider.');
+  });
+
+  it('fits the pull in the assembly step that screws the fronts on', () => {
+    const p = withDrawerPulls(HANDLE_BAR_128.id);
+    const step = p.assembly.steps.find((s) => s.partIds.some((id) => id.endsWith('-FACE')))!;
+    expect(step.hardware).toContain(`3 × ${HANDLE_BAR_128.name}`);
+  });
+});
+
+describe('inset doors and the hinge they hang on', () => {
+  const inset = (hingeId: string) =>
+    project((p) => {
+      p.doors.fit = 'inset';
+      p.hardware.hingeId = hingeId;
+    });
+
+  it("carries Blum's inset CLIP top: the overlay hinge's boring, cranked for inset", () => {
+    // 71B3750 datasheet: 35 mm boss 13 mm deep, 45 mm apart, 9.5 eccentric,
+    // drilling distance 3-7 — the same holes as the overlay CLIP top, which
+    // is exactly why the fit is carried separately.
+    expect(HINGE_BLUM_CLIP_TOP_INSET.application).toBe('inset');
+    expect(HINGE_BLUM_CLIP_TOP_INSET.boring).toEqual(HINGE_BLUM_CLIP_TOP.boring);
+    expect(HINGE_BLUM_CLIP_TOP_INSET.boringDistanceRange).toEqual({ min: 3, max: 7 });
+    for (const h of [HINGE_UTRUSTA, HINGE_BLUM_CLIP_TOP, HINGE_HETTICH_SENSYS]) {
+      expect(h.application).toBe('overlay');
+    }
+  });
+
+  it('will not bore inset doors for an overlay hinge, and names the hinge that fits', () => {
+    // The cup boring is identical, so before this the doors were bored to
+    // UTRUSTA without a word and then would not close in their opening.
+    const p = inset(HINGE_UTRUSTA.id);
+    const d = said(p.diagnostics, 'is made for overlay doors');
+    expect(d?.severity).toBe('error');
+    expect(d?.message).toContain(HINGE_UTRUSTA.name);
+    expect(d?.hint).toContain(HINGE_BLUM_CLIP_TOP_INSET.name);
+    expect(d?.partIds).toContain(DOOR);
+  });
+
+  it('will not bore overlay doors for an inset hinge either', () => {
+    const p = project((x) => void (x.hardware.hingeId = HINGE_BLUM_CLIP_TOP_INSET.id));
+    expect(said(p.diagnostics, 'is made for inset doors')?.severity).toBe('error');
+  });
+
+  it('stays quiet when the hinge matches the doors', () => {
+    expect(said(project().diagnostics, 'is made for')).toBeUndefined();
+    expect(said(inset(HINGE_BLUM_CLIP_TOP_INSET.id).diagnostics, 'is made for')).toBeUndefined();
+  });
+
+  it('sets the plates back by the door thickness, from the back of an inset door', () => {
+    // The plate line is 37 mm from the back of the door. Under overlay that
+    // is the carcass front; an inset door's back is its own thickness in.
+    const plateBack = (p: ReturnType<typeof project>): number => {
+      const side = find(p.parts, 'C1-B-SIDE-L');
+      const ys = drills(side, 'hinge-plate').map((h) => toAssembly(frameOf(side), h.x, h.y).y);
+      expect(ys.length).toBeGreaterThan(0);
+      return Math.min(...ys) - side.box.min.y;
+    };
+    const td = find(project().parts, DOOR).thickness;
+    expect(plateBack(project())).toBeCloseTo(37, 6);
+    expect(plateBack(inset(HINGE_BLUM_CLIP_TOP_INSET.id))).toBeCloseTo(37 + td, 6);
+  });
+
+  it('reads a custom hinge from before the fit was recorded as an overlay one', () => {
+    const raw = JSON.parse(JSON.stringify(defaultParams()));
+    const old = JSON.parse(JSON.stringify(HINGE_UTRUSTA));
+    delete old.application;
+    raw.hardware.custom = [{ ...old, id: 'mine' }];
+    raw.hardware.hingeId = 'mine';
+    expect(resolveHardware(normaliseParams(raw).hardware).hinge.application).toBe('overlay');
   });
 });

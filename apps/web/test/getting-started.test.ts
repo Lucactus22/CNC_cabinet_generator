@@ -99,8 +99,14 @@ describe('what the guide says comes out', () => {
   const bundle = exportProject(cuttable(), defaultExportOptions());
   const names = bundle.files.map((f) => f.name);
 
-  it('produces files of exactly the three shapes it tabulates', () => {
-    const patterns = [/-sheet\d+\.dxf$/, /-sheet\d+-tile\d+\.dxf$/, /-cutlist\.csv$/];
+  it('produces files of exactly the four shapes it tabulates', () => {
+    const patterns = [
+      /-sheet\d+\.dxf$/,
+      /-sheet\d+-tile\d+\.dxf$/,
+      /-cutlist\.csv$/,
+      /-before-you-cut\.txt$/,
+    ];
+    expect(guideSays('<name>-before-you-cut.txt')).toBe(true);
     for (const pattern of patterns) expect(names.some((n) => pattern.test(n))).toBe(true);
     for (const name of names) expect(patterns.some((p) => p.test(name))).toBe(true);
   });
@@ -111,7 +117,14 @@ describe('what the guide says comes out', () => {
         .filter((f) => f.name.endsWith('.dxf'))
         .flatMap((f) => f.dxf.split('\n').map((l) => l.trim())),
     );
-    for (const layer of ['OUTLINE', 'POCKET_D6', 'DRILL_5_D12', 'DRILL_4.5_THRU', 'LABEL']) {
+    for (const layer of [
+      'OUTLINE',
+      'OUTLINE_OPEN',
+      'POCKET_D6',
+      'DRILL_5_D12',
+      'DRILL_4.5_THRU',
+      'LABEL',
+    ]) {
       expect(guideSays(layer)).toBe(true);
       expect(written.has(layer)).toBe(true);
     }

@@ -1,4 +1,37 @@
-import type { ProjectParams, MachineSpec } from '../model/types.js';
+import type { Feature, MachineSpec, Part, ProjectParams } from '../model/types.js';
+import type { NestedSheet } from '../nest/index.js';
+
+/**
+ * Whether a feature is cut after the sheet is turned over, onto a _FLIP layer.
+ *
+ * A through cut or a through hole goes right through, so it is cut from
+ * whichever face is up; everything else on face B waits for the turn.
+ */
+export function cutAfterTurning(f: Feature): boolean {
+  if (f.kind === 'through') return false;
+  if (f.kind === 'drill' && f.depth === 'thru') return false;
+  return f.side === 'B';
+}
+
+/**
+ * How far along the stock a sheet's machining reaches — what its tiles have to
+ * cover.
+ *
+ * Usually that is where the parts stop. But turning a sheet over left to right
+ * puts a part's second face at the far end of the blank: a divider nested at
+ * the start of a half-filled sheet has its second-face housings cut near the
+ * end of it. Tiling only as far as the parts reach on the first face would
+ * leave that work outside every tile, and the tile files would silently be
+ * missing it.
+ */
+export function machiningReach(sheet: NestedSheet, parts: Part[]): number {
+  const turned = new Set(parts.filter((p) => p.features.some(cutAfterTurning)).map((p) => p.id));
+  let reach = sheet.contentLength;
+  for (const placed of sheet.parts) {
+    if (turned.has(placed.partId)) reach = Math.max(reach, sheet.length - placed.x);
+  }
+  return reach;
+}
 
 export interface Tile {
   index: number;
@@ -42,8 +75,9 @@ export function planTiles(
   const step = feedStep(machine);
   if (step === null) return null;
   const travel = feedTravel(machine);
-  // `sheetLength` is how far the parts actually reach, not the blank's nominal
-  // size: a sheet only half filled needs only the setups that cover it.
+  // `sheetLength` is how far the machining actually reaches (`machiningReach`),
+  // not the blank's nominal size: a sheet only half filled needs only the
+  // setups that cover it.
   if (sheetLength <= travel + 1e-9) return null; // one setup covers it
 
   const count = Math.ceil(sheetLength / step);

@@ -311,10 +311,12 @@ export interface BaySpec {
    * is real cabinetry but doubles the opening math this item has to get right,
    * so it is out of scope for now; see docs/DRAWERS.md.
    *
-   * Explicit heights are used as given when they, plus a reveal between each,
-   * add up to the bay's own opening height; otherwise the opening is split
+   * Explicit heights are the fronts themselves, used as given when they add
+   * up the way a door in the same opening does: the fronts, a reveal between
+   * each, and the door's own gap at the top and bottom (half a reveal under
+   * overlay, the inset gap under inset). Otherwise the opening is split
    * evenly among them, the same fallback `bayWidths` uses for a carcass's own
-   * bays.
+   * bays, and a note says what the fronts would have had to come to.
    */
   drawerFrontHeights: number[];
 }
@@ -649,6 +651,12 @@ export interface EngraveFeature {
   text: string;
   height: number;
   side: FaceSide;
+  /**
+   * Which local axis the text runs along from (x, y). The export turns it
+   * with the part, so a label stays on the part it names however the nester
+   * placed it. Absent means 'u'.
+   */
+  runs?: 'u' | 'v';
 }
 
 export type Feature = PocketFeature | ThroughFeature | DrillFeature | EngraveFeature;

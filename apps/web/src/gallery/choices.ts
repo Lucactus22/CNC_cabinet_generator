@@ -1,5 +1,9 @@
 import {
   CABINET_TYPES,
+  HINGE_BLUM_CLIP_TOP,
+  HINGE_BLUM_CLIP_TOP_INSET,
+  HINGE_UTRUSTA,
+  resolveHardware,
   type BackStyle,
   type CabinetType,
   type CarcassFloor,
@@ -322,14 +326,14 @@ export const DOOR_FIT: Gallery<DoorFit> = {
       label: 'Overlay, in front',
       about:
         'Covers the carcass edges, so a wide panel hides an untidy one. Forgiving of a box out of square.',
-      apply: (p) => void (p.doors.fit = 'overlay'),
+      apply: (p) => hangDoors(p, 'overlay'),
     },
     {
       value: 'inset',
       label: 'Inset, flush in the opening',
       about:
-        'Flush with the front, and every gap on show. The box has to be square and stay square.',
-      apply: (p) => void (p.doors.fit = 'inset'),
+        'Flush with the front, and every gap on show. The box has to be square and stay square, and it takes an inset hinge.',
+      apply: (p) => hangDoors(p, 'inset'),
     },
   ],
 };
@@ -418,3 +422,22 @@ export const NEST_STRATEGY: Gallery<NestStrategy> = {
     },
   ],
 };
+
+/**
+ * Change how the doors are hung, and the hinge with it when the one chosen is
+ * made for the other fit. The cup boring is the same either way, so a choice
+ * that left the hinge behind would bore doors that cannot close.
+ */
+export function hangDoors(p: ProjectParams, fit: DoorFit): void {
+  p.doors.fit = fit;
+  const hinge = resolveHardware(p.hardware).hinge;
+  if (hinge.application === fit) return;
+  // The same maker's hinge cranked the other way where there is one, so
+  // going back to overlay from Blum's inset hinge lands on Blum's overlay one.
+  p.hardware.hingeId =
+    fit === 'inset'
+      ? HINGE_BLUM_CLIP_TOP_INSET.id
+      : hinge.id === HINGE_BLUM_CLIP_TOP_INSET.id
+        ? HINGE_BLUM_CLIP_TOP.id
+        : HINGE_UTRUSTA.id;
+}

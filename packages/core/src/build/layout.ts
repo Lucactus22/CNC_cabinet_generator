@@ -124,19 +124,38 @@ const sum = (xs: number[]): number => xs.reduce((a, b) => a + b, 0);
  * have to fill, falling back to an even split the same way `layoutBays` does
  * for bay widths that do not add up: better a stack of equal, cuttable
  * drawers than one sized to numbers that do not actually reach.
+ *
+ * The heights are the fronts themselves. They add up the way a door beside
+ * them does: the fronts, a reveal between each, and the door's own gap at the
+ * top and the bottom of the stack — `end`, half a reveal under overlay and
+ * the inset gap under inset. Leaving `end` out, as this once did, cut every
+ * front a reveal short and left the stack's bottom edge a reveal higher than
+ * the door beside it for every drawer below the first.
  */
 export function drawerHeights(
   available: number,
   explicit: number[],
   reveal: number,
-): { heights: number[]; fellBackToEven: boolean } {
+  end: number,
+): { heights: number[]; fellBackToEven: boolean; bottomTrimmed: number } {
   const n = explicit.length;
-  if (n === 0) return { heights: [], fellBackToEven: false };
-  const required = sum(explicit) + (n - 1) * reveal;
-  if (Math.abs(required - available) < 0.5)
-    return { heights: explicit.slice(), fellBackToEven: false };
-  const each = Math.max(0, (available - (n - 1) * reveal) / n);
-  return { heights: new Array(n).fill(each), fellBackToEven: true };
+  if (n === 0) return { heights: [], fellBackToEven: false, bottomTrimmed: 0 };
+  const gaps = (n - 1) * reveal + 2 * end;
+  if (Math.abs(sum(explicit) + gaps - available) < 0.5)
+    return { heights: explicit.slice(), fellBackToEven: false, bottomTrimmed: 0 };
+  // A stack typed to 1.0's rule — no gap at the top and bottom — is the same
+  // design, the two end gaps over. Throwing every height away for an even
+  // split would cut a different chest of drawers from a project that has not
+  // changed; taking the difference off the bottom front keeps the design and
+  // lines it up with the door beside it.
+  const last = explicit[n - 1]!;
+  if (Math.abs(sum(explicit) + (n - 1) * reveal - available) < 0.5 && last - 2 * end > 0) {
+    const heights = explicit.slice();
+    heights[n - 1] = last - 2 * end;
+    return { heights, fellBackToEven: false, bottomTrimmed: 2 * end };
+  }
+  const each = Math.max(0, (available - gaps) / n);
+  return { heights: new Array(n).fill(each), fellBackToEven: true, bottomTrimmed: 0 };
 }
 
 /**

@@ -6,6 +6,8 @@ export interface DxfCircle {
   x: number;
   y: number;
   radius: number;
+  /** The part it is bored in, so a hole left off a tile can be named. Not written to the file. */
+  partId?: string;
 }
 
 export interface DxfText {
@@ -14,6 +16,8 @@ export interface DxfText {
   y: number;
   height: number;
   text: string;
+  /** Degrees counter-clockwise from +X. Absent or 0 reads left to right. */
+  rotation?: number;
 }
 
 export interface DxfPath {
@@ -90,6 +94,7 @@ export function writeDxf(d: DxfDrawing): string {
     w(30, 0);
     w(40, t.height);
     w(1, t.text);
+    if (t.rotation) w(50, t.rotation);
   }
   w(0, 'ENDSEC');
   w(0, 'EOF');

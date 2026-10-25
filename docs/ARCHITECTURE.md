@@ -63,7 +63,12 @@ ProjectParams
 ```
 
 `buildProject(params)` in `project.ts` runs the lot. `exportProject(project)`
-turns the result into files.
+turns the result into files, and into the instructions that cannot go inside
+them — tiling steps, turning a sheet over, a part crossing a seam, a hole left
+off one. Those come back as `warnings`, are shown under *Before you cut* in the
+export preview, and are written into the zip as `<name>-before-you-cut.txt`.
+Anything the export alone discovers has to reach the user by that route: no
+other part of the app sees it.
 
 ### Assembly order
 

@@ -1,17 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { base, upper } from './carcasses.js';
 import {
+  applyToPath,
+  bboxOf,
   blankSize,
   buildProject,
   defaultParams,
   exportProject,
   MaxRectsBin,
+  partTransform,
   planTiles,
   writeDxf,
   emptyDrawing,
   rect,
   circlePath,
   clipPathToBand,
+  clipProfileToBand,
   pocketLayer,
   drillLayer,
   sanitiseLayer,
@@ -126,6 +130,22 @@ describe('nesting', () => {
         expect(p.y).toBeGreaterThanOrEqual(margin - 1e-6);
         expect(p.x + p.w).toBeLessThanOrEqual(sheet.length - margin + 1e-6);
         expect(p.y + p.h).toBeLessThanOrEqual(sheet.width - margin + 1e-6);
+      }
+    }
+  });
+
+  it('draws every part exactly where the nester put it', () => {
+    // The margin check above reads the nest record; the file is cut from the
+    // drawn outline. The two disagreeing is how a face-frame stile once stood
+    // across its board while its record said it lay along it.
+    for (const sheet of project.nest.sheets) {
+      for (const placed of sheet.parts) {
+        const part = project.parts.find((q) => q.id === placed.partId)!;
+        const bb = bboxOf(applyToPath(part.outline, partTransform(part, placed)));
+        expect(bb.minX).toBeCloseTo(placed.x, 6);
+        expect(bb.minY).toBeCloseTo(placed.y, 6);
+        expect(bb.maxX).toBeCloseTo(placed.x + placed.w, 6);
+        expect(bb.maxY).toBeCloseTo(placed.y + placed.h, 6);
       }
     }
   });
@@ -310,6 +330,108 @@ describe('tile clipping', () => {
     const xs = clipped.pts.map((p) => p.x);
     expect(Math.max(...xs)).toBeCloseTo(100, 6);
     expect(Math.min(...xs)).toBeCloseTo(80, 6);
+  });
+});
+
+describe('profile clipping at a tile seam', () => {
+  const band = { from: 0, to: 100, axis: 'x' as const };
+
+  it('keeps a profile that already fits whole and closed', () => {
+    const r = rect(10, 10, 50, 50);
+    expect(clipProfileToBand(r, band)).toEqual([r]);
+  });
+
+  it('leaves the stretch inside the tile open, never closed along the seam', () => {
+    // A blank from x 80 to 130: the tile gets its top edge, its left end and
+    // its bottom edge as one cutter path. A closing edge along x = 100 would
+    // be a 50 mm full-depth cut straight across the part.
+    const pieces = clipProfileToBand(rect(80, 10, 50, 50), band);
+    expect(pieces).toHaveLength(1);
+    const piece = pieces[0]!;
+    expect(piece.closed).toBe(false);
+    const first = piece.pts[0]!;
+    const last = piece.pts[piece.pts.length - 1]!;
+    expect(first.x).toBeCloseTo(100, 9);
+    expect(last.x).toBeCloseTo(100, 9);
+    for (let i = 0; i + 1 < piece.pts.length; i++) {
+      const a = piece.pts[i]!;
+      const b = piece.pts[i + 1]!;
+      expect(Math.abs(a.x - 100) < 1e-9 && Math.abs(b.x - 100) < 1e-9).toBe(false);
+    }
+  });
+
+  it('runs every piece counter-clockwise, so the part is always on the left', () => {
+    // Whichever way the contour was drawn, an open piece's side is only
+    // recoverable from its direction — the warning tells CAM to cut on the
+    // right of travel, which is only true if this holds.
+    const cw = { ...rect(80, 10, 50, 50), pts: [...rect(80, 10, 50, 50).pts].reverse() };
+    for (const shape of [rect(80, 10, 50, 50), cw]) {
+      const [piece] = clipProfileToBand(shape, band);
+      // Travelling round the left end of the blank counter-clockwise means
+      // going down it: the top edge comes first.
+      expect(piece!.pts[0]!.y).toBeCloseTo(60, 9);
+      expect(piece!.pts[piece!.pts.length - 1]!.y).toBeCloseTo(10, 9);
+    }
+  });
+
+  it('gives a tile in the middle of a long part its two separate edges', () => {
+    const pieces = clipProfileToBand(rect(-50, 10, 200, 50), band);
+    expect(pieces).toHaveLength(2);
+    for (const p of pieces) {
+      expect(p.closed).toBe(false);
+      expect(p.pts.every((q) => Math.abs(q.y - 10) < 1e-9 || Math.abs(q.y - 60) < 1e-9)).toBe(true);
+    }
+  });
+
+  it('keeps the edge of a part that starts exactly on a seam and spans a whole tile', () => {
+    // The nester snaps parts onto seams on purpose. A blank from x 980 wider
+    // than one 980 mm tile: its near edge lies on the seam, the tile before
+    // drops the whole blank, and the tile after once dropped that edge as
+    // "opening" it — so no tile cut it at all.
+    const shape = rect(980, 100, 1120, 400);
+    const bands = [
+      { from: 0, to: 980, axis: 'x' as const },
+      { from: 980, to: 1960, axis: 'x' as const },
+      { from: 1960, to: 2940, axis: 'x' as const },
+    ];
+    const pieces = bands.flatMap((b) => clipProfileToBand(shape, b));
+    const length = pieces.reduce((a, p) => {
+      const segs = p.closed ? p.pts.length : p.pts.length - 1;
+      let l = 0;
+      for (let i = 0; i < segs; i++) {
+        const u = p.pts[i]!;
+        const v = p.pts[(i + 1) % p.pts.length]!;
+        l += Math.hypot(v.x - u.x, v.y - u.y);
+      }
+      return a + l;
+    }, 0);
+    expect(length).toBeCloseTo(2 * (1120 + 400), 6);
+  });
+
+  it('gives an edge lying on the seam to one tile only', () => {
+    // Nothing is machined twice: the edge at x = 100 closes the first tile and
+    // must not reappear opening the second.
+    const shape = rect(50, 10, 50, 50);
+    const stepped = {
+      closed: true,
+      pts: [
+        { x: 50, y: 10 },
+        { x: 100, y: 10 },
+        { x: 100, y: 30 },
+        { x: 150, y: 30 },
+        { x: 150, y: 60 },
+        { x: 50, y: 60 },
+      ],
+    };
+    expect(clipProfileToBand(shape, band)).toEqual([shape]);
+    const along = (pieces: ReturnType<typeof clipProfileToBand>): number =>
+      pieces
+        .flatMap((p) => p.pts.slice(1).map((b, i) => [p.pts[i]!, b] as const))
+        .filter(([a, b]) => Math.abs(a.x - 100) < 1e-9 && Math.abs(b.x - 100) < 1e-9).length;
+    const first = clipProfileToBand(stepped, band);
+    const second = clipProfileToBand(stepped, { from: 100, to: 200, axis: 'x' });
+    expect(along(first) + along(second)).toBe(1);
+    expect(along(first)).toBe(1);
   });
 });
 

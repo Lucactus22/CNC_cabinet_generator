@@ -1,4 +1,5 @@
-import { defaultExportOptions, exportProject } from '@cabgen/core';
+import { useMemo } from 'react';
+import { defaultExportOptions, exportProject, slug } from '@cabgen/core';
 import { useStore } from '../store';
 import { saveBlob, zipFiles } from '../download';
 import { useSheetViews } from '../sheetViews';
@@ -21,26 +22,51 @@ import { useDialog } from './overlays';
 export function ExportPreview() {
   const dialog = useDialog<HTMLElement>();
   const project = useStore((s) => s.project);
-  const params = useStore((s) => s.params);
   const safeNames = useStore((s) => s.safeNames);
   const setExportPreviewOpen = useStore((s) => s.setExportPreviewOpen);
   const setDiagnosticsOpen = useStore((s) => s.setDiagnosticsOpen);
 
+  const building = useStore((s) => s.building);
+  const buildError = useStore((s) => s.buildError);
+
   const sheets = useSheetViews(project);
   const warnings = project.diagnostics.filter((d) => d.severity === 'warning').length;
+  const errors = project.diagnostics.filter((d) => d.severity === 'error').length;
+  // Built once and shown before it is written, so the instructions read here
+  // are the instructions in the zip: which hole was left off a seam, when a
+  // sheet is turned over, how a profile crossing a seam is cut. Nothing else
+  // in the app says any of them.
+  const bundle = useMemo(
+    () => exportProject(project, { ...defaultExportOptions(), safeNames }),
+    [project, safeNames],
+  );
+  const instructionsFile = bundle.files.find((f) => f.name.endsWith('-before-you-cut.txt'))?.name;
+  // The top bar only checks this when it opens the preview, and an undo still
+  // works while the preview is up: the design underneath can change, be
+  // half-built or stop being cuttable after this opened.
+  const notNow =
+    buildError !== null
+      ? `${buildError} What is shown here is older than the design, so it cannot be downloaded.`
+      : building
+        ? 'Still catching up to your last change — wait a moment.'
+        : errors > 0
+          ? `The design now has ${errors} blocking problem${errors === 1 ? '' : 's'}, so it cannot be downloaded.`
+          : null;
 
   const close = (): void => setExportPreviewOpen(false);
 
   const download = (): void => {
-    const bundle = exportProject(project, { ...defaultExportOptions(), safeNames });
-    const slug =
-      params.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '') || 'cabinet';
+    if (building) return;
+    if (notNow !== null) {
+      close();
+      setDiagnosticsOpen(true);
+      return;
+    }
+    // Named off the design the files were written from, the same way every
+    // file inside it is.
     saveBlob(
       zipFiles(bundle.files.map((f) => ({ name: f.name, content: f.dxf }))),
-      `${slug}-cnc.zip`,
+      `${slug(project.params.name)}-cnc.zip`,
     );
     close();
   };
@@ -164,10 +190,34 @@ export function ExportPreview() {
           )}
         </div>
 
+        {bundle.warnings.length > 0 && (
+          <div className="export-instructions">
+            <h3>Before you cut</h3>
+            <p className="hint">
+              Also in the zip, as <code>{instructionsFile}</code>, to read at the machine.
+            </p>
+            <ol>
+              {bundle.warnings.map((w, i) => (
+                <li key={i}>{w}</li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        {notNow !== null && (
+          <p className="export-not-now" role="status">
+            {notNow}
+          </p>
+        )}
+
         <div className="export-preview-actions">
           <button onClick={close}>Back to the design</button>
-          <button className="primary" onClick={download}>
-            Download the zip
+          <button
+            className={`primary${notNow !== null && !building ? ' blocked' : ''}`}
+            onClick={download}
+            title={notNow ?? 'Download every sheet, tile and list as one zip.'}
+          >
+            {notNow !== null && !building ? 'See what is blocking it' : 'Download the zip'}
           </button>
         </div>
       </section>

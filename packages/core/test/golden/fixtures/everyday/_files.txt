@@ -14,3 +14,4 @@ stacked-built-in-sheet4.dxf
 stacked-built-in-sheet4-tile1.dxf
 stacked-built-in-sheet4-tile2.dxf
 stacked-built-in-cutlist.csv
+stacked-built-in-before-you-cut.txt

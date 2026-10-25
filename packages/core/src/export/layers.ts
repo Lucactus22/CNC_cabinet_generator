@@ -25,6 +25,16 @@ export const LAYER = {
 /** Suffix marking geometry that is machined after the sheet is turned over. */
 export const FLIP_SUFFIX = '_FLIP';
 
+/**
+ * Suffix marking a profile cut short at a tile seam.
+ *
+ * An open profile cannot be cut "outside" or "inside" the way a closed one
+ * can — CAM has no enclosed area to offset away from — so it gets a layer of
+ * its own that a toolpath template can treat differently, rather than
+ * arriving on `OUTLINE` and being skipped or offset to the wrong side.
+ */
+export const OPEN_SUFFIX = '_OPEN';
+
 export function num(value: number, opts: LayerOptions): string {
   // Two decimals is finer than any router positions to, and trailing zeros
   // just make the layer list harder to read.

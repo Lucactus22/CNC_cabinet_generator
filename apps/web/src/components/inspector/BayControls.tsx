@@ -277,16 +277,13 @@ export function DrawerStack({
   patch: (fn: (b: BaySpec) => void) => void;
 }) {
   const parts = useStore((s) => s.project.parts);
-  const doors = useStore((s) => s.params.doors);
   const heights = bay.drawerFrontHeights;
   if (heights.length === 0) return null;
 
-  // What the pipeline gave each drawer, back out of the face it cut: the face
-  // is the slice less the reveal (or twice the inset gap), so comparing faces
-  // with the numbers typed here would report every overlay stack as wrong.
+  // The heights typed here are the fronts themselves, so what the pipeline
+  // cut is compared with them directly: an even split is the only way the
+  // two differ, and then the fronts it cut add up to what would have worked.
   const cut = drawerFaceHeights(parts, cabinetId, carcass.id, bayIndex);
-  const trim = doors.fit === 'overlay' ? doors.reveal : 2 * doors.insetGap;
-  const allocated = cut.map((h) => h + trim);
 
   return (
     <Reveal className="drawer-list" param="cabinets[].carcasses[].bays[].drawerFrontHeights">
@@ -329,15 +326,7 @@ export function DrawerStack({
           Remove one
         </button>
       </div>
-      {cut.length > 0 && (
-        <Hint>
-          {sameish(allocated, heights)
-            ? `Fronts cut at ${cut.map((h) => h.toFixed(0)).join(' · ')} mm.`
-            : `Split evenly to fill the ${sum(allocated).toFixed(0)} mm opening: the fronts come out at ${cut
-                .map((h) => h.toFixed(0))
-                .join(' · ')} mm. Heights that add up to that are used as given.`}
-        </Hint>
-      )}
+      {cut.length > 0 && <Hint>{stackHint(cut, heights)}</Hint>}
     </Reveal>
   );
 }
@@ -356,6 +345,21 @@ function drawerFaceHeights(
 }
 
 const sum = (xs: number[]): number => xs.reduce((a, b) => a + b, 0);
+
+/**
+ * What became of the heights typed: used as given, kept with the bottom
+ * front trimmed because they add up the way 1.0 added them, or split evenly
+ * because they do not add up at all. The pipeline's warning says the same.
+ */
+function stackHint(cut: number[], typed: number[]): string {
+  const list = (xs: number[], digits: number): string =>
+    xs.map((h) => h.toFixed(digits)).join(' · ');
+  if (sameish(cut, typed)) return `Fronts cut at ${list(cut, 0)} mm.`;
+  if (sameish(cut.slice(0, -1), typed.slice(0, -1))) {
+    return `These add up the way 1.0 added them, so the bottom front gives up the gap that left out: cut at ${list(cut, 1)} mm.`;
+  }
+  return `These do not add up, so the stack is split evenly: the fronts come out at ${list(cut, 1)} mm. Fronts that add up to ${sum(cut).toFixed(1)} mm are used as given.`;
+}
 
 /** Within half a millimetre, which is finer than anything gets cut to. */
 const sameish = (a: number[], b: number[]): boolean =>

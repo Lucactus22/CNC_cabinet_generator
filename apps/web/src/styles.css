@@ -1485,6 +1485,37 @@ kbd {
   gap: var(--space-2);
   font-size: var(--text-base);
 }
+/* The export's own instructions: the only place the tiling steps, the turn
+   and a hole left off a seam are said, so they are read here rather than
+   found later in the zip. */
+.export-instructions {
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-4);
+}
+.export-instructions h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--warn);
+}
+.export-instructions .hint {
+  margin: 0 0 var(--space-3);
+}
+.export-instructions ol {
+  margin: 0;
+  padding-left: var(--space-6);
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  max-height: 22vh;
+  overflow-y: auto;
+}
+.export-not-now {
+  margin: 0;
+  color: var(--error);
+  font-size: var(--text-sm);
+}
 .export-preview-actions {
   display: flex;
   justify-content: flex-end;

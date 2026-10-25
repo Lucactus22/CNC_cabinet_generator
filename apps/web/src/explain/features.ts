@@ -56,7 +56,7 @@ const PURPOSE_LABEL: Record<string, string> = {
   'hinge-dowel': 'Hinge dowel holes',
   'hinge-plate': 'Hinge plate holes',
   handle: 'Handle fixing holes',
-  'slide-side': 'Slide holes, on the box',
+  'handle-sub-front': 'Pull bolt holes, through the sub-front',
   'slide-panel': 'Slide holes, in the cabinet',
   'wall-mount': 'Wall fixing holes',
   'surface-grooves': 'Grooved face',

@@ -172,3 +172,48 @@ describe('a bay', () => {
     expect(drawerParts()).toBeGreaterThan(0);
   });
 });
+
+describe('how the doors sit', () => {
+  it('hangs the doors inset on a hinge made for inset doors, not the overlay one', async () => {
+    // The cup boring is the same for both, so changing the fit and leaving
+    // the hinge behind bores doors that cannot close in their opening.
+    act(() => useStore.getState().select(SECOND_BAY));
+    render(<Inspector />);
+    await userEvent.click(screen.getByRole('button', { name: /Inset, flush in the opening/ }));
+    await settled();
+    const { params, project } = useStore.getState();
+    expect(params.doors.fit).toBe('inset');
+    expect(params.hardware.hingeId).toBe('blum-clip-top-blumotion-inset');
+    expect(project.diagnostics.some((d) => d.message.includes('is made for'))).toBe(false);
+
+    // Back to overlay lands on the same maker's overlay hinge, not the default.
+    await userEvent.click(screen.getByRole('button', { name: /Overlay, in front/ }));
+    await settled();
+    expect(useStore.getState().params.doors.fit).toBe('overlay');
+    expect(useStore.getState().params.hardware.hingeId).toBe('blum-clip-top-blumotion');
+  });
+});
+
+describe('the gap between inset fronts', () => {
+  it('is shown, and set, when an inset bay has more than one front in it', async () => {
+    // Inset fronts in one opening are a reveal apart, and under inset the
+    // reveal field gives way to the clearance: the gap between drawers was
+    // a number the stack was cut to that could not be seen or changed.
+    act(() => {
+      useStore.getState().update((p) => {
+        p.doors.fit = 'inset';
+        p.hardware.hingeId = 'blum-clip-top-blumotion-inset';
+        p.cabinets[0]!.carcasses[0]!.bays[1]!.doors = 'double';
+      });
+      useStore.getState().select(SECOND_BAY);
+    });
+    await settled();
+    render(<Inspector />);
+    const gap = screen.getByLabelText('Gap between fronts');
+    await userEvent.clear(gap);
+    await userEvent.type(gap, '4');
+    fireEvent.blur(gap);
+    await settled();
+    expect(useStore.getState().params.doors.reveal).toBe(4);
+  });
+});

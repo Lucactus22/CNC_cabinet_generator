@@ -684,21 +684,26 @@ export const TOPICS: Topic[] = [
     id: 'slide-holes',
     group: 'fronts',
     title: 'Slide mounting holes',
-    what: 'A symmetric pair of holes held in from each end of the runner, bored on the box’s own sides and on the two cabinet panels the bay is bounded by.',
-    why: 'Deliberately generic. Blum’s real screw positions are a different pair of offsets for every runner length, and transcribing that table is a promise this generator cannot keep — so it says so rather than inventing one.',
+    what: 'Blind holes for the runner’s system screws, in the two cabinet panels the bay is bounded by, where the maker’s own table puts them for the runner length chosen.',
+    why: 'Blind because an outer side is a finished face. Nothing is bored in the box: the runner does not screw to it, and the locking devices and rear hooks that hold it are set out with the maker’s template.',
     source: { doc: 'DRAWERS.md', heading: 'Slide mounting holes' },
     grounds: [
-      'generic, symmetric pair of mounting holes',
-      'mountInset',
-      'a lookup table nobody would want to maintain',
+      'the maker’s own screw table',
+      'screwPositions',
+      'never through',
+      'Nothing is bored in the drawer box',
     ],
     picture: {
       seed: withDrawers,
-      view: { kind: 'detail', pick: (part) => part.role === 'drawer-side' },
+      view: {
+        kind: 'detail',
+        pick: (part) =>
+          part.features.some((f) => f.kind === 'drill' && f.purpose === 'slide-panel'),
+      },
     },
-    present: hasPurpose('slide-side', 'slide-panel'),
+    present: hasPurpose('slide-panel'),
     param: 'hardware.slideId',
-    purposes: ['slide-side', 'slide-panel'],
+    purposes: ['slide-panel'],
   },
   {
     id: 'handles',
@@ -721,7 +726,7 @@ export const TOPICS: Topic[] = [
     },
     present: hasPurpose('handle'),
     param: 'hardware.handleId',
-    purposes: ['handle'],
+    purposes: ['handle', 'handle-sub-front'],
     measures: ({ params }) => {
       const handle = resolveHardware(params.hardware).handle;
       if (!handle) return [];

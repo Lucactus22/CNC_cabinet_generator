@@ -7,6 +7,16 @@ import { ExportPreview } from '../src/components/ExportPreview';
 import { RunStrip } from '../src/components/RunStrip';
 import { useStore } from '../src/store';
 import { exportableParams, resetStore, settled } from './setup/harness';
+import { saveBlob, saveText } from '../src/download';
+import { PartView } from '../src/components/PartView';
+import { exportProject } from '@cabgen/core';
+
+// Nothing in jsdom can receive a download; what matters is whether one was asked for.
+vi.mock('../src/download', async (original) => ({
+  ...(await original<typeof import('../src/download')>()),
+  saveBlob: vi.fn(),
+  saveText: vi.fn(),
+}));
 
 /**
  * The surfaces either side of the bench: the run drawn to scale along the
@@ -67,6 +77,95 @@ describe('the export preview', () => {
     render(<ExportPreview />);
     await userEvent.click(screen.getByRole('button', { name: 'Back to the design' }));
     expect(useStore.getState().exportPreviewOpen).toBe(false);
+  });
+
+  it("reads out the export's own instructions, the same ones the zip carries", async () => {
+    // How to set the tiles up, when to turn a sheet over, which hole was left
+    // off a seam: before this, every one of them was computed and thrown away,
+    // so a zip could arrive missing a hinge hole with nothing to say so.
+    await resetStore(exportableParams());
+    act(() => useStore.setState({ exportPreviewOpen: true }));
+    render(<ExportPreview />);
+    const bundle = exportProject(useStore.getState().project);
+    expect(bundle.warnings.length).toBeGreaterThan(0);
+    const dialog = screen.getByRole('dialog', { name: 'Export preview' });
+    expect(within(dialog).getByRole('heading', { name: 'Before you cut' })).toBeTruthy();
+    for (const w of bundle.warnings) expect(within(dialog).getByText(w)).toBeTruthy();
+    const txt = bundle.files.find((f) => f.name.endsWith('-before-you-cut.txt'))!;
+    for (const w of bundle.warnings) expect(txt.dxf).toContain(w);
+    expect(within(dialog).getByText(txt.name)).toBeTruthy();
+  });
+
+  it('downloads the zip when the design is still cuttable', async () => {
+    await resetStore(exportableParams());
+    vi.mocked(saveBlob).mockClear();
+    act(() => useStore.setState({ exportPreviewOpen: true }));
+    render(<ExportPreview />);
+    await userEvent.click(screen.getByRole('button', { name: 'Download the zip' }));
+    expect(saveBlob).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(saveBlob).mock.calls[0]![1]).toMatch(/-cnc\.zip$/);
+  });
+
+  it('will not download a design that stopped being cuttable while it was open', async () => {
+    // The top bar checks only when it opens this, and an undo still works
+    // while it is up. Undo back into a blocked design and the button must
+    // not write the zip regardless.
+    await resetStore(exportableParams());
+    vi.mocked(saveBlob).mockClear();
+    act(() => useStore.setState({ exportPreviewOpen: true }));
+    render(<ExportPreview />);
+    act(() => useStore.getState().load(useStore.getState().params));
+    await act(async () => {
+      useStore.getState().update((p) => {
+        for (const m of p.materials) m.sheets = [{ length: 2440, width: 1220 }];
+      });
+    });
+    await settled();
+    expect(useStore.getState().project.diagnostics.some((d) => d.severity === 'error')).toBe(true);
+
+    const dialog = screen.getByRole('dialog', { name: 'Export preview' });
+    expect(within(dialog).getByRole('status').textContent).toContain('blocking problem');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'See what is blocking it' }));
+    expect(saveBlob).not.toHaveBeenCalled();
+    expect(useStore.getState().diagnosticsOpen).toBe(true);
+    expect(useStore.getState().exportPreviewOpen).toBe(false);
+  });
+
+  it('will not download a drawing older than the design', async () => {
+    await resetStore(exportableParams());
+    vi.mocked(saveBlob).mockClear();
+    act(() => useStore.setState({ exportPreviewOpen: true }));
+    render(<ExportPreview />);
+    act(() =>
+      useStore.setState({ buildError: 'The design could not be built: the divider fell over' }),
+    );
+    expect(screen.getByRole('status').textContent).toContain('older than the design');
+    await userEvent.click(screen.getByRole('button', { name: 'See what is blocking it' }));
+    expect(saveBlob).not.toHaveBeenCalled();
+  });
+});
+
+describe("one part's own DXF", () => {
+  it('downloads the part when the drawing is current', async () => {
+    await resetStore();
+    vi.mocked(saveText).mockClear();
+    render(<PartView />);
+    await userEvent.click(screen.getByRole('button', { name: "Download this part's DXF" }));
+    expect(saveText).toHaveBeenCalledTimes(1);
+  });
+
+  it('will not download a drawing older than the design', async () => {
+    // The re-cut of a ruined panel is exactly when nobody re-reads the top
+    // bar: a stale part here would be cut to yesterday's numbers.
+    await resetStore();
+    vi.mocked(saveText).mockClear();
+    act(() =>
+      useStore.setState({ buildError: 'The design could not be built: the divider fell over' }),
+    );
+    render(<PartView />);
+    await userEvent.click(screen.getByRole('button', { name: "Download this part's DXF" }));
+    expect(saveText).not.toHaveBeenCalled();
+    expect(screen.getByRole('status').textContent).toContain('older than the design');
   });
 });
 
