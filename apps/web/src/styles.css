@@ -863,6 +863,28 @@ kbd {
   font-size: var(--text-xs);
   color: var(--muted);
 }
+.bit-drawer {
+  display: grid;
+  gap: var(--space-4);
+}
+.bit-drawer strong {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.bit {
+  display: grid;
+  gap: var(--space-2, 4px);
+  justify-items: start;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+.bit span {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
 .stack-block,
 .sheet-size {
   display: grid;

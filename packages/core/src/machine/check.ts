@@ -193,6 +193,31 @@ export function checkManufacturability(
     }
   }
 
+  // --- Parts against the cutter ---------------------------------------------
+  // The outline is assumed cut full depth (DXF.md's OUTLINE layer); how many
+  // passes CAM takes to get there is not this app's to know. A spiral's flutes only cut as far as they
+  // are long, and past that the shank rubs the kerf instead of cutting it, so
+  // thicker stock burns and snaps the bit well before the Z axis runs out.
+  const tooThick = new Map<string, Part[]>();
+  for (const part of parts) {
+    if (part.thickness <= params.tool.fluteLength + 1e-6) continue;
+    tooThick.set(part.materialId, [...(tooThick.get(part.materialId) ?? []), part]);
+  }
+  for (const [materialId, thick] of tooThick) {
+    const name =
+      params.materials.find((x) => x.id === materialId)?.name ??
+      params.stockMaterials.find((x) => x.id === materialId)?.name ??
+      materialId;
+    const thickness = Math.max(...thick.map((p) => p.thickness));
+    out.push({
+      severity: 'error',
+      topic: 'machine',
+      message: `${name} is ${thickness} mm thick, but the cutter's flutes are only ${params.tool.fluteLength} mm long, so ${thick.length === 1 ? thick[0]!.label : `${thick.length} parts`} cannot be cut through.`,
+      partIds: thick.map((p) => p.id),
+      hint: 'Fit a longer-flute cutter and set its flute length, or use thinner material.',
+    });
+  }
+
   // --- Tiling ------------------------------------------------------------
   const step = feedTravel - m.tileOverlap;
   if (sheetGoesToTheRouter && m.tilingAxis !== 'none' && step <= 0) {

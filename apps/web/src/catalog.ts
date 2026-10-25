@@ -732,11 +732,33 @@ export const CATALOG: CatalogEntry[] = [
     where: workshop('tooling'),
   },
   {
+    path: 'tool.fluteLength',
+    label: 'Flute length',
+    about: 'How much of the cutter can cut. Stock thicker than this cannot be cut through.',
+    words: ['cutting length', 'cut length', 'bit', 'endmill', 'router bit', 'tooling'],
+    where: workshop('tooling'),
+  },
+  {
+    path: 'tool.bits',
+    covers: true,
+    label: 'Bits in the drawer',
+    about: 'The bits the shop owns. Pick a spiral to cut with it.',
+    words: ['upcut', 'downcut', 'v-bit', 'v groove', 'ball nose', 'surfacing', 'spoilboard', 'bit'],
+    where: workshop('tooling'),
+  },
+  {
     path: 'tool.drillDiameter',
     label: 'Drill diameter',
     about: 'The separate bit for shelf-pin rows: 5 mm under the 32 mm system.',
     words: ['bit', 'boring', 'shelf pin', 'drill'],
     where: workshop('tooling'),
+  },
+  {
+    path: 'machine.name',
+    label: 'Machine name',
+    about: 'What the machine is called, so a saved workshop says whose bed it describes.',
+    words: ['cnc', 'router', 'twotrees', 'ttc-h40', 'model'],
+    where: workshop('machine'),
   },
   {
     path: 'machine.travelX',
