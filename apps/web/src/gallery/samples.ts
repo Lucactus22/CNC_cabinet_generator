@@ -40,7 +40,7 @@ function sampleCabinet(live: ProjectParams): Cabinet {
         linkWidthToBelow: false,
         floor: 'own',
         toeKick: { enabled: false, height: 100, setback: 50 },
-        hangingRail: { enabled: false, height: 100, screwDiameter: 6, screwSpacing: 400 },
+        hangingRail: { enabled: false, height: 100 },
         dividerCount: 0,
         bayWidths: [],
         bays: [

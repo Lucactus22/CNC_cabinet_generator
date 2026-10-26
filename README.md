@@ -50,6 +50,13 @@ already have. It is also under the ☰ menu as *Start from a design…*.
 cabinet, a box per carcass, a cell per bay. Click any of them to work on it,
 drag a cabinet to move it along the wall, `+` to add one.
 
+In the 3D view every panel is drawn a millimetre smaller on each face and
+outlined, so two panels that meet show a seam instead of melting into one
+colour. The only place two panels still share space is a joint, where a tongue
+sits in its neighbour's groove — the model never builds one part through
+another anywhere else, and a test holds it to that. The sizes in the DXF are
+the true ones; the shrink is drawing only.
+
 **The inspector** floats at the right and shows only what applies to whatever
 is selected — a bay's shelves and drawers, a carcass's size and panels, a
 panel's banding and effects. Click a panel in the 3D view and it comes up
@@ -393,7 +400,7 @@ everything it houses into is already in place, so a capped top is fitted
 before the sides that grow up into it and a back panel waits for the sides
 and bottom it is captured between. Doors are hung once their carcass exists,
 drawer boxes are mounted on their runners once they are glued up, and a
-loose adjustable shelf is dropped in last — each step naming its own
+loose adjustable shelves are dropped in last — each step naming its own
 hardware and how it is fixed. A cabinet with no doors gets no door steps; add
 drawers and the guide grows steps for them without anyone having written a
 line for that case. Print it, or save it as a PDF, straight from the browser.

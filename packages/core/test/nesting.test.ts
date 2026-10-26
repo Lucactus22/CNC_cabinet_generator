@@ -55,7 +55,9 @@ function fakePart(id: string, materialId: string, w: number, h: number): Part {
  * rectangle's own edge, straddling nothing, has to split the group into two
  * non-empty ones that are themselves cuttable the same way.
  */
-function isGuillotineCuttable(rects: ReadonlyArray<{ x: number; y: number; w: number; h: number }>): boolean {
+function isGuillotineCuttable(
+  rects: ReadonlyArray<{ x: number; y: number; w: number; h: number }>,
+): boolean {
   if (rects.length <= 1) return true;
 
   const xs = new Set(rects.flatMap((r) => [r.x, r.x + r.w]));

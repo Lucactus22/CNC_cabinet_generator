@@ -268,6 +268,16 @@ export interface JoinerySettings {
    */
   screwClearanceDiameter: number;
   screwSpacing: number;
+  /**
+   * Clearance hole for the screw driven through a hanging rail into the wall.
+   *
+   * Project-wide, like the joint screws: it is the same screw in the drawer
+   * whichever cabinet it hangs, and a hole size set cabinet by cabinet is one
+   * that disagrees with itself by the third wall unit.
+   */
+  wallScrewDiameter: number;
+  /** Centre-to-centre pitch along a hanging rail, kept under about one stud spacing (16 in = 406 mm) so the run always lands on at least two. */
+  wallScrewSpacing: number;
   /** Target width of a single tab in a tab-and-slot joint. */
   tabWidth: number;
   tabMinCount: number;
@@ -287,6 +297,14 @@ export interface BaySpec {
   shelves: ShelfMode;
   /** Number of fixed shelves; ignored for adjustable and none. */
   shelfCount: number;
+  /**
+   * Loose shelves on the pin ladder of an adjustable bay. A field of its own
+   * rather than a reuse of `shelfCount`: a bay switched from fixed to adjustable
+   * kept its old fixed count, which the builder ignored, so reading it as a
+   * loose count would have grown shelves nobody asked for in saved files.
+   * Absent means the one shelf an adjustable bay always held.
+   */
+  looseShelfCount?: number;
   /**
    * Explicit clear heights between the fixed shelves, bottom to top: what a
    * woodworker calls the gap under a shelf. One more of them than there are
@@ -378,10 +396,6 @@ export interface HangingRailSpec {
   enabled: boolean;
   /** Solid material top to bottom. Guides rip these to about 4 in (100 mm). */
   height: number;
-  /** Clearance hole for the screw driven through the rail into the wall. */
-  screwDiameter: number;
-  /** Centre-to-centre pitch, kept under about one stud spacing (16 in = 406 mm) so the run always lands on at least two. */
-  screwSpacing: number;
 }
 
 /**

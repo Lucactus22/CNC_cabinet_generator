@@ -208,6 +208,11 @@ default joinery is machinable from one face except a divider with shelves on
 both sides, which genuinely cannot be — and that part is named in the
 diagnostics.
 
+A sheet cut in one setup has no locating holes: the output pack draws its two
+passes as two pictures and lists the steps — square it into the origin corner,
+cut pass 1, turn it over left to right with the same long edge on the fence,
+cut pass 2, profile last. Only a tiled sheet gets registration holes.
+
 **Tiles are cut in sequence, not all at once.** Each tile cuts a band one step
 wide, where step = travel − overlap:
 

@@ -62,7 +62,9 @@ describe.each(GOLDEN_FIXTURES)('golden fixture: $name', ({ name, build }) => {
           `from the repo root, review what it writes under golden/fixtures/${name}/, and commit it.`,
       );
     }
-    const manifest = readFileSync(dir + MANIFEST, 'utf8').trim().split('\n');
+    const manifest = readFileSync(dir + MANIFEST, 'utf8')
+      .trim()
+      .split('\n');
     // Order matters — it is the sequence a workshop sets sheets up in — so
     // this is an ordered comparison, not a set. golden.test.ts pins the same
     // thing for the 0.1 fixture with a hand-written array; this one is

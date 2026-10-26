@@ -338,22 +338,10 @@ export function CarcassInspector({
                 param="cabinets[].carcasses[].hangingRail.height"
                 onChange={(v) => patch((c) => void (c.hangingRail.height = v))}
               />
-              <NumberField
-                label="Screw clearance"
-                value={spec.hangingRail.screwDiameter}
-                min={1}
-                param="cabinets[].carcasses[].hangingRail.screwDiameter"
-                onChange={(v) => patch((c) => void (c.hangingRail.screwDiameter = v))}
-                title="Sized to clear the screw's shank, not grip it."
-              />
-              <NumberField
-                label="Screw spacing"
-                value={spec.hangingRail.screwSpacing}
-                min={50}
-                param="cabinets[].carcasses[].hangingRail.screwSpacing"
-                onChange={(v) => patch((c) => void (c.hangingRail.screwSpacing = v))}
-                title="Kept under about one stud spacing (16 in = 406 mm) so the rail always lands on at least two."
-              />
+              <Hint>
+                The wall screw's hole size and spacing are one setting for the whole project, under
+                Screws in <em>How it goes together</em>.
+              </Hint>
             </>
           )}
         </Group>

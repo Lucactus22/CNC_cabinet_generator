@@ -21,6 +21,7 @@ import {
   layoutBays,
   layoutShelves,
   pinHeights,
+  restShelvesOnPins,
   wallMountXs,
 } from './layout.js';
 import { resolveHardware } from '../hardware/catalogue.js';
@@ -1058,9 +1059,9 @@ function buildCarcass(
       });
       wallMounts.push({
         panelId: hangId,
-        xs: wallMountXs(bay.x0, bay.x1, hr.screwSpacing),
+        xs: wallMountXs(bay.x0, bay.x1, params.joinery.wallScrewSpacing),
         z: (hangZ0 + hangZ1) / 2,
-        diameter: hr.screwDiameter,
+        diameter: params.joinery.wallScrewDiameter,
       });
       fills(i, hangId);
     });
@@ -1127,28 +1128,40 @@ function buildCarcass(
         for (const panelId of [leftPanel, rightPanel]) {
           pinRows.push({ panelId, heights, ys, bayCentreX });
         }
-        // One loose shelf per bay as a starting point, sized to drop in freely.
+        // Sized to drop in freely, and seated on the pins nearest an even
+        // spacing — a loose shelf can only rest where a hole was bored.
         const clearance = 2;
-        const id = `${prefix}-SHELF-ADJ-${i + 1}`;
-        add(
-          id,
-          `${human} adjustable shelf, bay ${i + 1}`,
-          'shelf',
-          shelfMat.id,
-          shelfMat.actualThickness,
-          box(
-            bay.x0 + clearance / 2,
-            bay.x1 - clearance / 2,
-            yFront + clearance,
-            innerBackY,
-            shelfZ0 + 200,
-            shelfZ0 + 200 + shelfMat.actualThickness,
-          ),
-          'z',
-          '+',
-          'u',
-        );
-        fills(i, id);
+        const wanted = Math.max(1, Math.round(baySpec.looseShelfCount ?? 1));
+        const rest = restShelvesOnPins(heights, shelfZ1, wanted, shelfMat.actualThickness, shelfZ0);
+        if (rest.placed < wanted) {
+          warnings.push(
+            `${human} carcass, bay ${i + 1}: the pin ladder has room for ${rest.placed} loose ${rest.placed === 1 ? 'shelf' : 'shelves'}, not ${wanted}. Make the bay taller or ask for fewer.`,
+          );
+        }
+        rest.zs.forEach((z, k) => {
+          // The first keeps the id it has always had, so a project saved with
+          // one loose shelf still names it the same way.
+          const id = `${prefix}-SHELF-ADJ-${i + 1}${k === 0 ? '' : `-${k + 1}`}`;
+          add(
+            id,
+            `${human} adjustable shelf, bay ${i + 1}${wanted > 1 ? ` no ${k + 1}` : ''}`,
+            'shelf',
+            shelfMat.id,
+            shelfMat.actualThickness,
+            box(
+              bay.x0 + clearance / 2,
+              bay.x1 - clearance / 2,
+              yFront + clearance,
+              innerBackY,
+              z,
+              z + shelfMat.actualThickness,
+            ),
+            'z',
+            '+',
+            'u',
+          );
+          fills(i, id);
+        });
       } else {
         notes.push(
           `${human} carcass bay ${i + 1}: the opening is too short for a shelf pin ladder, so no holes were drilled.`,

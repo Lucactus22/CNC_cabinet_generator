@@ -54,7 +54,6 @@ describe('hanging rail', () => {
   // segments — see the collision test below for why it cannot be one piece.
   const params = defaultParams();
   params.cabinets = [newCabinetOfType('wall', [])];
-  const railSpec = params.cabinets[0]!.carcasses[0]!.hangingRail;
   const { parts, warnings } = generate(params);
   const railIds = ['C1-B-HANGRAIL-1', 'C1-B-HANGRAIL-2'];
 
@@ -100,7 +99,7 @@ describe('hanging rail', () => {
       expect(holes.length).toBeGreaterThanOrEqual(2);
       for (const h of holes) {
         if (h.kind !== 'drill') continue;
-        expect(h.diameter).toBe(railSpec.screwDiameter);
+        expect(h.diameter).toBe(params.joinery.wallScrewDiameter);
         // A blind hole here would need the installer to guess how deep the
         // screw driven from inside the cabinet has to go to clear the rail.
         expect(h.depth).toBe('thru');

@@ -56,6 +56,17 @@ Order of operations: cut every layer without `_FLIP`, turn the sheet over left
 to right about its short axis, then cut the `_FLIP` layers. Profile the parts
 last, so they stay held in the sheet until everything else is done.
 
+**A sheet with no tiles has no locating holes.** The registration holes
+(`TILE_REG`, `TILE_REG_FLIP`) exist to carry a sheet from one tile to the next;
+a sheet cut in one setup has none, so its edges are the datum. Square it into
+the origin corner — short edge on the stop at X = 0, long edge on the fence at
+Y = 0 — for the first pass, and after turning it over left to right the long
+edge stays on the fence and the end that was at the far side goes onto the
+stop. The output pack draws the two passes as two pictures, because the
+mirrored second pass drawn on top of the first looks like machining floating in
+the waste, far from any part, when each feature is in fact inside its own part
+as it lies once the sheet is turned.
+
 Only parts flagged in the diagnostics produce these layers. With the default
 joinery, that is a divider with shelves on both sides, and nothing else. A sheet
 whose only second-face work is drilling — shelf-pin rows on both faces of a

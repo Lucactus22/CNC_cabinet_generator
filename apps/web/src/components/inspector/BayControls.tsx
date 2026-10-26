@@ -134,7 +134,10 @@ export function BayInside({
   // discover from a bay that happened to have drawers in it. Shown greyed with
   // the reason instead.
   if (drawers && compact) return null;
-  const onChange = (v: ShelfMode): void => patch((b) => void (b.shelves = v));
+  const onChange = (v: ShelfMode): void =>
+    patch((b) => {
+      b.shelves = v;
+    });
   const param = 'cabinets[].carcasses[].bays[].shelves';
   return (
     <>
@@ -162,16 +165,25 @@ export function BayInside({
           }
         />
       )}
-      {!drawers && bay.shelves === 'fixed' && (
+      {!drawers && (bay.shelves === 'fixed' || bay.shelves === 'adjustable') && (
         <NumberField
           label="How many"
-          value={bay.shelfCount}
+          value={bay.shelves === 'adjustable' ? (bay.looseShelfCount ?? 1) : bay.shelfCount}
           suffix=""
-          min={0}
+          min={bay.shelves === 'adjustable' ? 1 : 0}
           max={20}
           param="cabinets[].carcasses[].bays[].shelfCount"
+          title={
+            bay.shelves === 'adjustable'
+              ? 'Loose shelves, spread evenly and each seated on the nearest pin. The holes are bored for every position either way.'
+              : undefined
+          }
           onChange={(v) =>
             patch((b) => {
+              if (b.shelves === 'adjustable') {
+                b.looseShelfCount = Math.max(1, Math.round(v));
+                return;
+              }
               b.shelfCount = Math.max(0, Math.round(v));
               // Explicit heights are one per opening, so a changed count makes
               // the old list meaningless — it would silently fall back to an

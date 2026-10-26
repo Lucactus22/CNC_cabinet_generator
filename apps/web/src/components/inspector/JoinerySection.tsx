@@ -157,6 +157,31 @@ export function JoinerySection() {
           />
         </>
       )}
+      <NumberField
+        label="Wall screw clearance"
+        value={j.wallScrewDiameter}
+        step={0.5}
+        min={1}
+        param="joinery.wallScrewDiameter"
+        onChange={(v) =>
+          update((p) => {
+            p.joinery.wallScrewDiameter = v;
+          })
+        }
+        title="The hole through every hanging rail for the screw into the wall. One size for the whole project; sized to clear the shank, not grip it."
+      />
+      <NumberField
+        label="Wall screw spacing"
+        value={j.wallScrewSpacing}
+        min={50}
+        param="joinery.wallScrewSpacing"
+        onChange={(v) =>
+          update((p) => {
+            p.joinery.wallScrewSpacing = v;
+          })
+        }
+        title="Kept under about one stud spacing (16 in = 406 mm) so a rail always lands on at least two."
+      />
     </Group>
   );
 }

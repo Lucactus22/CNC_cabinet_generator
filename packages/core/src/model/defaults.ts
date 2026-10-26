@@ -82,7 +82,7 @@ export function defaultToolBits(): ToolBit[] {
 
 /** Off by default: only a wall cabinet has anything to hang from. */
 export function defaultHangingRail(): HangingRailSpec {
-  return { enabled: false, height: 100, screwDiameter: 6, screwSpacing: 400 };
+  return { enabled: false, height: 100 };
 }
 
 export function defaultMaterials(): Material[] {
@@ -362,6 +362,8 @@ export function defaultParams(): ProjectParams {
       screwHoles: true,
       screwClearanceDiameter: 4.5,
       screwSpacing: 150,
+      wallScrewDiameter: 6,
+      wallScrewSpacing: 400,
       tabWidth: 40,
       tabMinCount: 3,
       stackDadoDepth: 4,

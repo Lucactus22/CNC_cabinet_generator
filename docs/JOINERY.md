@@ -303,13 +303,30 @@ rail's own screw holes run **through its face**, not into its edge, so unlike
 every other joint here there is no depth to guess: `depth: 'thru'`.
 
 Screw positions are spread along each segment with both ends held in and never
-more than `screwSpacing` apart (400 mm by default, comfortably under a stud's
-usual 16 in / 406 mm), and never fewer than two per segment — this is the one
+more than `joinery.wallScrewSpacing` apart (400 mm by default, comfortably under
+a stud's usual 16 in / 406 mm), and never fewer than two per segment — this is the one
 part in the whole generator sized against something the machine cannot see:
 the studs behind the wall.
 
+The hole size, `joinery.wallScrewDiameter` (6 mm), and that spacing are
+project-wide, beside the joint screws, because it is one screw from one box
+whichever cabinet it hangs. They used to be set on each rail, which let two wall
+units in the same run disagree with each other; a file written that way keeps
+the value of its first enabled rail (a disabled one only carries the old default).
+
 Only a wall cabinet turns this on; every other type leaves `hangingRail`
 disabled, because nothing else in this generator is hung rather than stood.
+
+## Adjustable shelves
+
+An adjustable bay is bored with a ladder of shelf-pin holes each side
+(`joinery.shelfPin`), and holds as many loose shelves as `looseShelfCount` says —
+one, if it was never changed. Each shelf is seated on the pin hole nearest an
+even spacing, because a loose shelf can only rest where a hole was bored; no two
+share a pin, and each is a full shelf thickness clear of the one below. When the
+ladder is too short for the count, fewer are placed and a note says how many
+fit, rather than leaving shelves quietly off. The holes are bored for every
+position either way, so moving a shelf later needs no new machining.
 
 ## Fixed shelves
 

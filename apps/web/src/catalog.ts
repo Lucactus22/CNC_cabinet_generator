@@ -350,18 +350,18 @@ export const CATALOG: CatalogEntry[] = [
     where: bench('carcass', 'hanging'),
   },
   {
-    path: 'cabinets[].carcasses[].hangingRail.screwDiameter',
+    path: 'joinery.wallScrewDiameter',
     label: 'Wall screw clearance',
-    about: 'Sized to clear the screw’s shank, not grip it.',
-    words: ['wall fixing', 'screw hole'],
-    where: bench('carcass', 'hanging'),
+    about: 'One size for every hanging rail; sized to clear the screw’s shank, not grip it.',
+    words: ['wall fixing', 'screw hole', 'screw size', 'screws'],
+    where: bench('carcass', 'joinery'),
   },
   {
-    path: 'cabinets[].carcasses[].hangingRail.screwSpacing',
+    path: 'joinery.wallScrewSpacing',
     label: 'Wall screw spacing',
     about: 'Kept under one stud spacing so the rail always lands on at least two.',
     words: ['wall fixing', 'studs', 'noggin'],
-    where: bench('carcass', 'hanging'),
+    where: bench('carcass', 'joinery'),
   },
 
   // ------------------------------------------------------------------- bays

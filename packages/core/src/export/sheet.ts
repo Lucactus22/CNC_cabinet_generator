@@ -145,7 +145,7 @@ export function exportSheet(
   if (!plan) {
     if (turned) {
       warnings.push(
-        `${name} has features on both faces. Cut every layer without ${FLIP_SUFFIX} first, turn the ${label} over left to right, then cut the ${FLIP_SUFFIX} layers.`,
+        `${name} has features on both faces. Cut every layer without ${FLIP_SUFFIX} first, turn the ${label} over left to right, then cut the ${FLIP_SUFFIX} layers. It is one setup, so it has no locating holes: its edges are the datum, and the same long edge has to stay on the fence and the end that was at the far side has to go hard against the stop at the origin.`,
       );
     }
     return { full, tiles: [], plan: null, warnings };

@@ -9,6 +9,7 @@ import {
   type ShelfPinBoring,
 } from '../hardware/catalogue.js';
 import type {
+  HangingRailSpec,
   BaySpec,
   Cabinet,
   Carcass,
@@ -92,6 +93,16 @@ export function normaliseParams(raw: unknown): ProjectParams {
   if (!merged.materials.some((m) => m.id === merged.opening.scribe.materialId)) {
     merged.opening.scribe.materialId = merged.carcassMaterialId;
   }
+
+  // The wall screw's size and spacing used to be set on each hanging rail. They
+  // are project-wide now, so a file written with one takes its value from the
+  // first rail that carries it rather than quietly going back to the default.
+  const legacyRail = firstLegacyRail(input);
+  const stored = (input.joinery ?? {}) as Record<string, unknown>;
+  if (typeof stored.wallScrewDiameter !== 'number' && legacyRail.screwDiameter !== undefined)
+    merged.joinery.wallScrewDiameter = legacyRail.screwDiameter;
+  if (typeof stored.wallScrewSpacing !== 'number' && legacyRail.screwSpacing !== undefined)
+    merged.joinery.wallScrewSpacing = legacyRail.screwSpacing;
 
   // Older files called the clearance hole a pilot hole.
   const legacy = (input.joinery as Record<string, unknown>)?.screwPilotDiameter;
@@ -270,13 +281,44 @@ function normaliseCabinet(raw: Cabinet, index: number): Cabinet {
   };
 }
 
+function firstLegacyRail(input: Record<string, unknown>): {
+  screwDiameter?: number;
+  screwSpacing?: number;
+} {
+  const cabinets = Array.isArray(input.cabinets) ? (input.cabinets as Cabinet[]) : [];
+  for (const cabinet of cabinets) {
+    for (const carcass of cabinet?.carcasses ?? []) {
+      const rail = carcass?.hangingRail as unknown as Record<string, unknown> | undefined;
+      // A disabled rail carries the old default, not a choice: taking it would
+      // overwrite the size somebody set on the rail that is actually drilled.
+      if (
+        rail?.enabled === true &&
+        (typeof rail.screwDiameter === 'number' || typeof rail.screwSpacing === 'number')
+      ) {
+        return {
+          screwDiameter: typeof rail.screwDiameter === 'number' ? rail.screwDiameter : undefined,
+          screwSpacing: typeof rail.screwSpacing === 'number' ? rail.screwSpacing : undefined,
+        };
+      }
+    }
+  }
+  return {};
+}
+
 function mergeCarcass(template: Carcass, raw: Record<string, unknown>): Carcass {
   return {
     ...template,
     ...(raw as Partial<Carcass>),
     back: { ...template.back, ...(raw.back as object) },
     toeKick: { ...template.toeKick, ...(raw.toeKick as object) },
-    hangingRail: { ...template.hangingRail, ...(raw.hangingRail as object) },
+    hangingRail: {
+      enabled:
+        (raw.hangingRail as Partial<HangingRailSpec> | undefined)?.enabled ??
+        template.hangingRail.enabled,
+      height:
+        (raw.hangingRail as Partial<HangingRailSpec> | undefined)?.height ??
+        template.hangingRail.height,
+    },
     // A file written before R-07 has no faceFrame block at all: it opens
     // frameless, exactly as it was cut, with sensible numbers already sitting
     // there the moment someone switches it on.
@@ -299,6 +341,7 @@ function mergeBay(raw: unknown): BaySpec {
   return {
     shelves: bay.shelves ?? 'none',
     shelfCount: bay.shelfCount ?? 0,
+    ...(typeof bay.looseShelfCount === 'number' ? { looseShelfCount: bay.looseShelfCount } : {}),
     shelfGaps: Array.isArray(bay.shelfGaps) ? bay.shelfGaps : [],
     doors: bay.doors ?? 'none',
     drawerFrontHeights: Array.isArray(bay.drawerFrontHeights) ? bay.drawerFrontHeights : [],

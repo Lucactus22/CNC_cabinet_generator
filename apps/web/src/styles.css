@@ -2024,6 +2024,29 @@ kbd {
   color: var(--muted);
   font-weight: 400;
 }
+.turn-over {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+.turn-over summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.turn-over ol {
+  margin: var(--space-3) 0 0;
+  padding-left: var(--space-6);
+}
+.turn-over li {
+  margin-bottom: var(--space-2);
+}
+.pass-title {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
 .sheet-svg {
   width: 100%;
   height: auto;

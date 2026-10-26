@@ -1011,7 +1011,7 @@ function createEngine(host: HTMLElement, handlers: Handlers, theme: 'light' | 'd
 
       // Feature lines belong to the panel, so they fade with it.
       m.mesh.traverse((o) => {
-        if (!(o instanceof THREE.LineLoop)) return;
+        if (!(o instanceof THREE.LineLoop || o instanceof THREE.LineSegments)) return;
         const lm = o.material as THREE.LineBasicMaterial;
         lm.transparent = opacity < 1;
         lm.opacity = opacity;
@@ -1198,6 +1198,7 @@ function buildPart(part: Part, ink: Scene): BuiltPart | null {
     depth: part.thickness,
     bevelEnabled: false,
   });
+  const gap = shrinkPanel(geometry, outline, part.thickness);
   geometry.computeVertexNormals();
 
   const mesh = new THREE.Mesh(
@@ -1229,13 +1230,66 @@ function buildPart(part: Part, ink: Scene): BuiltPart | null {
   const home = origin.clone().addScaledVector(n, -part.thickness);
   mesh.position.copy(home);
 
-  addFeatureLines(mesh, part, ink);
+  addEdgeLines(mesh, geometry, ink);
+  addFeatureLines(mesh, part, ink, gap);
 
   return { group, mesh, part, home, away: home.clone() };
 }
 
+/**
+ * How much smaller than its true size each panel is drawn, per face, in mm.
+ *
+ * Two panels that meet are exactly flush, and a joint buries a tongue 4–6 mm
+ * into its neighbour, so with every panel one flat colour the cabinet read as
+ * one lump: nothing said where a side stopped and a shelf began, or whether
+ * two parts really crossed. A millimetre off every face opens a visible seam
+ * at each meeting and leaves a joint's engagement as the only place two
+ * panels still share space — which is the one overlap that is meant to be
+ * there. Drawing only; no coordinate that is exported is touched.
+ */
+const PANEL_GAP = 1;
+
+/**
+ * Pull a panel's extruded geometry in on every face by `PANEL_GAP`, never by
+ * more than a sixth of its smallest side, so a thin strip does not vanish.
+ * Returns the gap actually used, which the feature lines need to sit on the
+ * face that moved.
+ */
+function shrinkPanel(
+  geometry: THREE.ExtrudeGeometry,
+  outline: Array<{ x: number; y: number }>,
+  thickness: number,
+): number {
+  const xs = outline.map((p) => p.x);
+  const ys = outline.map((p) => p.y);
+  const [x0, x1] = [Math.min(...xs), Math.max(...xs)];
+  const [y0, y1] = [Math.min(...ys), Math.max(...ys)];
+  const smallest = Math.min(x1 - x0, y1 - y0, thickness);
+  const gap = Math.max(0, Math.min(PANEL_GAP, smallest / 6));
+  if (gap === 0) return 0;
+  const [cx, cy, cz] = [(x0 + x1) / 2, (y0 + y1) / 2, thickness / 2];
+  geometry.translate(-cx, -cy, -cz);
+  geometry.scale(
+    (x1 - x0 - 2 * gap) / (x1 - x0),
+    (y1 - y0 - 2 * gap) / (y1 - y0),
+    (thickness - 2 * gap) / thickness,
+  );
+  geometry.translate(cx, cy, cz);
+  return gap;
+}
+
+/** Outline every panel's silhouette and creases, so adjoining panels read as separate parts. */
+function addEdgeLines(mesh: THREE.Mesh, geometry: THREE.BufferGeometry, ink: Scene): void {
+  const lines = new THREE.LineSegments(
+    new THREE.EdgesGeometry(geometry, 30),
+    new THREE.LineBasicMaterial({ color: ink.edge, transparent: true, opacity: 1 }),
+  );
+  lines.userData.panelEdge = true;
+  mesh.add(lines);
+}
+
 /** Draw pockets and holes on the face they belong to, a hair proud of it. */
-function addFeatureLines(mesh: THREE.Mesh, part: Part, ink: Scene): void {
+function addFeatureLines(mesh: THREE.Mesh, part: Part, ink: Scene, gap = 0): void {
   // One material per panel, so a panel's lines fade with it rather than with
   // every other panel's.
   const material = new THREE.LineBasicMaterial({ color: ink.feature, transparent: false });
@@ -1255,7 +1309,7 @@ function addFeatureLines(mesh: THREE.Mesh, part: Part, ink: Scene): void {
     if (!pts || pts.length < 2) continue;
 
     // Local z: face A sits at the panel's thickness, face B at zero.
-    const z = side === 'A' ? part.thickness + lift : -lift;
+    const z = side === 'A' ? part.thickness - gap + lift : gap - lift;
     const geom = new THREE.BufferGeometry().setFromPoints(
       pts.map((p) => new THREE.Vector3(p.x, p.y, z)),
     );

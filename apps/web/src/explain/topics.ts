@@ -492,8 +492,6 @@ export const TOPICS: Topic[] = [
         p.cabinets[0]!.carcasses[0]!.hangingRail = {
           enabled: true,
           height: 100,
-          screwDiameter: 6,
-          screwSpacing: 400,
         };
       },
       view: { kind: 'section', axis: 'x' },
@@ -506,7 +504,7 @@ export const TOPICS: Topic[] = [
       if (!carcass) return [];
       return [
         { label: 'Rail height', value: mm(carcass.hangingRail.height) },
-        { label: 'Screws no further apart than', value: mm(carcass.hangingRail.screwSpacing) },
+        { label: 'Screws no further apart than', value: mm(params.joinery.wallScrewSpacing) },
       ];
     },
   },

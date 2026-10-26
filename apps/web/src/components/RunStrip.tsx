@@ -250,7 +250,13 @@ function markOf(
 
 function describeBay(
   spec:
-    | { doors: string; drawerFrontHeights: number[]; shelves: string; shelfCount: number }
+    | {
+        doors: string;
+        drawerFrontHeights: number[];
+        shelves: string;
+        shelfCount: number;
+        looseShelfCount?: number;
+      }
     | undefined,
 ): string {
   if (!spec) return 'open';
@@ -265,9 +271,9 @@ function describeBay(
         : `a door hinged ${spec.doors}`;
   const inside =
     spec.shelves === 'adjustable'
-      ? ', adjustable shelves'
+      ? `, ${spec.looseShelfCount ?? 1} adjustable ${(spec.looseShelfCount ?? 1) === 1 ? 'shelf' : 'shelves'}`
       : spec.shelves === 'fixed'
-        ? `, ${spec.shelfCount} fixed shelf${spec.shelfCount === 1 ? '' : 'ves'}`
+        ? `, ${spec.shelfCount} fixed ${spec.shelfCount === 1 ? 'shelf' : 'shelves'}`
         : '';
   return front + inside;
 }

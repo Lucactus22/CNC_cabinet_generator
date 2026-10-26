@@ -117,6 +117,60 @@ export function pinHeights(
   return out;
 }
 
+export interface RestingShelves {
+  /** Bottom face height of each loose shelf, lowest first. */
+  zs: number[];
+  /** How many of the requested shelves the ladder had room for. */
+  placed: number;
+}
+
+/**
+ * Seat `count` loose shelves on a pin ladder, spread as evenly as the holes
+ * allow.
+ *
+ * A loose shelf can only rest where there is a hole, so the even spacing
+ * `layoutShelves` gives a fixed shelf is only a target here: each shelf takes
+ * the pin nearest its ideal height. Two shelves never share a pin, and each is
+ * kept a full shelf thickness clear of the one below — otherwise a pair would
+ * be drawn passing through each other in the model and could not be loaded in
+ * the cabinet. When the ladder is too short for all of them, fewer are placed
+ * and the caller says so; a shelf quietly left off is the failure to avoid.
+ *
+ * `zs` is the hole's centre height, so a modelled shelf sits about a pin radius
+ * below where the pin would actually hold it — drawing only, nothing exported.
+ */
+export function restShelvesOnPins(
+  pins: number[],
+  z1: number,
+  count: number,
+  t: number,
+  z0: number,
+): RestingShelves {
+  if (count <= 0 || pins.length === 0) return { zs: [], placed: 0 };
+  const usable = pins.filter((p) => p + t <= z1 + 1e-9);
+  if (usable.length === 0) return { zs: [], placed: 0 };
+
+  const pitch = pins.length > 1 ? pins[1]! - pins[0]! : t;
+  const step = Math.max(pitch, Math.ceil(t / pitch - 1e-9) * pitch);
+  const top = usable[usable.length - 1]!;
+  const fit = Math.max(1, Math.min(count, Math.floor((top - usable[0]!) / step + 1e-9) + 1));
+
+  const gap = (z1 - z0 - fit * t) / (fit + 1);
+  const zs: number[] = [];
+  for (let k = 0; k < fit; k++) {
+    const ideal = z0 + (k + 1) * gap + k * t;
+    const lowest = k === 0 ? -Infinity : zs[k - 1]! + step - 1e-9;
+    const highest = top - (fit - 1 - k) * step + 1e-9;
+    const options = usable.filter((p) => p >= lowest && p <= highest);
+    const pick = options.reduce(
+      (best, p) => (Math.abs(p - ideal) < Math.abs(best - ideal) ? p : best),
+      options[0] ?? usable[0]!,
+    );
+    zs.push(pick);
+  }
+  return { zs, placed: fit };
+}
+
 const sum = (xs: number[]): number => xs.reduce((a, b) => a + b, 0);
 
 /**
